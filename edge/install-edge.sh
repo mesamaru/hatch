@@ -24,8 +24,10 @@ if [[ ! -f /etc/hatch-edge/agent.env ]]; then
   read -rp " edge の名前（edge-1 / edge-2）: " EDGE_ID
   read -rp " オーケストレーターの URL（Tailscale 経由, 例 http://hatch:8080）: " API
   read -rsp " EDGE_AGENT_TOKEN（オーケストレーターの設定ファイルにあります）: " TOKEN; echo
-  umask 077
+  # umask はサブシェルに閉じ込める（外側に漏れると、後で作るファイルが意図せず非公開権限になる）
+  ( umask 077
   printf 'EDGE_ID=%s\nPD_API_URL=%s\nEDGE_AGENT_TOKEN=%s\n' "$EDGE_ID" "$API" "$TOKEN" > /etc/hatch-edge/agent.env
+  )
 fi
 
 # 管理対象の設定ファイルを HAProxy に読み込ませる（本体の haproxy.cfg は手で管理可能なまま）

@@ -54,7 +54,8 @@ fi
 
 if [[ ! -f "$ENV_FILE" ]]; then
   [[ -n "$DB_PASS" ]] || { say "エラー: DB ユーザーは存在しますが設定ファイルがありません。手動で復旧してください"; exit 1; }
-  umask 027
+  # umask はサブシェルに閉じ込める（外側に漏れると、後で作るリリースのディレクトリが hatch から実行できなくなる）
+  ( umask 027
   cat > "$ENV_FILE" << ENV
 # Hatch 設定ファイル
 # 編集後: systemctl restart hatch.target
@@ -114,6 +115,7 @@ S3_BUCKET=
 S3_ACCESS_KEY=
 S3_SECRET_KEY=
 ENV
+  )
   chown root:hatch "$ENV_FILE"
   chmod 640 "$ENV_FILE"
 fi

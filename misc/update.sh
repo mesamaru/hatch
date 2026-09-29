@@ -167,7 +167,7 @@ ok "検証しました"
 
 REL="$PD_HOME/releases/${VER}"
 if [[ -d "$REL" && "$(readlink -f "$PD_HOME/current" 2>/dev/null)" != "$REL" ]]; then rm -rf "$REL"; fi
-install -d "$REL"
+install -d -m 755 "$REL"
 tar -xzf "$TMP/pd.tar.gz" -C "$REL" --strip-components=1 --no-same-owner
 [[ -f "$REL/VERSION" && -f "$REL/deploy/services.txt" ]] || die "配布ファイルの中身が不正です。"
 
