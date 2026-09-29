@@ -110,10 +110,13 @@ NET0="name=eth0,bridge=${BRIDGE},ip=${NET}"
 CREATED=0
 on_error() {
   msg_err "$1 行目でエラーが発生しました。"
-  if [[ $CREATED -eq 1 && "${PD_KEEP_ON_FAIL:-0}" != "1" ]]; then
-    msg_warn "作成途中のコンテナ ${CTID} を削除します（調査のため残す場合は PD_KEEP_ON_FAIL=1）。"
-    pct stop "$CTID" >/dev/null 2>&1 || true
-    pct destroy "$CTID" --purge >/dev/null 2>&1 || true
+  if [[ $CREATED -eq 1 ]]; then
+    journalctl -u "pve-container@${CTID}" --no-pager -n 20 2>/dev/null | sed 's/^/   /' || true
+    if [[ "${PD_KEEP_ON_FAIL:-0}" != "1" ]]; then
+      msg_warn "作成途中のコンテナ ${CTID} を削除します（調査のため残す場合は PD_KEEP_ON_FAIL=1）。"
+      pct stop "$CTID" >/dev/null 2>&1 || true
+      pct destroy "$CTID" --purge >/dev/null 2>&1 || true
+    fi
   fi
 }
 trap 'on_error $LINENO' ERR
@@ -121,8 +124,9 @@ trap 'on_error $LINENO' ERR
 # ---- テンプレート ------------------------------------------------------------
 msg_info "Debian テンプレートを確認しています"
 pveam update >/dev/null 2>&1 || msg_warn "テンプレート一覧の更新に失敗しました（手元の一覧を使います）"
-TEMPLATE="$(pveam available --section system | awk '/debian-13-standard/ {print $2}' | sort -V | tail -1)"
-[[ -n "$TEMPLATE" ]] || TEMPLATE="$(pveam available --section system | awk '/debian-12-standard/ {print $2}' | sort -V | tail -1)"
+# amd64 限定（フィルタしないと arm64 版が sort -V で後に来て誤って選ばれることがある）
+TEMPLATE="$(pveam available --section system | awk '/debian-13-standard.*_amd64\.tar/ {print $2}' | sort -V | tail -1)"
+[[ -n "$TEMPLATE" ]] || TEMPLATE="$(pveam available --section system | awk '/debian-12-standard.*_amd64\.tar/ {print $2}' | sort -V | tail -1)"
 [[ -n "$TEMPLATE" ]] || die "Debian テンプレートが見つかりません。"
 pveam list "$TSTORE" | grep -qF "$TEMPLATE" || pveam download "$TSTORE" "$TEMPLATE" >/dev/null
 msg_ok "テンプレート: $TEMPLATE"
