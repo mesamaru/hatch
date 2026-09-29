@@ -9,13 +9,13 @@ import psycopg
 import pytest
 from fastapi import APIRouter, Depends
 
-from pterodeploy import db
-from pterodeploy.adapters.discord_oauth import DiscordIdentity
-from pterodeploy.api import auth as auth_api
-from pterodeploy.auth import crypto
-from pterodeploy.auth.session import Principal, require_admin
-from pterodeploy.errors import AppError
-from pterodeploy.main import app
+from hatch import db
+from hatch.adapters.discord_oauth import DiscordIdentity
+from hatch.api import auth as auth_api
+from hatch.auth import crypto
+from hatch.auth.session import Principal, require_admin
+from hatch.errors import AppError
+from hatch.main import app
 
 ADMIN_ROLE, USER_ROLE = "900", "901"
 

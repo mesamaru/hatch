@@ -1,7 +1,7 @@
-"""定期処理のプロセス（pterodeploy-scheduler.service）。現在は「ゴミ箱の期限切れの完全削除」のみ。
+"""定期処理のプロセス（hatch-scheduler.service）。現在は「ゴミ箱の期限切れの完全削除」のみ。
 
 期限・整合性チェック・監視の取得は T17〜T20 で追加する。1分ごとに各処理を実行する。
-    python -m pterodeploy.scheduler
+    python -m hatch.scheduler
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from .jobs import lifecycle as _lifecycle  # noqa: F401 - purge の登録
 from .jobs.engine import enqueue
 from .logging import setup_logging
 
-log = logging.getLogger("pterodeploy.scheduler")
+log = logging.getLogger("hatch.scheduler")
 TICK_SECONDS = 60
 
 

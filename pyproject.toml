@@ -15,7 +15,7 @@ extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Header", 
 
 [tool.ruff.lint.per-file-ignores]
 # 生成する設定ファイルの行は長くなる
-"pterodeploy/edge/render.py" = ["E501"]
+"hatch/edge/render.py" = ["E501"]
 # 他のテストのフィクスチャを取り込んで使う（引数名が同じになる）
 "tests/api/test_lifecycle.py" = ["F811"]
 

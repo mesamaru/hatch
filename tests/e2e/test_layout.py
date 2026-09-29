@@ -17,7 +17,7 @@ import time
 import psycopg
 import pytest
 
-from pterodeploy.auth.crypto import sha256_hex
+from hatch.auth.crypto import sha256_hex
 
 pytest.importorskip("playwright.sync_api")
 from playwright.sync_api import sync_playwright  # noqa: E402
@@ -47,7 +47,7 @@ def server(db_url):
     """DATABASE_URL を db_url に向けたまま、実際に uvicorn を起動する。"""
     port = _free_port()
     proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "pterodeploy.main:app", "--host", "127.0.0.1", "--port", str(port)],
+        [sys.executable, "-m", "uvicorn", "hatch.main:app", "--host", "127.0.0.1", "--port", str(port)],
         env=os.environ.copy(),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

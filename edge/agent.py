@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""pterodeploy edge エージェント（Linode などの edge サーバーで動作）
+"""Hatch edge エージェント（Linode などの edge サーバーで動作）
 
 オーケストレーターから HAProxy 設定を「取りに行く」方式です。
   - オーケストレーターが止まっていても、最後に適用した設定のまま動き続けます
@@ -16,13 +16,13 @@ import time
 import urllib.error
 import urllib.request
 
-API = os.environ["PD_API_URL"].rstrip("/")          # 例 http://pterodeploy:8080 （Tailscale 経由）
+API = os.environ["PD_API_URL"].rstrip("/")          # 例 http://hatch:8080 （Tailscale 経由）
 TOKEN = os.environ["EDGE_AGENT_TOKEN"]
 EDGE_ID = os.environ["EDGE_ID"]                      # 例 edge-1
 BASE_CFG = os.environ.get("HAPROXY_BASE", "/etc/haproxy/haproxy.cfg")
-MANAGED = os.environ.get("HAPROXY_MANAGED", "/etc/haproxy/pterodeploy.cfg")
-NFT = os.environ.get("NFT_MANAGED", "/etc/pterodeploy-edge/pterodeploy.nft")
-STATE = os.environ.get("STATE_FILE", "/var/lib/pterodeploy-edge/state.json")
+MANAGED = os.environ.get("HAPROXY_MANAGED", "/etc/haproxy/hatch.cfg")
+NFT = os.environ.get("NFT_MANAGED", "/etc/hatch-edge/hatch.nft")
+STATE = os.environ.get("STATE_FILE", "/var/lib/hatch-edge/state.json")
 INTERVAL = int(os.environ.get("POLL_SECONDS", "10"))
 
 
@@ -63,8 +63,8 @@ def haproxy_check(candidate: str) -> tuple[bool, str]:
 
 
 def apply_nft(rules: str) -> tuple[bool, str]:
-    """UDP の転送ルール（nftables）。空なら pterodeploy のテーブルを消す。"""
-    body = "table ip pterodeploy\ndelete table ip pterodeploy\n" + (rules or "")
+    """UDP の転送ルール（nftables）。空なら hatch のテーブルを消す。"""
+    body = "table ip hatch\ndelete table ip hatch\n" + (rules or "")
     new = NFT + ".new"
     with open(new, "w", encoding="utf-8") as f:
         f.write(body)

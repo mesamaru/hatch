@@ -6,7 +6,7 @@ from datetime import timedelta
 import psycopg
 import pytest
 
-from pterodeploy import __version__, health
+from hatch import __version__, health
 
 
 @pytest.fixture(autouse=True)
@@ -54,7 +54,7 @@ def test_version_mismatch_is_degraded():
 def test_endpoint_requires_token(monkeypatch):
     from fastapi.testclient import TestClient
 
-    from pterodeploy.main import app
+    from hatch.main import app
 
     monkeypatch.setenv("PD_HEALTH_TOKEN", "t0ken")
     cl = TestClient(app)

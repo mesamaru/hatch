@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  pterodeploy 更新スクリプト（コンテナ内の `update` コマンドから呼ばれます）
+#  Hatch 更新スクリプト(コンテナ内の `update` コマンドから呼ばれます)
 #
 #    update                  最新版に更新
 #    update --check          更新があるか確認だけ（更新あり: 終了コード 10）
@@ -15,9 +15,9 @@
 # =============================================================================
 set -Eeuo pipefail
 
-PD_HOME=/opt/pterodeploy
-ENV_FILE=/etc/pterodeploy/pterodeploy.env
-LOCK=/run/pterodeploy-update.lock
+PD_HOME=/opt/hatch
+ENV_FILE=/etc/hatch/hatch.env
+LOCK=/run/hatch-update.lock
 KEEP_RELEASES=3
 KEEP_DB_BACKUPS=10
 
@@ -85,7 +85,7 @@ install_units() { # install_units <リリースディレクトリ>
   local rel="$1"
   install -m 644 "$rel"/deploy/systemd/*.service "$rel"/deploy/systemd/*.target /etc/systemd/system/
   systemctl daemon-reload
-  systemctl enable pterodeploy.target >/dev/null 2>&1
+  systemctl enable hatch.target >/dev/null 2>&1
   while read -r svc; do systemctl enable "$svc" >/dev/null 2>&1; done < <(grep -v '^\s*#' "$rel/deploy/services.txt" | grep -v '^\s*$')
 }
 
@@ -96,10 +96,10 @@ switch_to() { # switch_to <リリースディレクトリ>
   mv -Tf "$PD_HOME/current.new" "$PD_HOME/current"
 }
 
-restart_all() { systemctl restart pterodeploy.target; }
+restart_all() { systemctl restart hatch.target; }
 
 run_as_app() { # 設定ファイルを読み込んでアプリユーザーで実行
-  runuser -u pterodeploy -- bash -c "set -a; . '$ENV_FILE'; set +a; exec \"\$@\"" _ "$@"
+  runuser -u hatch -- bash -c "set -a; . '$ENV_FILE'; set +a; exec \"\$@\"" _ "$@"
 }
 
 # ---- ロールバック ------------------------------------------------------------
@@ -111,14 +111,14 @@ if [[ "$MODE" == rollback ]]; then
     DUMP="$(ls -1t "$PD_HOME"/backups/pre-*.sql.gz 2>/dev/null | head -1 || true)"
     [[ -n "$DUMP" ]] || die "DB のバックアップが見つかりません。"
     [[ $YES -eq 1 ]] || { read -rp " DB を ${DUMP##*/} の時点に戻します。よろしいですか？ [y/N] " a; [[ "$a" == [yY] ]] || exit 1; }
-    systemctl stop pterodeploy.target
-    runuser -u postgres -- dropdb --if-exists pterodeploy
-    runuser -u postgres -- createdb -O pterodeploy -E UTF8 -T template0 pterodeploy
-    gunzip -c "$DUMP" | runuser -u postgres -- psql -q -v ON_ERROR_STOP=1 pterodeploy >/dev/null
+    systemctl stop hatch.target
+    runuser -u postgres -- dropdb --if-exists hatch
+    runuser -u postgres -- createdb -O hatch -E UTF8 -T template0 hatch
+    gunzip -c "$DUMP" | runuser -u postgres -- psql -q -v ON_ERROR_STOP=1 hatch >/dev/null
     ok "DB を戻しました"
   fi
   install_units "$PREV"; switch_to "$PREV"; restart_all
-  health_ok && ok "$(current_ver) に戻しました" || die "戻した後も起動を確認できません。journalctl -u pterodeploy-api -n 80 を確認してください。"
+  health_ok && ok "$(current_ver) に戻しました" || die "戻した後も起動を確認できません。journalctl -u hatch-api -n 80 を確認してください。"
   exit 0
 fi
 
@@ -138,8 +138,8 @@ fi
 [[ "$REL_JSON" != "null" && -n "$REL_JSON" ]] || die "リリースが見つかりません。"
 TAG="$(jq -r .tag_name <<<"$REL_JSON")"
 VER="${TAG#v}"
-TAR_URL="$(jq -r --arg n "pterodeploy-${VER}.tar.gz" '.assets[] | select(.name==$n) | .browser_download_url' <<<"$REL_JSON")"
-SUM_URL="$(jq -r --arg n "pterodeploy-${VER}.tar.gz.sha256" '.assets[] | select(.name==$n) | .browser_download_url' <<<"$REL_JSON")"
+TAR_URL="$(jq -r --arg n "hatch-${VER}.tar.gz" '.assets[] | select(.name==$n) | .browser_download_url' <<<"$REL_JSON")"
+SUM_URL="$(jq -r --arg n "hatch-${VER}.tar.gz.sha256" '.assets[] | select(.name==$n) | .browser_download_url' <<<"$REL_JSON")"
 [[ -n "$TAR_URL" && -n "$SUM_URL" ]] || die "リリース ${TAG} に配布ファイルがありません。"
 
 CUR="$(current_ver)"
@@ -180,14 +180,14 @@ ok "依存パッケージを導入しました"
 if [[ $FIRST -eq 0 ]]; then
   info "データベースを退避しています"
   STAMP="$(date +%Y%m%d-%H%M%S)"
-  runuser -u postgres -- pg_dump pterodeploy | gzip > "$PD_HOME/backups/pre-${VER}-${STAMP}.sql.gz"
+  runuser -u postgres -- pg_dump hatch | gzip > "$PD_HOME/backups/pre-${VER}-${STAMP}.sql.gz"
   chmod 600 "$PD_HOME/backups/pre-${VER}-${STAMP}.sql.gz"
   ls -1t "$PD_HOME"/backups/pre-*.sql.gz | tail -n +$((KEEP_DB_BACKUPS + 1)) | xargs -r rm -f
   ok "退避しました（backups/pre-${VER}-${STAMP}.sql.gz）"
 fi
 
 info "データベースを移行しています"
-(cd "$REL" && run_as_app "$REL/.venv/bin/python" -m pterodeploy.migrate) || die "データベースの移行に失敗しました。現在のバージョンのまま動作しています。"
+(cd "$REL" && run_as_app "$REL/.venv/bin/python" -m hatch.migrate) || die "データベースの移行に失敗しました。現在のバージョンのまま動作しています。"
 ok "移行しました"
 
 # ---- 切り替えと起動確認 --------------------------------------------------------
@@ -205,11 +205,11 @@ else
     install_units "$PREV"
     ln -sfn "$PREV" "$PD_HOME/current.new" && mv -Tf "$PD_HOME/current.new" "$PD_HOME/current"
     restart_all
-    health_ok && warn "$(current_ver) に戻しました。原因: journalctl -u pterodeploy-api -n 80" \
-              || die "戻した後も起動を確認できません。journalctl -u pterodeploy-api -n 80 を確認してください。"
+    health_ok && warn "$(current_ver) に戻しました。原因: journalctl -u hatch-api -n 80" \
+              || die "戻した後も起動を確認できません。journalctl -u hatch-api -n 80 を確認してください。"
     exit 1
   fi
-  die "起動を確認できません。journalctl -u pterodeploy-api -n 80 を確認してください。"
+  die "起動を確認できません。journalctl -u hatch-api -n 80 を確認してください。"
 fi
 
 # ---- 古いリリースの整理 --------------------------------------------------------

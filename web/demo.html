@@ -508,7 +508,7 @@ function resetState(){
   D.defaultBg = {kind:"preset", id:"aurora"};
 }
 /* 表示の設定（本番では /api/me/preferences に保存。デモではこのブラウザにだけ保存） */
-const DISPLAY_KEY = "pterodeploy-demo-display";
+const DISPLAY_KEY = "hatch-demo-display";
 function loadDisplay(){
   try { const v = JSON.parse(localStorage.getItem(DISPLAY_KEY) || "null"); if (v && typeof v === "object") return {glass:v.glass ?? .72, theme:v.theme ?? "", bg:v.bg || {kind:"default"}, dim:v.dim ?? .25, blur:v.blur ?? 0}; } catch (e) {}
   return {};
@@ -781,7 +781,7 @@ function pSub(page){
       ${!d ? group([`<div class="field"><input id="dm" placeholder="例：play.my-server.jp" style="text-align:left" autocomplete="off" autocapitalize="off" aria-label="独自ドメイン"><button class="btn sm fill" data-act="dm-add">追加</button></div>`], "独自ドメイン", `<span id="dm-help">自分で管理している DNS にレコードを追加できる必要があります。</span>`)
         : `${group([cell({icon:"globe", color:"var(--teal)", title:`<span class="mono">${esc(d.name)}</span>`, val:`<span class="pill ${d.state === "有効" ? "g" : "o"}">${esc(d.state)}</span>`})], "独自ドメイン")}
         <div class="gf" style="margin-top:10px">お使いの DNS に次のレコードを追加してください。</div>
-        ${group([cell({title:"TXT", sub:`<span class="mono">_pterodeploy.${esc(d.name)} = pd-verify-7f3c91a2</span>`, subWrap:true}), cell({title:"CNAME", sub:`<span class="mono">${esc(d.name)} → ${esc(edgeName(s))}</span>`, subWrap:true}), cell({title:"SRV", sub:`<span class="mono">_minecraft._tcp.${esc(d.name)} 0 5 ${s.port} ${esc(edgeName(s))}</span>`, subWrap:true})])}
+        ${group([cell({title:"TXT", sub:`<span class="mono">_hatch.${esc(d.name)} = pd-verify-7f3c91a2</span>`, subWrap:true}), cell({title:"CNAME", sub:`<span class="mono">${esc(d.name)} → ${esc(edgeName(s))}</span>`, subWrap:true}), cell({title:"SRV", sub:`<span class="mono">_minecraft._tcp.${esc(d.name)} 0 5 ${s.port} ${esc(edgeName(s))}</span>`, subWrap:true})])}
         <div class="row" style="margin-top:14px">${d.state !== "有効" ? `<button class="btn fill" data-act="dm-verify">設定を確認</button>` : ""}<button class="btn red" data-act="dm-rm">外す</button></div>`}`;
   }
   if (page === "behavior"){
@@ -926,7 +926,7 @@ function adminPage(page, arg){
     b = `<div class="seg" role="group" aria-label="絞り込み">${[["all","すべて"],["admin","管理者"],["user","利用者"],["system","システム"]].map(([k, l]) => `<button data-act="afilter" data-arg="${k}" aria-pressed="${f === k}">${l}</button>`).join("")}</div>
       ${group(rows.map(r => cell({title:esc(r[3]), sub:`${esc(r[0])}・${esc(r[1])}・${esc(r[2])}・${esc(r[4])}`, subWrap:true, val:`<span class="pill ${r[5] === "成功" ? "g" : "o"}">${esc(r[5])}</span>`})), "", "追記専用で1年間保存します。")}`;
   }
-  if (page === "keys") b = group([["ゲームパネル Application","ユーザー・サーバー・ノード"],["ゲームパネル Client","サブユーザー・バックアップ・スケジュール"],["Cloudflare","登録ドメインの DNS 編集のみ"],["Uptime Kuma","連携専用アカウント"],["Object Storage","バックアップ用バケットのみ"],["edge エージェント","設定の取得と報告のみ"]].map(k => cell({icon:"key", color:"var(--gray)", title:k[0], sub:k[1], act:"rotate", arg:k[0]})), "", "キーはサーバーだけが持ち、ブラウザや Bot には渡しません。変更はコンテナ内の pterodeploy-setup で行います。");
+  if (page === "keys") b = group([["ゲームパネル Application","ユーザー・サーバー・ノード"],["ゲームパネル Client","サブユーザー・バックアップ・スケジュール"],["Cloudflare","登録ドメインの DNS 編集のみ"],["Uptime Kuma","連携専用アカウント"],["Object Storage","バックアップ用バケットのみ"],["edge エージェント","設定の取得と報告のみ"]].map(k => cell({icon:"key", color:"var(--gray)", title:k[0], sub:k[1], act:"rotate", arg:k[0]})), "", "キーはサーバーだけが持ち、ブラウザや Bot には渡しません。変更はコンテナ内の hatch-setup で行います。");
   return `${navbar(T, {back:backLabel(), right})}<div class="page ${wide ? "wide" : ""}"><h1 class="large">${esc(T)}</h1>${b}</div>`;
 }
 
@@ -1390,7 +1390,7 @@ const ACT = {
   violation(a){ closeMenu(); sheet(`${sheetHead("違反を記録", {right:"記録", rightAct:"violation-ok"})}<div class="sheet-b">${group([`<div class="field"><label for="vs">対象</label><select id="vs">${D.servers.map(x => `<option value="${esc(x.id)}" ${x.id === a ? "selected" : ""}>${esc(x.owner)}/${esc(x.id)}</option>`).join("")}</select></div>`, `<div class="field"><label for="va">対応</label><select id="va"><option>警告</option><option>サーバー停止</option></select></div>`, `<div class="field col"><label for="vr">理由（所有者に通知されます）</label><textarea id="vr"></textarea></div>`])}</div>`, "small"); },
   "violation-ok"(){ const id = $("#vs").value, act = $("#va").value, r = ($("#vr").value || "").trim(); if (!r) return toast("理由を入力してください", "warn"); const s = srv(id); D.violations.unshift({id:Date.now(), user:s.owner, server:id, reason:r, action:act, at:"9/27", resolved:act === "警告"}); if (act === "サーバー停止") Object.assign(s, {st:"suspended", suspend:r}); audit(act === "警告" ? "警告を記録" : "違反によりサーバーを停止", `${s.owner}/${id}`); closeSheet(); toast(act === "警告" ? "記録して所有者に通知しました" : `${id} を停止しました`, "gavel"); render(); },
   unsuspend(a){ closeMenu(); const s = srv(a); if (!s) return; confirmSheet({title:"利用停止を解除", body:`${esc(s.id)} を起動し、監視を再開します。`, ok:"解除", onOk(){ Object.assign(s, {st:"up", suspend:null}); D.violations.forEach(v => { if (v.server === s.id) v.resolved = true; }); audit("停止を解除", `${s.owner}/${s.id}`); render(); }}); },
-  rotate(a){ sheet(`${sheetHead(a, {left:"閉じる"})}<div class="sheet-b">${group([cell({title:"1. 発行元で新しいキーを作る", sub:"権限は同じ範囲に絞る", subWrap:true}), cell({title:"2. pterodeploy-setup で入力", sub:"接続を確認してから保存されます", subWrap:true}), cell({title:"3. 古いキーを無効にする", sub:"動作を確認した後で", subWrap:true})], "キーの入れ替え")}</div>`, "small"); },
+  rotate(a){ sheet(`${sheetHead(a, {left:"閉じる"})}<div class="sheet-b">${group([cell({title:"1. 発行元で新しいキーを作る", sub:"権限は同じ範囲に絞る", subWrap:true}), cell({title:"2. hatch-setup で入力", sub:"接続を確認してから保存されます", subWrap:true}), cell({title:"3. 古いキーを無効にする", sub:"動作を確認した後で", subWrap:true})], "キーの入れ替え")}</div>`, "small"); },
   pw(){ closeSheet(); sheet(`${sheetHead("パスワードを変更", {right:"変更", rightAct:"pw-ok"})}<div class="sheet-b">${group([`<div class="field"><label for="p1">新しい</label><input id="p1" type="password" autocomplete="new-password" placeholder="12文字以上"></div>`, `<div class="field"><label for="p2">確認</label><input id="p2" type="password" autocomplete="new-password"></div>`], "", "パネルとゲームパネルの両方に同時に反映します。")}</div>`, "small"); },
   "pw-ok"(){ const a = $("#p1").value, b = $("#p2").value; if (a.length < 12) return toast("12文字以上にしてください", "warn"); if (a !== b) return toast("一致しません", "warn"); audit("パスワードを変更", S.user); closeSheet(); toast("両方のパスワードを変更しました"); render(); },
   "tos-view"(){ showTos(); $("#tos-ok").checked = true; $("#tos-btn").disabled = false; $("#tos-btn").textContent = "閉じる"; },

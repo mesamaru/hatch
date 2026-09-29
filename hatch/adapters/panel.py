@@ -73,7 +73,7 @@ class NewPanelServer:
     backups: int
     allocation_id: int
     io: int = 500
-    description: str = "pterodeploy が作成"
+    description: str = "Hatch が作成"
 
 
 @dataclass(frozen=True)

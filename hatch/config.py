@@ -1,7 +1,7 @@
-"""設定ファイル（/etc/pterodeploy/pterodeploy.env → 環境変数）の読み込みと検証。
+"""設定ファイル（/etc/hatch/hatch.env → 環境変数）の読み込みと検証。
 
 使い方:
-    from pterodeploy.config import get_settings
+    from hatch.config import get_settings
     s = get_settings()          # 必須の値が無ければ ConfigError（日本語で不足項目を列挙）
 
 一覧と意味は docs/IMPLEMENTATION.md 8.1。項目を増やしたら必ずそちらにも追記する。
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
     PD_INSTANCE: str = Field(pattern=r"^[a-z0-9]{1,8}$")
     PD_SECRET_KEY: SecretStr
     PD_HEALTH_TOKEN: SecretStr
-    PD_DATA_DIR: Path = Path("/var/lib/pterodeploy")
+    PD_DATA_DIR: Path = Path("/var/lib/hatch")
     PD_TIMEZONE: str = "Asia/Tokyo"
     DATABASE_URL: SecretStr
 
@@ -125,7 +125,7 @@ class Settings(BaseSettings):
 
 
 def _explain(err: ValidationError) -> str:
-    lines = ["設定ファイル（/etc/pterodeploy/pterodeploy.env）に問題があります。pterodeploy-setup で直してください。"]
+    lines = ["設定ファイル（/etc/hatch/hatch.env）に問題があります。hatch-setup で直してください。"]
     for e in err.errors():
         key = str(e["loc"][0]) if e["loc"] else "?"
         label = LABELS.get(key, key)

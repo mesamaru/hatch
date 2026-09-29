@@ -65,7 +65,7 @@ Discord と Web パネルから、Pterodactyl（将来は Pelican も）のゲ�
 | 3 | パネルのユーザーを確認（なければ作成） | 新規作成した場合のみ削除 |
 | 4 | ノード選択 → パネルにアロケーション作成 → サーバー作成（`external_id` にパネル側のIDを入れる） | サーバーとアロケーションを削除 |
 | 5 | edge 設定の新しい版を作成し、両 edge の適用を待つ（最大60秒） | 前の版に戻す |
-| 6 | DNS：CNAME（コメント `pterodeploy slot=<port>`、プロキシ無効）。事前作成済みの枠では確認のみ | 事前作成でなければ削除 |
+| 6 | DNS：CNAME（コメント `hatch slot=<port>`、プロキシ無効）。事前作成済みの枠では確認のみ | 事前作成でなければ削除 |
 | 7 | DNS：SRV（Minecraft 系のみ）。同上 | 同上 |
 | 8 | 起動し、edge 経由で応答を確認 | 停止 |
 | 9 | バックアップのスケジュール作成、期限設定 | スケジュール削除 |
@@ -173,7 +173,7 @@ Discord と Web パネルから、Pterodactyl（将来は Pelican も）のゲ�
 
 - 自己監視の通知は、オーケストレーターを経由せず Kuma に設定した Discord の Webhook から直接、管理者用チャンネルへ送る。
 - Kuma がオーケストレーターと同じ Proxmox ホスト（同じ電源・回線）にあると、停電や回線断をまとめて見逃す。Kuma は別の場所（Linode など）に置くか、少なくとも Kuma 自身を外から見る仕組み（edge-2 からの簡単な確認など）を用意する。
-- 初期設定（`pterodeploy-setup`）の最後に、これらの監視を Kuma に登録する（既にあれば更新）。
+- 初期設定（`hatch-setup`）の最後に、これらの監視を Kuma に登録する（既にあれば更新）。
 
 ---
 
@@ -258,15 +258,15 @@ backend be_storia
 | 20 | 非特権 LXC で Tailscale が動かない | `/dev/net/tun` がない | インストーラーが LXC 設定に tun を追加 |
 | 21 | 時刻表示が9時間ずれる | UTC と JST の混在 | 保存は timestamptz（UTC）、表示で Asia/Tokyo に変換 |
 | 22 | 画面操作中の入力が消える | ジョブの進捗で画面全体を再描画 | 進捗は該当部分だけ更新。入力中・ダイアログ表示中は完了時の再描画を保留 |
-| 23 | 秘密情報の漏えい | キーをフロントや Bot に渡す | キーはオーケストレーターの設定ファイル（640、root:pterodeploy）だけ。各キーは権限を最小化 |
+| 23 | 秘密情報の漏えい | キーをフロントや Bot に渡す | キーはオーケストレーターの設定ファイル（640、root:hatch）だけ。各キーは権限を最小化 |
 | 24 | Palworld などが繋がらない | UDP のゲームを HAProxy（TCP のみ）で中継しようとしていた | `games.yml` に `protocol: udp` を持たせ、edge の nftables で転送。監視は Push 方式 |
 | 25 | 画面が真っ白になる | JavaScript のグローバル変数 `top` が `window.top` と衝突（デモで実際に発生） | モジュール化し、`top`・`name`・`status` などをグローバル名に使わない（AGENTS.md に明記） |
 | 26 | 25565 番が使えない・mc05 が欠ける | 以前の設計で 25565 を予約していた | 予約をやめ、枠に含めれば使えるようにした |
 | 27 | 一部のクライアントで SRV 経由の接続に失敗 | SRV の向き先を CNAME にしていた | SRV の target は A レコードのホスト名（`edge.<ドメイン>` か、A 直指定の枠では自身）にする |
-| 28 | 手動で作った DNS レコードが上書きされる | 同じ名前のレコードを確認せずに作成 | comment が `pterodeploy` で始まらないレコードは上書きせず失敗させ、管理者に知らせる。CNAME は他の種類と共存不可 |
+| 28 | 手動で作った DNS レコードが上書きされる | 同じ名前のレコードを確認せずに作成 | comment が `hatch` で始まらないレコードは上書きせず失敗させ、管理者に知らせる。CNAME は他の種類と共存不可 |
 | 29 | 枠を変えたら既存サーバーのアドレスが変わる | 使用中スロットのホスト名を再計算 | 使用中・ゴミ箱のスロットがある間はテンプレート等を変更不可 |
 | 30 | 共有相手を招待したらゲームパネルに別ユーザーができる | 未同期のメールでサブユーザーを追加するとパネルが新規作成する | 相手がパネルユーザーとして同期済みであることを確認してから追加 |
-| 31 | テスト環境が本番の DNS や監視を消す（またはその逆） | 同じ Cloudflare ゾーン・同じ Kuma を共有すると、整合性チェックが相手の管理物を「不要」と判断する | `PD_INSTANCE`（prod・stg）を DNS のコメント（`pterodeploy:prod slot=…`）と監視名（`pd:prod:<id>`）に入れ、自分のものだけを扱う |
+| 31 | テスト環境が本番の DNS や監視を消す（またはその逆） | 同じ Cloudflare ゾーン・同じ Kuma を共有すると、整合性チェックが相手の管理物を「不要」と判断する | `PD_INSTANCE`（prod・stg）を DNS のコメント（`hatch:prod slot=…`）と監視名（`pd:prod:<id>`）に入れ、自分のものだけを扱う |
 | 32 | 背景の写真から自宅の場所が分かる | スマホの写真には位置情報（EXIF）が入っている | サーバー側で画像を描き直して保存し、メタデータを残さない |
 | 33 | スマホでタブバーやシートの下が切れる | `100vh` がアドレスバーを含んだ高さになる | `100dvh` と safe area の余白を使う |
 | 34 | フォルダブルで文字が折り目に重なる | 2画面を1枚として配置している | 画面の分かれ目（viewport segments）に合わせて配置 |
@@ -284,7 +284,7 @@ backend be_storia
 ### 導入（Proxmox VE ホストのシェルで1行）
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/<ユーザー>/pterodeploy/main/ct/pterodeploy.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/<ユーザー>/hatch/main/ct/hatch.sh)"
 ```
 
 Proxmox VE Helper-Scripts と同じ流れで、標準設定か詳細設定を選ぶと以下を自動で行います。
@@ -293,7 +293,7 @@ Proxmox VE Helper-Scripts と同じ流れで、標準設定か詳細設定を選
 2. 非特権 LXC を作成（nesting 有効、tun デバイス付き、起動時に自動開始）
 3. コンテナ内で PostgreSQL・Python・Tailscale を導入、DB と設定ファイル（秘密値は自動生成）を作成
 4. GitHub Releases から最新版を取得して配置、DB を移行、systemd で起動
-5. コンテナ内に `update` と `pterodeploy-setup` コマンドを登録
+5. コンテナ内に `update` と `hatch-setup` コマンドを登録
 
 失敗したら作成途中のコンテナを自動で削除します（`PD_KEEP_ON_FAIL=1` で残せます）。
 

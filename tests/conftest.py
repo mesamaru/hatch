@@ -18,7 +18,7 @@ import pytest
 
 DUMMY_ENV = {
     "PD_PUBLIC_URL": "https://panel.test",
-    "PD_INTERNAL_URL": "http://pterodeploy.test:8080",
+    "PD_INTERNAL_URL": "http://hatch.test:8080",
     "PD_INSTANCE": "test",
     "PD_SECRET_KEY": "0" * 64,
     "PD_HEALTH_TOKEN": "health-token",
@@ -46,7 +46,7 @@ def _dummy_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
         monkeypatch.setenv(k, v)
     if "DATABASE_URL" not in os.environ:
         monkeypatch.setenv("DATABASE_URL", "postgresql://nobody@127.0.0.1:1/none")
-    from pterodeploy import config
+    from hatch import config
 
     config.get_settings.cache_clear()
     yield
@@ -71,7 +71,7 @@ def _template_db() -> Iterator[str]:
         c.execute(f'DROP DATABASE IF EXISTS "{_TEMPLATE}"')
         c.execute(f'CREATE DATABASE "{_TEMPLATE}"')
     tpl_url = _with_db(base, _TEMPLATE)
-    from pterodeploy import migrate
+    from hatch import migrate
 
     old = os.environ.get("DATABASE_URL")
     os.environ["DATABASE_URL"] = tpl_url

@@ -1,4 +1,4 @@
-"""pterodeploy - Pterodactyl 自動デプロイ基盤"""
+"""Hatch - Pterodactyl 自動デプロイ基盤"""
 
 from pathlib import Path
 

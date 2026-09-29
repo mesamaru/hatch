@@ -8,14 +8,14 @@ import httpx
 import pytest
 import respx
 
-from pterodeploy.adapters.dns import CF_API, CloudflareDns, DnsConflict, DnsRecordSpec, Srv, slot_records
-from pterodeploy.errors import TransientError, UpstreamError
+from hatch.adapters.dns import CF_API, CloudflareDns, DnsConflict, DnsRecordSpec, Srv, slot_records
+from hatch.errors import TransientError, UpstreamError
 from tests.fakes.dns import FakeDns
 
 Z = "zone1"
 
 
-def rec(id_, type_, name, content=None, comment="pterodeploy:prod slot=25565", data=None, proxied=False, ttl=60):
+def rec(id_, type_, name, content=None, comment="hatch:prod slot=25565", data=None, proxied=False, ttl=60):
     r = {"id": id_, "type": type_, "name": name, "comment": comment, "proxied": proxied, "ttl": ttl}
     if content:
         r["content"] = content
@@ -48,7 +48,7 @@ async def test_create_cname_without_proxy(cf):
         "type": "CNAME",
         "name": "mc05trt.nuids.jp",
         "ttl": 60,
-        "comment": "pterodeploy:prod slot=25565",
+        "comment": "hatch:prod slot=25565",
         "content": "edge.nuids.jp",
         "proxied": False,
     }
@@ -106,7 +106,7 @@ async def test_manual_record_is_never_overwritten(cf):
 @respx.mock
 async def test_other_instance_record_is_foreign(cf):
     respx.get(f"{CF_API}/zones/{Z}/dns_records").mock(
-        return_value=ok([rec("s1", "CNAME", "mc05trt.nuids.jp", "edge.nuids.jp", comment="pterodeploy:stg slot=25565")])
+        return_value=ok([rec("s1", "CNAME", "mc05trt.nuids.jp", "edge.nuids.jp", comment="hatch:stg slot=25565")])
     )
     with pytest.raises(DnsConflict):
         await cf.upsert(Z, DnsRecordSpec("CNAME", "mc05trt.nuids.jp", "slot=25565", content="edge.nuids.jp"))
@@ -117,15 +117,15 @@ async def test_list_managed_pages_and_filters_instance(cf):
     route = respx.get(f"{CF_API}/zones/{Z}/dns_records")
     route.side_effect = [
         ok(
-            [rec("a", "CNAME", "x.nuids.jp", "e"), rec("b", "CNAME", "y.nuids.jp", "e", comment="pterodeploy:prodx z")],
+            [rec("a", "CNAME", "x.nuids.jp", "e"), rec("b", "CNAME", "y.nuids.jp", "e", comment="hatch:prodx z")],
             page=1,
             total_pages=2,
         ),
-        ok([rec("c", "A", "edge.nuids.jp", "1.1.1.1", comment="pterodeploy:prod binding=1")], page=2, total_pages=2),
+        ok([rec("c", "A", "edge.nuids.jp", "1.1.1.1", comment="hatch:prod binding=1")], page=2, total_pages=2),
     ]
     got = await cf.list_managed(Z)
-    assert [r.id for r in got] == ["a", "c"]  # "pterodeploy:prodx" は別インスタンス
-    assert route.calls[0].request.url.params["comment.startswith"] == "pterodeploy:prod"
+    assert [r.id for r in got] == ["a", "c"]  # "hatch:prodx" は別インスタンス
+    assert route.calls[0].request.url.params["comment.startswith"] == "hatch:prod"
 
 
 @respx.mock

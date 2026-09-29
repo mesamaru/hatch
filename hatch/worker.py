@@ -1,6 +1,6 @@
-"""ワーカー（ジョブの実行）のプロセスの入口。systemd の pterodeploy-worker.service から起動する。
+"""ワーカー（ジョブの実行）のプロセスの入口。systemd の hatch-worker.service から起動する。
 
-python -m pterodeploy.worker
+python -m hatch.worker
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from .jobs.deps import Deps
 from .jobs.engine import Engine
 from .logging import setup_logging
 
-log = logging.getLogger("pterodeploy.worker")
+log = logging.getLogger("hatch.worker")
 BEAT_SECONDS = 30
 
 

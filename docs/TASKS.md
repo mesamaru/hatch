@@ -41,19 +41,19 @@
 
 ### T01 設定・エラー・ログ ★
 - 依存：T00
-- ファイル：`pterodeploy/config.py`、`pterodeploy/errors.py`、`pterodeploy/logging.py`、`pterodeploy/main.py`
+- ファイル：`hatch/config.py`、`hatch/errors.py`、`hatch/logging.py`、`hatch/main.py`
 - 内容：`docs/IMPLEMENTATION.md` 8.1 の全キーを Pydantic の Settings で読む（必須キーが無ければ起動時に日本語で「◯◯ が設定されていません」と出して終了）。`AppError` と、FastAPI の例外ハンドラ（API のエラー形式）。JSON 1行のログ（秘密値をマスク）。
 - 受け入れ条件：必須キーが欠けると起動しない。`AppError` が API のエラー形式で返る。ログに `PANEL_APP_KEY` の値が出ない（テストで確認）。
 
 ### T02 DB ヘルパーとリポジトリの型 ★
 - 依存：T01
-- ファイル：`pterodeploy/db.py`、`pterodeploy/repo/__init__.py`、`pterodeploy/models.py`
+- ファイル：`hatch/db.py`、`hatch/repo/__init__.py`、`hatch/models.py`
 - 内容：psycopg の非同期接続プール、`async with transaction() as conn`。DB の各テーブルに対応する Pydantic モデル（読み取り用）。
 - 受け入れ条件：トランザクション内で例外が起きるとロールバックされる（テスト）。
 
 ### T03 名前とアドレス枠の業務ルール ★★
 - 依存：T00
-- ファイル：`pterodeploy/domain/names.py`、`pterodeploy/domain/slots.py`
+- ファイル：`hatch/domain/names.py`、`hatch/domain/slots.py`
 - 内容：`docs/IMPLEMENTATION.md` 4.1 の関数。サーバー名・ホスト名の検証。
 - 受け入れ条件（すべてテストにする）：
   - `25560–25569 / mc{nn}trt / start=0 / 対象外=[25560]` → 25561=`mc01trt`、25569=`mc09trt`、25560 は対象外
@@ -64,66 +64,66 @@
 
 ### T04 権限 ★
 - 依存：T00
-- ファイル：`pterodeploy/domain/permissions.py`
+- ファイル：`hatch/domain/permissions.py`
 - 内容：`docs/IMPLEMENTATION.md` 3.5 の表。
 - 受け入れ条件：表の全マス（役割 × action）をパラメータ化テストで確認。利用停止中の制限も確認。
 
 ### T05 ログインとセッション ★★★
 - 依存：T02、T04
-- ファイル：`pterodeploy/auth/*`、`pterodeploy/api/me.py`、`pterodeploy/repo/users.py`、`pterodeploy/repo/sessions.py`
+- ファイル：`hatch/auth/*`、`hatch/api/me.py`、`hatch/repo/users.py`、`hatch/repo/sessions.py`
 - 内容：Discord OAuth（state の検証）、セッション Cookie、CSRF、`/api/me`、ログアウト、管理者の TOTP（設定・確認）。ロールの確認は Discord API でログイン時に行い、`discord_role_rules` に一致しない・招待もない人は `not_allowed`。
 - 受け入れ条件：state 不一致で拒否。CSRF なしの POST は 403。セッション期限切れで 401。admin は TOTP 前に `/api/admin/*` が 403。
 
 ### T06 ゲームパネルのアダプター ★★★
 - 依存：T01
-- ファイル：`pterodeploy/adapters/panel.py`、`tests/fakes/panel.py`
+- ファイル：`hatch/adapters/panel.py`、`tests/fakes/panel.py`
 - 内容：`docs/IMPLEMENTATION.md` 6 の `PanelAdapter` を Pterodactyl 用に実装。呼び方は `docs/EXTERNAL.md` 1。フェイクはメモリ上で同じ動きをする（アロケーションの ID が作成応答に無い点も再現）。
 - 受け入れ条件：respx で各メソッドのリクエスト内容（パス・本文）を確認。`update_user` が全項目を送る。429 で再試行する。
 
 ### T07 DNS のアダプター ★★
 - 依存：T01
-- ファイル：`pterodeploy/adapters/dns.py`、`tests/fakes/dns.py`
-- 内容：Cloudflare 用。`upsert` は `docs/EXTERNAL.md` 2 の手順（手動レコードは上書きしない）。コメントには必ず `pterodeploy:<PD_INSTANCE>` を入れ、一覧・削除は自分のインスタンスのものだけにする。
+- ファイル：`hatch/adapters/dns.py`、`tests/fakes/dns.py`
+- 内容：Cloudflare 用。`upsert` は `docs/EXTERNAL.md` 2 の手順（手動レコードは上書きしない）。コメントには必ず `hatch:<PD_INSTANCE>` を入れ、一覧・削除は自分のインスタンスのものだけにする。
 - 受け入れ条件：SRV の本文が `data` 形式。`proxied:false`・`comment` 付き。手動の同名レコードがあると失敗。削除の404は成功。`stg` のレコードが混ざったゾーンで、`prod` の一覧に `stg` が含まれない。
 
 ### T08 ジョブ実行基盤 ★★★
 - 依存：T02
-- ファイル：`pterodeploy/jobs/engine.py`、`pterodeploy/jobs/steps/__init__.py`、`pterodeploy/worker.py`、`pterodeploy/repo/jobs.py`、`deploy/systemd/pterodeploy-worker.service`、`deploy/services.txt`
+- ファイル：`hatch/jobs/engine.py`、`hatch/jobs/steps/__init__.py`、`hatch/worker.py`、`hatch/repo/jobs.py`、`deploy/systemd/hatch-worker.service`、`deploy/services.txt`
 - 内容：`docs/IMPLEMENTATION.md` 5.1・5.2。
 - 受け入れ条件（ダミーの手順でテスト）：全成功／3番目で失敗すると2→1の順に undo／undo が失敗すると `failed`／`locked_at` が古いジョブを別ワーカーが最後の完了手順の次から再開／同じサーバーのジョブが同時に走らない。
 
 ### T09 ドメイン・IP・紐付けの管理 API ★★
 - 依存：T05、T07、T08
-- ファイル：`pterodeploy/api/domains.py`、`pterodeploy/repo/domains.py`、`pterodeploy/jobs/bindings.py`
+- ファイル：`hatch/api/domains.py`、`hatch/repo/domains.py`、`hatch/jobs/bindings.py`
 - 内容：`docs/API.md` の `/admin/domains`・`/admin/ips`・`/admin/bindings`。ドメイン追加時にゾーン名を確認し、`edge.<domain>` の紐付けを作るジョブを登録。
 - 受け入れ条件：ゾーン名が違うと `zone_mismatch`。使用中のドメイン・IP は削除できない。操作ログに残る。
 
 ### T10 アドレス枠の管理 API ★★
 - 依存：T03、T09
-- ファイル：`pterodeploy/api/slots.py`、`pterodeploy/repo/slots.py`、`pterodeploy/jobs/publish_slots.py`
+- ファイル：`hatch/api/slots.py`、`hatch/repo/slots.py`、`hatch/jobs/publish_slots.py`
 - 内容：`/admin/slot-rules`（一覧・作成・詳細・変更・削除・preview・publish・unpublish）、`/admin/slots/{port}`、`/slots/available`。変更の制限は `docs/IMPLEMENTATION.md` 4.3。
 - 受け入れ条件：preview が T03 と同じ問題点を返す。範囲を変えるとスロット行が増減する。使用中スロットがあると削除・テンプレート変更ができない。publish で全スロットの CNAME・SRV がフェイク DNS に作られ、2回実行しても重複しない。
 
 ### T11 edge 設定の生成と配布 ★★
 - 依存：T08
-- ファイル：`pterodeploy/edge/haproxy.py`、`pterodeploy/edge/nft.py`、`pterodeploy/api/edge.py`、`pterodeploy/repo/edges.py`
+- ファイル：`hatch/edge/haproxy.py`、`hatch/edge/nft.py`、`hatch/api/edge.py`、`hatch/repo/edges.py`
 - 内容：`docs/IMPLEMENTATION.md` 7。`/api/edge/config`・`/api/edge/report`。
 - 受け入れ条件：同じ入力で同じ文字列。内容が変わらなければ版が増えない。`haproxy -c` と `nft -c` が通る（CI にパッケージを入れて実行）。既存の `edge/agent.py` と通信できる（結合テスト）。
 
 ### T12 デプロイ ★★★
 - 依存：T06、T07、T08、T10、T11
-- ファイル：`pterodeploy/jobs/deploy.py`、`pterodeploy/jobs/steps/*.py`、`pterodeploy/api/servers.py`（POST のみ）、`pterodeploy/api/jobs.py`、`pterodeploy/domain/placement.py`
+- ファイル：`hatch/jobs/deploy.py`、`hatch/jobs/steps/*.py`、`hatch/api/servers.py`（POST のみ）、`hatch/api/jobs.py`、`hatch/domain/placement.py`
 - 内容：`docs/IMPLEMENTATION.md` 5.3 の deploy（監視追加の手順は T17 まで「対象外」で飛ばす）。ノード選択 5.4。ドライラン。
 - 受け入れ条件：成功時にフェイクのパネル・DNS・edge がそろう。事前作成済みの枠では DNS の手順が飛ばされる。各手順で失敗させると、作ったものがすべて消える（フェイクに何も残らない）。同じ `idempotency_key` の2回目は同じジョブを返す。上限・スロット競合・名前重複のエラー。
 
 ### T13 サーバーの参照と基本操作 ★★
 - 依存：T12
-- ファイル：`pterodeploy/api/servers.py`（GET・PATCH・power・maintenance・resources）、`pterodeploy/repo/servers.py`
+- ファイル：`hatch/api/servers.py`（GET・PATCH・power・maintenance・resources）、`hatch/repo/servers.py`
 - 受け入れ条件：権限表どおり（他人のサーバーは 404。存在を知らせない）。stop で状態が `stopped` になる。
 
 ### T14 ゴミ箱・復元・完全削除 ★★★
 - 依存：T13
-- ファイル：`pterodeploy/jobs/trash.py`、`restore.py`、`purge.py`、`pterodeploy/scheduler.py`（72時間後の自動削除のみ）
+- ファイル：`hatch/jobs/trash.py`、`restore.py`、`purge.py`、`hatch/scheduler.py`（72時間後の自動削除のみ）
 - 受け入れ条件：ゴミ箱の間は名前とスロットが予約される。復元で元のアドレスに戻る。完全削除で事前作成の DNS は残り、`{server}` 枠の DNS は消える。`confirm_name` 不一致は拒否。
 
 ### T15 画面の骨組み ★★
@@ -145,27 +145,27 @@
 
 ### T17 Uptime Kuma 連携と自動再起動 ★★★
 - 依存：T12
-- ファイル：`pterodeploy/adapters/monitor.py`、`tests/fakes/monitor.py`、`pterodeploy/jobs/steps/monitor.py`、`pterodeploy/api/hooks.py`、`pterodeploy/scheduler.py`（監視の取得・push）、`pterodeploy/domain/autorestart.py`
+- ファイル：`hatch/adapters/monitor.py`、`tests/fakes/monitor.py`、`hatch/jobs/steps/monitor.py`、`hatch/api/hooks.py`、`hatch/scheduler.py`（監視の取得・push）、`hatch/domain/autorestart.py`
 - 受け入れ条件：デプロイで監視が追加される。Webhook のダウン通知で、条件（`docs/SPEC.md` 5）を満たすときだけ再起動し、1時間3回で止めて通知する。メンテナンス・停止・利用停止の間は監視が一時停止。
 
 ### T18 Discord Bot ★★★
 - 依存：T13、T17
-- ファイル：`pterodeploy/bot/*`、`pterodeploy/adapters/notify.py`、`deploy/systemd/pterodeploy-bot.service`
+- ファイル：`hatch/bot/*`、`hatch/adapters/notify.py`、`deploy/systemd/hatch-bot.service`
 - 受け入れ条件：3秒以内に defer。`/deploy` の進捗メッセージが更新される。ボタンを他人が押しても操作できない。ロールの付与・剥奪でユーザーが有効・停止予約になる。DM が送れなくても落ちない。
 
 ### T19 期限と通知 ★★
 - 依存：T14、T18
-- ファイル：`pterodeploy/domain/expiry.py`、`pterodeploy/scheduler.py`（期限）、`pterodeploy/api/servers.py`（extend）、`pterodeploy/api/admin.py`（延長申請）
+- ファイル：`hatch/domain/expiry.py`、`hatch/scheduler.py`（期限）、`hatch/api/servers.py`（extend）、`hatch/api/admin.py`（延長申請）
 - 受け入れ条件：7・3・1日前に1回ずつ通知（2回動かしても1回）。延長すると次の期限で再び通知。期限日に停止、猶予後にゴミ箱。
 
 ### T20 整合性チェック ★★★
 - 依存：T17
-- ファイル：`pterodeploy/jobs/reconcile.py`、`pterodeploy/api/admin.py`（findings）
+- ファイル：`hatch/jobs/reconcile.py`、`hatch/api/admin.py`（findings）
 - 受け入れ条件：フェイクに「DB にない DNS」「DB にない監視」「proxied=true」「パネルにだけあるサーバー」を仕込むと、それぞれ正しい種類の指摘が出る。自動修正は安全なものだけ。
 
 ### T21 ユーザー管理とパスワード同期 ★★
 - 依存：T05、T06
-- ファイル：`pterodeploy/api/users.py`、`pterodeploy/api/me.py`（password）、`pterodeploy/jobs/sync_user.py`
+- ファイル：`hatch/api/users.py`、`hatch/api/me.py`（password）、`hatch/jobs/sync_user.py`
 - 受け入れ条件：パスワードがジョブや DB やログに残らない。パネル側の更新に失敗したらパネル側もこちら側も変わらない。
 
 ### T22 画面：監視・管理・設定 ★★
@@ -174,19 +174,19 @@
 
 ### T35 自己監視の仕上げ ★★
 - 依存：T08、T17、T18
-- ファイル：`pterodeploy/worker.py`、`pterodeploy/scheduler.py`、`pterodeploy/bot/*`（beat の呼び出しのみ）、`pterodeploy/jobs/self_monitor.py`、`deploy/bin/pterodeploy-setup`、`deploy/systemd/*.service`
+- ファイル：`hatch/worker.py`、`hatch/scheduler.py`、`hatch/bot/*`（beat の呼び出しのみ）、`hatch/jobs/self_monitor.py`、`deploy/bin/hatch-setup`、`deploy/systemd/*.service`
 - 内容：`docs/IMPLEMENTATION.md` 8A。`health.py` と `/api/health/full` は実装済み（テストあり）。各プロセスからの beat と Push、Kuma への自己監視の登録、管理画面「システムの状態」の API（`/api/admin/system` → `full_report()` を返すだけ）。
 - 受け入れ条件：worker を止めると2分以内に Kuma の Push 監視が停止になる（フェイクで確認）。登録を2回実行しても監視が増えない。自己監視の監視にオーケストレーター宛ての Webhook が付いていない。
 
 ### T36 退会と削除 ★★★
 - 依存：T14、T21
-- ファイル：`pterodeploy/api/me.py`（withdraw）、`pterodeploy/jobs/delete_account.py`、`pterodeploy/scheduler.py`（期限の確認・前日の通知）、`pterodeploy/repo/users.py`
+- ファイル：`hatch/api/me.py`（withdraw）、`hatch/jobs/delete_account.py`、`hatch/scheduler.py`（期限の確認・前日の通知）、`hatch/repo/users.py`
 - 内容：`docs/SPEC.md` 4「退会とデータの削除」、`docs/IMPLEMENTATION.md` 5.3 の delete_account。
 - 受け入れ条件：申請でサーバーが停止し作成できなくなる。取り消しで戻る。7日後のジョブの後、フェイクのパネル・DNS・監視・ディスクに本人のものが何も残らず、users には個人情報のない行だけが残る。操作ログは残り、表示は「退会したユーザー」。最後の管理者は退会できない。途中で失敗しても再実行で最後まで進む。
 
 ### T37 背景と表示の設定 ★★
 - 依存：T15、T05
-- ファイル：`pterodeploy/api/me.py`（preferences・background）、`pterodeploy/uploads.py`、`pterodeploy/api/uploads.py`、`web/js/pages/settings-display.js`、`requirements.txt`（Pillow・pillow-heif を追加）
+- ファイル：`hatch/api/me.py`（preferences・background）、`hatch/uploads.py`、`hatch/api/uploads.py`、`web/js/pages/settings-display.js`、`requirements.txt`（Pillow・pillow-heif を追加）
 - 内容：`docs/IMPLEMENTATION.md` 8B、`docs/UI.md`。
 - 受け入れ条件：位置情報入りの JPEG を上げると、保存された WebP にメタデータが無い。20MB 超は 413。他人の画像は 404。全員の既定に設定した画像はログインした全員が読める。退会（T36）で画像も消える。
 
@@ -234,8 +234,8 @@
 
 ### T39 オーケストレーターの DB の遠隔バックアップ ★★
 - 依存：T08
-- ファイル：`pterodeploy/jobs/db_backup.py`、`pterodeploy/scheduler.py`、`pterodeploy/adapters/storage.py`
-- 内容：毎日 4:30 に `pg_dump -Fc` を作り、Object Storage のバケットの `pterodeploy/<PD_INSTANCE>/db/` に送る。30日分を残す。失敗したら管理者に通知し、自己監視の `degraded` にする。
+- ファイル：`hatch/jobs/db_backup.py`、`hatch/scheduler.py`、`hatch/adapters/storage.py`
+- 内容：毎日 4:30 に `pg_dump -Fc` を作り、Object Storage のバケットの `hatch/<PD_INSTANCE>/db/` に送る。30日分を残す。失敗したら管理者に通知し、自己監視の `degraded` にする。
 - 受け入れ条件：フェイクのストレージに毎日1つずつ増え、31日目に最も古いものが消える。復元手順を `README.md` に書く。
 
 ## 未定：Pelican への移行

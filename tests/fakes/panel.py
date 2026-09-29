@@ -6,7 +6,7 @@ import itertools
 import uuid as uuidlib
 from dataclasses import replace
 
-from pterodeploy.adapters.panel import (
+from hatch.adapters.panel import (
     Backup,
     Cron,
     Egg,
@@ -17,7 +17,7 @@ from pterodeploy.adapters.panel import (
     PanelUserChanges,
     Resources,
 )
-from pterodeploy.errors import AppError, UpstreamError
+from hatch.errors import AppError, UpstreamError
 
 
 class FakePanel:

@@ -25,7 +25,7 @@
 ## 2. ファイル配置
 
 ```
-pterodeploy/
+hatch/
   __init__.py            バージョン
   main.py                FastAPI アプリの組み立て（ルートの登録だけ）
   config.py              設定ファイル（環境変数）の読み込みと検証
@@ -61,7 +61,7 @@ tests/
   unit/  api/  jobs/  fakes/  e2e/
 ```
 
-プロセスは3つ：`pterodeploy-api`（Web と API）、`pterodeploy-worker`（ジョブと定期処理）、`pterodeploy-bot`（Discord）。すべて同じコードベース・同じ設定ファイル。
+プロセスは3つ：`hatch-api`（Web と API）、`hatch-worker`（ジョブと定期処理）、`hatch-bot`（Discord）。すべて同じコードベース・同じ設定ファイル。
 
 ---
 
@@ -69,7 +69,7 @@ tests/
 
 ### 3.1 エラー
 
-- 業務エラーは `pterodeploy/errors.py` の `AppError(code, message_ja, status=400, detail=None)` を投げる。
+- 業務エラーは `hatch/errors.py` の `AppError(code, message_ja, status=400, detail=None)` を投げる。
 - API はすべて次の形で返す：`{"error": {"code": "slot_taken", "message": "このアドレスは使用中です。別のアドレスを選んでください。", "detail": {...}}}`
 - `code` は英小文字とアンダースコア。一覧は `docs/API.md` の末尾。新しい `code` を作ったら一覧に追記。
 
@@ -149,7 +149,7 @@ def host_for(rule: SlotRule, port: int, server_name: str | None = None) -> str: 
 - `record_mode = cname_edge`（推奨）：`<host>.<domain> CNAME <edge_host>.<domain>`、SRV の target も `<edge_host>.<domain>`。
 - `record_mode = a_ip`：`<host>.<domain> A <ip>`、SRV の target は `<host>.<domain>` 自身（A レコードなので可）。
 - SRV：`_minecraft._tcp.<host>.<domain>  priority=0 weight=5 port=<port> target=…`。Minecraft 系（`kind` が mc・mod・proxy）のときだけ作る。
-- すべて `proxied: false`、`ttl: 60`、`comment: "pterodeploy:<PD_INSTANCE> slot=<port>"`（紐付けは `binding=<id>`）。**自分のインスタンスのコメントが付いたレコードだけ**を作成・変更・削除・整合性チェックの対象にする。
+- すべて `proxied: false`、`ttl: 60`、`comment: "hatch:<PD_INSTANCE> slot=<port>"`（紐付けは `binding=<id>`）。**自分のインスタンスのコメントが付いたレコードだけ**を作成・変更・削除・整合性チェックの対象にする。
 
 ### 4.5 IP の紐付けと edge の切り替え
 
@@ -242,7 +242,7 @@ class PanelAdapter(Protocol):
 
 class DnsAdapter(Protocol):
     async def verify_zone(self, zone_id: str) -> str: ...  # ゾーン名を返す
-    async def list_managed(self, zone_id: str) -> list[DnsRecord]: ...  # comment が "pterodeploy" で始まるもの
+    async def list_managed(self, zone_id: str) -> list[DnsRecord]: ...  # comment が "hatch" で始まるもの
     async def upsert(self, zone_id: str, r: DnsRecordSpec) -> DnsRecord: ...
     async def delete(self, zone_id: str, record_id: str) -> None: ...  # 既にない場合は成功扱い
 
@@ -291,7 +291,7 @@ backend be_{port}
 **UDP のゲーム**（`games.yml` の `protocol: udp`。Palworld など）は HAProxy で中継できないため、同じ版の設定に nftables のルールを含め、エージェントが適用する：
 
 ```
-table ip pterodeploy {
+table ip hatch {
   chain prerouting { type nat hook prerouting priority dstnat;
     udp dport {port} dnat to {node_tailscale_ip}:{port} }
   chain postrouting { type nat hook postrouting priority srcnat;
@@ -306,15 +306,15 @@ UDP には接続数の制限をかけられないので、1 IP あたりのパ�
 
 ## 8. 設定一覧
 
-### 8.1 設定ファイル（`/etc/pterodeploy/pterodeploy.env`）
+### 8.1 設定ファイル（`/etc/hatch/hatch.env`）
 
 | キー | 必須 | 例 | 説明 |
 |---|---|---|---|
 | PD_HOST / PD_PORT | ○ | 0.0.0.0 / 8080 | 待ち受け |
 | PD_PUBLIC_URL | ○ | https://panel.nuids.jp | OAuth の戻り先に使う |
-| PD_INTERNAL_URL | ○ | http://pterodeploy:8080 | Tailscale 内から見たオーケストレーターの URL（Kuma の Webhook 先） |
+| PD_INTERNAL_URL | ○ | http://hatch:8080 | Tailscale 内から見たオーケストレーターの URL（Kuma の Webhook 先） |
 | PD_INSTANCE | ○ | prod | 環境の名前（英小文字・数字、8文字まで）。本番は prod、テスト環境は stg。DNS のコメントと監視名に入れ、同じゾーンや Kuma を共有しても互いに干渉しない |
-| PD_DATA_DIR | ○ | /var/lib/pterodeploy | アップロードした画像などの保存先 |
+| PD_DATA_DIR | ○ | /var/lib/hatch | アップロードした画像などの保存先 |
 | PD_HEALTH_TOKEN | ○ | 48桁の16進 | `/api/health/full` の認証（Kuma の HTTP 監視のヘッダーに設定） |
 | KUMA_PUSH_WORKER / KUMA_PUSH_SCHEDULER / KUMA_PUSH_BOT | | Push トークン | 自己監視の Push 監視（初期設定で自動登録） |
 | PD_SECRET_KEY | ○ | 64桁の16進 | Cookie 署名・TOTP 秘密の暗号化 |
@@ -330,7 +330,7 @@ UDP には接続数の制限をかけられないので、1 IP あたりのパ�
 | HAPROXY_PER_IP_CONN / HAPROXY_PER_IP_RATE / HAPROXY_MAX_CONN | | 20 / 30 / 500 | |
 | STATUS_PUBLIC_URL | | https://status.nuids.jp | 状態ページ |
 
-ゲームごとのパネルの nest・egg・変数の上書きは `/etc/pterodeploy/games.yml` に書く（`deploy/games.example.yml` が見本）。
+ゲームごとのパネルの nest・egg・変数の上書きは `/etc/hatch/games.yml` に書く（`deploy/games.example.yml` が見本）。
 
 以前の `CF_ZONE_ID`、`PD_GAME_DOMAIN`、`PD_EDGE_HOSTNAME` は廃止（ドメインは画面から登録し、DB に保存する）。
 
@@ -351,14 +351,14 @@ UDP には接続数の制限をかけられないので、1 IP あたりのパ�
 
 ## 8A. 自己監視
 
-実装は `pterodeploy/health.py`（済み）。
+実装は `hatch/health.py`（済み）。
 
 - 各プロセスは30秒ごとに `health.beat("<component>")` を呼ぶ（worker はジョブの取り出しループ、scheduler は毎回の処理後、bot は `discord.ext.tasks` のループ）。あわせて Kuma の Push URL（`KUMA_PUSH_*`）へ `GET …?status=up` を送る。送信の失敗で本処理を止めない。
 - `/api/health`：DB に `SELECT 1` できれば 200。`update` が使うので **仕様を変えない**。
 - `/api/health/full`：`Authorization: Bearer <PD_HEALTH_TOKEN>`。判定：
   - error（503）：DB に接続できない／worker・scheduler の報告が90秒以上ない／ディスクの空きが5%未満かつ2GB未満
   - degraded（200）：bot の報告が90秒以上ない／プロセスのバージョンが API と違う／待ちジョブが120秒以上待っている／24時間以内に `failed` のジョブがある／edge の報告が180秒以上ない／ディスクの空きが15%未満かつ10GB未満
-- `pterodeploy-setup` の最後に MonitorAdapter で次の監視を作る（名前は固定、既にあれば更新）：`pd:<instance>:self-http`（HTTP、`/api/health`）、`pd:<instance>:self-full`（HTTP キーワード、`"status":"ok"`、ヘッダーにトークン）、`pd:<instance>:push-worker`・`push-scheduler`・`push-bot`（Push、間隔60秒）。通知先は Kuma に登録した Discord の Webhook（名前 `pterodeploy-self`）。**オーケストレーター宛ての Webhook は付けない**。
+- `hatch-setup` の最後に MonitorAdapter で次の監視を作る（名前は固定、既にあれば更新）：`pd:<instance>:self-http`（HTTP、`/api/health`）、`pd:<instance>:self-full`（HTTP キーワード、`"status":"ok"`、ヘッダーにトークン）、`pd:<instance>:push-worker`・`push-scheduler`・`push-bot`（Push、間隔60秒）。通知先は Kuma に登録した Discord の Webhook（名前 `hatch-self`）。**オーケストレーター宛ての Webhook は付けない**。
 
 ## 8B. アップロード（背景画像）
 

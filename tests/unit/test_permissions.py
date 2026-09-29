@@ -2,7 +2,7 @@
 
 import pytest
 
-from pterodeploy.domain.permissions import Actor, ServerRef, can
+from hatch.domain.permissions import Actor, ServerRef, can
 
 ADMIN = Actor(id="a", role="admin")
 OWNER = Actor(id="o", role="user")

@@ -5,13 +5,13 @@ from __future__ import annotations
 import psycopg
 import pytest
 
-from pterodeploy import db
-from pterodeploy.api.deps import get_dns, get_games, get_panel
-from pterodeploy.errors import TransientError
-from pterodeploy.games import parse
-from pterodeploy.jobs.deps import Deps
-from pterodeploy.jobs.engine import Engine
-from pterodeploy.main import app
+from hatch import db
+from hatch.api.deps import get_dns, get_games, get_panel
+from hatch.errors import TransientError
+from hatch.games import parse
+from hatch.jobs.deps import Deps
+from hatch.jobs.engine import Engine
+from hatch.main import app
 from tests.api.helpers import client_for, make_user
 from tests.fakes.dns import FakeDns
 from tests.fakes.panel import FakePanel
@@ -84,7 +84,7 @@ async def test_add_domain_creates_edge_record(env):
     assert d["is_default"] is True
     assert env["dns"].names(ZONE) == {("A", "edge.nuids.jp")}
     rec = next(iter(env["dns"].records[ZONE].values()))
-    assert rec["content"] == "203.0.113.10" and rec["comment"] == f"pterodeploy:test binding={d['edge_binding_id']}"
+    assert rec["content"] == "203.0.113.10" and rec["comment"] == f"hatch:test binding={d['edge_binding_id']}"
     assert q(env["url"], "SELECT synced_at IS NOT NULL FROM ip_bindings") == [(True,)]
 
 

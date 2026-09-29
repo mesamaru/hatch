@@ -5,8 +5,8 @@ from __future__ import annotations
 import itertools
 from typing import Any
 
-from pterodeploy.adapters.dns import CloudflareDns, DnsRecord, _parse
-from pterodeploy.errors import TransientError
+from hatch.adapters.dns import CloudflareDns, DnsRecord, _parse
+from hatch.errors import TransientError
 
 
 class FakeDns(CloudflareDns):
@@ -39,7 +39,7 @@ class FakeDns(CloudflareDns):
     async def verify_zone(self, zone_id: str) -> str:
         self._maybe_fail("verify")
         if zone_id not in self.zones:
-            from pterodeploy.errors import UpstreamError
+            from hatch.errors import UpstreamError
 
             raise UpstreamError("Cloudflare", "7003: Could not route to /zones/x", 400)
         return self.zones[zone_id]

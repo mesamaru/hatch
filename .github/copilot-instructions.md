@@ -15,9 +15,9 @@ Pterodactyl のゲームサーバー貸し出しを自動化するオーケス�
 - 1回の作業は1チケットだけ。チケットに書かれていないファイルは変えない
 - v0.1.0 のタグを打ったので、db/migrations/0001_initial.sql は今後一切変更しない。
   DB の変更は 0002_xxx.sql を追加する（追加のみ。列の削除・改名は2リリースに分ける）
-- 外部サービス（パネル・Cloudflare・Uptime Kuma・Discord）は pterodeploy/adapters/ 経由でのみ呼ぶ。
+- 外部サービス（パネル・Cloudflare・Uptime Kuma・Discord）は hatch/adapters/ 経由でのみ呼ぶ。
   テストでは tests/fakes/ のフェイクを使い、実サービスには絶対に接続しない
-- 外部サービスへの作成・削除は API の中で行わず、ジョブ（pterodeploy/jobs/）にする。
+- 外部サービスへの作成・削除は API の中で行わず、ジョブ（hatch/jobs/）にする。
   ジョブの手順は run と undo を対で書き、何度呼ばれても同じ結果になるようにする
 - 画面に出す文言・エラーメッセージは日本語（です・ます）。英語のエラーコードは API の code にだけ入れる
 - 秘密情報（API キー・トークン・パスワード）をログ・例外・応答に出さない
@@ -37,9 +37,9 @@ Pterodactyl のゲームサーバー貸し出しを自動化するオーケス�
 
 ## ローカルでのテスト
 ```bash
-export DATABASE_URL=postgresql://pterodeploy:dev@127.0.0.1:5432/pterodeploy
+export DATABASE_URL=postgresql://hatch:dev@127.0.0.1:5432/hatch
 pip install -r requirements-dev.txt
-python -m pterodeploy.migrate
+python -m hatch.migrate
 pytest -q
 ```
 Windows でスクリプト（*.sh、deploy/bin/*、edge/agent.py）を追加・変更したら、

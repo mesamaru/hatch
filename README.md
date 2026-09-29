@@ -30,14 +30,14 @@ git tag v0.1.0 && git push --tags     # 最初のリリース（GitHub Actions �
 Proxmox VE ホストのシェルで実行します。
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/pterodeploy.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/hatch.sh)"
 ```
 
 完了したら、コンテナに入って初期設定をします（入力した値はその場で接続確認されます）。
 
 ```bash
 pct enter <コンテナID>
-pterodeploy-setup
+hatch-setup
 ```
 
 ### 非対話でインストール
@@ -45,13 +45,13 @@ pterodeploy-setup
 ```bash
 PD_YES=1 var_cpu=2 var_ram=2048 var_disk=10 var_net=192.168.1.50/24 var_gateway=192.168.1.1 \
 var_ts_authkey=tskey-auth-xxxx \
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/pterodeploy.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/hatch.sh)"
 ```
 
 | 変数 | 既定値 | 内容 |
 |---|---|---|
 | `var_ctid` | 次の空き番号 | コンテナID |
-| `var_hostname` | `pterodeploy` | ホスト名 |
+| `var_hostname` | `hatch` | ホスト名 |
 | `var_cpu` / `var_ram` / `var_disk` | `2` / `2048` / `10` | コア数 / MB / GB |
 | `var_storage` | 最初の rootdir ストレージ | コンテナの保存先 |
 | `var_bridge` / `var_vlan` | `vmbr0` / なし | ネットワーク |
@@ -101,11 +101,11 @@ edge エージェントはオーケストレーターから HAProxy 設定を取
 ## 構成
 
 ```
-ct/pterodeploy.sh               Proxmox ホストで実行するインストーラー
-install/pterodeploy-install.sh  コンテナ内のインストール処理
+ct/hatch.sh               Proxmox ホストで実行するインストーラー
+install/hatch-install.sh  コンテナ内のインストール処理
 misc/update.sh                  update コマンドの本体
 edge/                           edge エージェントとセットアップ
-pterodeploy/                    API（Python / FastAPI）
+hatch/                    API（Python / FastAPI）
 web/                            Web パネル
 db/migrations/                  DB の移行（追加のみ）
 deploy/                         systemd ユニット、初期設定コマンド
@@ -114,7 +114,7 @@ docs/SPEC.md                    仕様書
 
 ## セキュリティ
 
-- API キーなどの秘密情報は `/etc/pterodeploy/pterodeploy.env`（権限 640）にだけ置き、リポジトリには入れません。
+- API キーなどの秘密情報は `/etc/hatch/hatch.env`（権限 640）にだけ置き、リポジトリには入れません。
 - オーケストレーターの API はインターネットに直接公開しないでください（Cloudflare Tunnel か edge の nginx 経由で Web パネルだけを公開）。
 - 脆弱性を見つけた場合は Issue ではなく、GitHub の Security Advisories から連絡してください。
 

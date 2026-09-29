@@ -8,11 +8,11 @@ jobs:
     services:
       postgres:
         image: postgres:17
-        env: { POSTGRES_USER: pterodeploy, POSTGRES_PASSWORD: ci, POSTGRES_DB: pterodeploy }
+        env: { POSTGRES_USER: hatch, POSTGRES_PASSWORD: ci, POSTGRES_DB: hatch }
         ports: ["5432:5432"]
         options: --health-cmd pg_isready --health-interval 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql://pterodeploy:ci@127.0.0.1:5432/pterodeploy
+      DATABASE_URL: postgresql://hatch:ci@127.0.0.1:5432/hatch
     steps:
       - uses: actions/checkout@v4
       - name: シェルスクリプトの検査
@@ -24,10 +24,10 @@ jobs:
       - name: 依存パッケージ
         run: pip install -r requirements-dev.txt
       - name: DB 移行（2回実行して冪等性も確認）
-        run: python -m pterodeploy.migrate && python -m pterodeploy.migrate
+        run: python -m hatch.migrate && python -m hatch.migrate
       - name: API の起動確認
         run: |
-          uvicorn pterodeploy.main:app --port 8080 &
+          uvicorn hatch.main:app --port 8080 &
           for i in $(seq 1 20); do curl -fsS localhost:8080/api/health && exit 0; sleep 1; done; exit 1
       - name: 静的検査
         run: ruff check . && ruff format --check .

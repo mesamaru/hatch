@@ -1,4 +1,4 @@
-"""ゲームの定義（/etc/pterodeploy/games.yml）。見本は deploy/games.example.yml。
+"""ゲームの定義（/etc/hatch/games.yml）。見本は deploy/games.example.yml。
 
 パネルの nest・egg の ID や、PROXY プロトコル・UDP などゲームごとの違いはコードに書かず、ここから読む。
 """
@@ -16,7 +16,7 @@ import yaml
 from .config import ConfigError
 
 KINDS = ("mc", "mod", "proxy", "other")
-DEFAULT_PATH = "/etc/pterodeploy/games.yml"
+DEFAULT_PATH = "/etc/hatch/games.yml"
 
 
 @dataclass(frozen=True)

@@ -22,7 +22,7 @@ from ..repo import slots as slots_repo
 from .deps import Deps
 from .engine import JobContext, Step, job_kind
 
-BACKUP_SCHEDULE = "pterodeploy 自動バックアップ"
+BACKUP_SCHEDULE = "Hatch 自動バックアップ"
 
 
 def deps(ctx: JobContext) -> Deps:

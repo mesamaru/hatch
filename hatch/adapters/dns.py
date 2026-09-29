@@ -1,6 +1,6 @@
 """DNS（Cloudflare）。docs/EXTERNAL.md 2章。
 
-扱うのは comment が `pterodeploy:<PD_INSTANCE>` で始まるレコードだけ。
+扱うのは comment が `hatch:<PD_INSTANCE>` で始まるレコードだけ。
 手動で作ったレコードや別インスタンス（テスト環境など）のレコードには触らない。
 """
 
@@ -30,7 +30,7 @@ class Srv:
 class DnsRecordSpec:
     type: RecordType
     name: str  # FQDN（例 mc05trt.nuids.jp / _minecraft._tcp.mc05trt.nuids.jp）
-    comment: str  # 例 "slot=25565"。先頭に "pterodeploy:<instance> " を自動で付ける
+    comment: str  # 例 "slot=25565"。先頭に "hatch:<instance> " を自動で付ける
     content: str | None = None  # A: IP、CNAME: 向き先
     srv: Srv | None = None
     ttl: int = 60
@@ -96,7 +96,7 @@ def same_content(rec: DnsRecord, spec: DnsRecordSpec, comment: str) -> bool:
 class CloudflareDns:
     def __init__(self, token: str, instance: str, *, client: httpx.AsyncClient | None = None, base_url: str = CF_API):
         self.http = _CfClient("Cloudflare", base_url, {"Authorization": f"Bearer {token}"}, client=client)
-        self.comment_prefix = f"pterodeploy:{instance}"
+        self.comment_prefix = f"hatch:{instance}"
 
     def full_comment(self, comment: str) -> str:
         return f"{self.comment_prefix} {comment}".strip()

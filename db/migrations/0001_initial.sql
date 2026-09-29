@@ -1,4 +1,4 @@
--- pterodeploy 初期スキーマ
+-- Hatch 初期スキーマ
 -- 方針: DB が唯一の正本。外部サービス（パネル・Cloudflare・Kuma・edge）はここから「あるべき状態」を作る。
 -- 時刻はすべて timestamptz（UTC で保存し、表示時に Asia/Tokyo へ変換）。
 

@@ -5,12 +5,12 @@ from __future__ import annotations
 import psycopg
 import pytest
 
-from pterodeploy import db
-from pterodeploy.api.deps import get_games
-from pterodeploy.games import parse
-from pterodeploy.jobs.deps import Deps
-from pterodeploy.jobs.engine import Engine
-from pterodeploy.main import app
+from hatch import db
+from hatch.api.deps import get_games
+from hatch.games import parse
+from hatch.jobs.deps import Deps
+from hatch.jobs.engine import Engine
+from hatch.main import app
 from tests.api.helpers import client_for, make_user
 from tests.fakes.dns import FakeDns
 from tests.fakes.panel import FakePanel

@@ -1,4 +1,4 @@
-# ゲームごとの設定。/etc/pterodeploy/games.yml にコピーして、パネルの nest / egg の ID に合わせてください。
+# ゲームごとの設定。/etc/hatch/games.yml にコピーして、パネルの nest / egg の ID に合わせてください。
 # kind: mc（Minecraft 系）/ mod（Mod 系）/ proxy（Velocity）/ other（その他）
 # protocol: tcp / udp（udp は HAProxy では中継できないため、edge の nftables で転送します）
 # monitor: gamedig（Minecraft 系）/ tcp（ポートへの接続）/ push（パネル上の状態をワーカーが Kuma に送る。UDP のゲーム用）

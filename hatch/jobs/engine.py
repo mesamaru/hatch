@@ -47,7 +47,7 @@ from .. import db
 from ..errors import AppError, TransientError
 from ..logging import bind, mask
 
-log = logging.getLogger("pterodeploy.jobs")
+log = logging.getLogger("hatch.jobs")
 
 LOCK_NAMESPACE = 7_420_118  # サーバー単位のアドバイザリーロック（2引数形式の1つ目）
 STALE_AFTER_SECONDS = 300  # これより古い locked_at の running ジョブは引き継ぐ

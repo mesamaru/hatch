@@ -8,7 +8,7 @@
 2. `docs/IMPLEMENTATION.md` — どう作るか（構成・規約・ジョブ・アダプター）
 3. `docs/API.md` — HTTP API の正確な仕様
 4. `docs/EXTERNAL.md` — 外部サービス（ゲームパネル・Cloudflare・Uptime Kuma・Discord）の呼び方と注意点
-5. `docs/UI.md` — 画面の仕様（`web/index.html` のデモが見た目の正解）
+5. `docs/UI.md` — 画面の仕様（`web/demo.html` のデモが見た目の正解）
 6. `docs/TASKS.md` — 作業単位（チケット）。**1回の作業では1チケットだけ**を扱う
 7. `docs/ENVIRONMENT.md` — 本番とテスト環境の構成（外部サービスの一覧）
 
@@ -18,7 +18,7 @@
 
 - **1チケットずつ**。チケットに書かれていないファイルは変更しない。ついでのリファクタリングもしない。
 - **DB の移行ファイルは追記のみ**。`db/migrations/` の既存ファイルは書き換えない（v0.1.0 のタグを打つまでは `0001_initial.sql` の修正を例外的に許可）。新しい変更は次の番号のファイルを追加する。列の削除・改名は2リリースに分ける。
-- **外部サービスへの通信は必ずアダプター経由**（`pterodeploy/adapters/`）。ルートやジョブから `httpx` を直接呼ばない。
+- **外部サービスへの通信は必ずアダプター経由**（`hatch/adapters/`）。ルートやジョブから `httpx` を直接呼ばない。
 - **秘密情報をログ・例外メッセージ・API 応答に出さない**。API キー、パスワード、トークン、Cookie の値。
 - **本番の API キーを使わない**。結合テストはテスト環境（`PD_INSTANCE=stg`）のキーだけで行う。
 - **操作ログ（audit_log）の target・detail にユーザー名・メール・Discord 名を書かない**（退会後も残るため）。人は `actor_id`・ID で記録する。
@@ -30,11 +30,11 @@
 
 ```bash
 # PostgreSQL 16 以上が必要（Docker でも可）
-export DATABASE_URL=postgresql://pterodeploy:dev@127.0.0.1:5432/pterodeploy
+export DATABASE_URL=postgresql://hatch:dev@127.0.0.1:5432/hatch
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt -r requirements-dev.txt
-python -m pterodeploy.migrate
-uvicorn pterodeploy.main:app --reload --port 8080
+python -m hatch.migrate
+uvicorn hatch.main:app --reload --port 8080
 ```
 
 - テスト: `pytest -q`（DB を使うテストは `DATABASE_URL` のテスト用 DB を毎回作り直す）

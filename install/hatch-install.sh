@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# pterodeploy - LXC コンテナ内のインストール処理（ct/pterodeploy.sh から呼ばれます）
+# Hatch - LXC コンテナ内のインストール処理（ct/hatch.sh から呼ばれます）
 # 何度実行しても同じ結果になるように書いています（途中で失敗しても再実行可能）。
 set -Eeuo pipefail
 export DEBIAN_FRONTEND=noninteractive
@@ -7,9 +7,9 @@ export DEBIAN_FRONTEND=noninteractive
 PD_REPO="${PD_REPO:?PD_REPO が未設定です}"
 PD_BRANCH="${PD_BRANCH:-main}"
 PD_CHANNEL="${PD_CHANNEL:-stable}"
-PD_HOME=/opt/pterodeploy
-PD_ETC=/etc/pterodeploy
-ENV_FILE="${PD_ETC}/pterodeploy.env"
+PD_HOME=/opt/hatch
+PD_ETC=/etc/hatch
+ENV_FILE="${PD_ETC}/hatch.env"
 
 say() { printf '   %s\n' "$1"; }
 
@@ -35,19 +35,19 @@ elif [[ -n "${TS_AUTHKEY:-}" ]]; then
 fi
 
 say "ユーザーとディレクトリを作成しています"
-id pterodeploy >/dev/null 2>&1 || useradd --system --home "$PD_HOME" --shell /usr/sbin/nologin pterodeploy
+id hatch >/dev/null 2>&1 || useradd --system --home "$PD_HOME" --shell /usr/sbin/nologin hatch
 install -d -m 755 "$PD_HOME" "$PD_HOME/releases"
-install -d -m 750 -o pterodeploy -g pterodeploy "$PD_HOME/shared"
+install -d -m 750 -o hatch -g hatch "$PD_HOME/shared"
 install -d -m 700 "$PD_HOME/backups"
-install -d -m 750 -o pterodeploy -g pterodeploy /var/lib/pterodeploy /var/lib/pterodeploy/uploads
-install -d -m 750 -o root -g pterodeploy "$PD_ETC"
+install -d -m 750 -o hatch -g hatch /var/lib/hatch /var/lib/hatch/uploads
+install -d -m 750 -o root -g hatch "$PD_ETC"
 
 say "データベースを準備しています"
 systemctl enable --now postgresql >/dev/null
-if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='pterodeploy'" | grep -q 1; then
+if ! runuser -u postgres -- psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='hatch'" | grep -q 1; then
   DB_PASS="$(openssl rand -hex 24)"
-  runuser -u postgres -- psql -v ON_ERROR_STOP=1 -q -c "CREATE ROLE pterodeploy LOGIN PASSWORD '${DB_PASS}';"
-  runuser -u postgres -- psql -v ON_ERROR_STOP=1 -q -c "CREATE DATABASE pterodeploy OWNER pterodeploy ENCODING 'UTF8' TEMPLATE template0;"
+  runuser -u postgres -- psql -v ON_ERROR_STOP=1 -q -c "CREATE ROLE hatch LOGIN PASSWORD '${DB_PASS}';"
+  runuser -u postgres -- psql -v ON_ERROR_STOP=1 -q -c "CREATE DATABASE hatch OWNER hatch ENCODING 'UTF8' TEMPLATE template0;"
 else
   DB_PASS=""
 fi
@@ -56,9 +56,9 @@ if [[ ! -f "$ENV_FILE" ]]; then
   [[ -n "$DB_PASS" ]] || { say "エラー: DB ユーザーは存在しますが設定ファイルがありません。手動で復旧してください"; exit 1; }
   umask 027
   cat > "$ENV_FILE" << ENV
-# pterodeploy 設定ファイル
-# 編集後: systemctl restart pterodeploy.target
-# 対話式で設定する場合: pterodeploy-setup
+# Hatch 設定ファイル
+# 編集後: systemctl restart hatch.target
+# 対話式で設定する場合: hatch-setup
 
 # ---- 基本 ----
 PD_REPO=${PD_REPO}
@@ -70,11 +70,11 @@ PD_INTERNAL_URL=http://$(hostname -I | awk '{print $1}'):8080
 PD_TIMEZONE=Asia/Tokyo
 # 本番は prod、テスト環境は stg など。DNS のコメントと監視名に入り、同じ Cloudflare ゾーンや Kuma を共有しても互いに消し合わない
 PD_INSTANCE=prod
-PD_DATA_DIR=/var/lib/pterodeploy
+PD_DATA_DIR=/var/lib/hatch
 # 自己監視（/api/health/full）用。Uptime Kuma の HTTP 監視のヘッダーに設定する
 PD_HEALTH_TOKEN=$(openssl rand -hex 24)
 PD_SECRET_KEY=$(openssl rand -hex 32)
-DATABASE_URL=postgresql://pterodeploy:${DB_PASS}@127.0.0.1:5432/pterodeploy
+DATABASE_URL=postgresql://hatch:${DB_PASS}@127.0.0.1:5432/hatch
 
 # ---- パネル（Pterodactyl / Pelican） ----
 PANEL_KIND=pterodactyl
@@ -114,14 +114,14 @@ S3_BUCKET=
 S3_ACCESS_KEY=
 S3_SECRET_KEY=
 ENV
-  chown root:pterodeploy "$ENV_FILE"
+  chown root:hatch "$ENV_FILE"
   chmod 640 "$ENV_FILE"
 fi
 
 say "update コマンドを登録しています"
 cat > /usr/bin/update << STUB
 #!/usr/bin/env bash
-# pterodeploy を更新します。  update --help で使い方を表示
+# Hatch を更新します。  update --help で使い方を表示
 set -euo pipefail
 REPO="\$(sed -n 's/^PD_REPO=//p' ${ENV_FILE} 2>/dev/null || true)"
 REPO="\${REPO:-${PD_REPO}}"
@@ -133,8 +133,8 @@ say "最新のリリースを配置しています"
 /usr/bin/update --first-install --yes
 
 say "起動を確認しています"
-ln -sf "$PD_HOME/current/deploy/bin/pterodeploy-setup" /usr/local/bin/pterodeploy-setup
+ln -sf "$PD_HOME/current/deploy/bin/hatch-setup" /usr/local/bin/hatch-setup
 if [[ ! -f "$PD_ETC/games.yml" ]]; then
   say "ゲームの定義（games.yml）の見本を置いています。パネルの nest・egg の ID に合わせて編集してください"
-  install -m 640 -o root -g pterodeploy "$PD_HOME/current/deploy/games.example.yml" "$PD_ETC/games.yml"
+  install -m 640 -o root -g hatch "$PD_HOME/current/deploy/games.example.yml" "$PD_ETC/games.yml"
 fi

@@ -1,0 +1,23 @@
+[Unit]
+Description=Hatch API / Web パネル
+After=network-online.target postgresql.service
+Wants=network-online.target
+PartOf=hatch.target
+
+[Service]
+Type=simple
+User=hatch
+Group=hatch
+EnvironmentFile=/etc/hatch/hatch.env
+WorkingDirectory=/opt/hatch/current
+ExecStart=/opt/hatch/current/.venv/bin/uvicorn hatch.main:app --app-dir /opt/hatch/current --host ${PD_HOST} --port ${PD_PORT} --proxy-headers --no-server-header
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/hatch/shared /var/lib/hatch
+
+[Install]
+WantedBy=hatch.target

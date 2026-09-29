@@ -26,7 +26,7 @@ from .errors import install_handlers
 from .health import full_report
 from .logging import setup_logging
 
-log = logging.getLogger("pterodeploy.api")
+log = logging.getLogger("hatch.api")
 
 
 @asynccontextmanager
@@ -46,7 +46,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="pterodeploy", version=__version__, docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan
+    title="hatch", version=__version__, docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan
 )
 install_handlers(app)
 app.include_router(edge_api.router)

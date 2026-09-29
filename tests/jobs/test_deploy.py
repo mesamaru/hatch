@@ -5,15 +5,15 @@ from __future__ import annotations
 import psycopg
 import pytest
 
-from pterodeploy import db
-from pterodeploy.adapters.dns import DnsRecordSpec
-from pterodeploy.domain.permissions import Actor
-from pterodeploy.errors import AppError, UpstreamError
-from pterodeploy.games import parse
-from pterodeploy.jobs import deploy as _deploy  # noqa: F401 - ジョブの登録
-from pterodeploy.jobs.deps import Deps
-from pterodeploy.jobs.engine import Engine
-from pterodeploy.services.deploy import DeployRequest, request_deploy
+from hatch import db
+from hatch.adapters.dns import DnsRecordSpec
+from hatch.domain.permissions import Actor
+from hatch.errors import AppError, UpstreamError
+from hatch.games import parse
+from hatch.jobs import deploy as _deploy  # noqa: F401 - ジョブの登録
+from hatch.jobs.deps import Deps
+from hatch.jobs.engine import Engine
+from hatch.services.deploy import DeployRequest, request_deploy
 from tests.fakes.dns import FakeDns
 from tests.fakes.panel import FakePanel
 
@@ -113,7 +113,7 @@ async def test_prepublished_dns_is_kept_on_rollback(env):
         "type": "CNAME",
         "name": "mc05trt.nuids.jp",
         "content": "edge.nuids.jp",
-        "comment": "pterodeploy:test slot=25565",
+        "comment": "hatch:test slot=25565",
         "proxied": False,
         "ttl": 60,
     }
@@ -170,7 +170,7 @@ async def test_failure_leaves_nothing_behind(env, fail_at):
 
 
 async def test_existing_panel_user_is_reused_and_kept(env):
-    from pterodeploy.adapters.panel import NewPanelUser
+    from hatch.adapters.panel import NewPanelUser
 
     u = await env["panel"].create_user(NewPanelUser(env["tanaka"], "tanaka", "t@x"))
     env["panel"].fail["create_server"] = UpstreamError("ゲームパネル", "boom", 500)

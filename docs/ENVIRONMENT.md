@@ -21,9 +21,9 @@
 
 | # | サービス・環境 | 用途 | 用意するもの・設定 | 規模の目安 |
 |---|---|---|---|---|
-| 1 | **Proxmox VE**（既存） | オーケストレーターの LXC | インストーラー（`ct/pterodeploy.sh`）を実行するだけ。Debian 13 のテンプレートは自動取得 | 2 vCPU・メモリ 2〜4GB・ディスク 20GB |
+| 1 | **Proxmox VE**（既存） | オーケストレーターの LXC | インストーラー（`ct/hatch.sh`）を実行するだけ。Debian 13 のテンプレートは自動取得 | 2 vCPU・メモリ 2〜4GB・ディスク 20GB |
 | 2 | **Pterodactyl パネル＋Wings**（既存） | ゲームサーバー本体 | Application API キー（ユーザー・ノード・アロケーション・サーバー・nest/egg を読み書き）、root 管理者アカウントの Client API キー、各ノードのアロケーションに使う Tailscale IP、nest・egg の ID（`games.yml`）、「リモートファイルの取得」を有効化（開発用コピー用） | 既存のまま |
-| 3 | **Tailscale** | 全部品の内部通信 | タグ（`tag:pterodeploy`・`tag:edge`・`tag:wings`・`tag:kuma`）、LXC と edge 用の認証キー、ACL（下記） | 無料プランの範囲 |
+| 3 | **Tailscale** | 全部品の内部通信 | タグ（`tag:hatch`・`tag:edge`・`tag:wings`・`tag:kuma`）、LXC と edge 用の認証キー、ACL（下記） | 無料プランの範囲 |
 | 4 | **Linode ×2**（edge-1 東京・edge-2 大阪） | プレイヤーの入口 | `edge/install-edge.sh` を実行。Linode のファイアウォールで「アドレス枠のポート範囲（TCP・UDP）」と 80/443 のみ許可 | 最小プラン（1GB）で十分。回線の転送量に注意 |
 | 5 | **Cloudflare** | DNS（ゲームはプロキシなし） | 2つのドメインのネームサーバーを Cloudflare に、API トークン（両ゾーンの Zone:Read・DNS:Edit のみ） | 無料プラン |
 | 6 | **Web パネルの公開** | `panel.nuids.jp` | どちらか：① Cloudflare Tunnel（LXC に cloudflared。受信ポートを開けなくてよい。**おすすめ**）② edge の nginx から Tailscale 経由で中継（Let's Encrypt の証明書） | — |
@@ -41,18 +41,18 @@
 ```jsonc
 {
   "tagOwners": {
-    "tag:pterodeploy": ["autogroup:admin"], "tag:edge": ["autogroup:admin"],
+    "tag:hatch": ["autogroup:admin"], "tag:edge": ["autogroup:admin"],
     "tag:wings": ["autogroup:admin"], "tag:kuma": ["autogroup:admin"], "tag:panel": ["autogroup:admin"]
   },
   "acls": [
     // edge → ゲームサーバー（アドレス枠のポート範囲だけ）
     {"action": "accept", "src": ["tag:edge"], "dst": ["tag:wings:25560-25569,30000-30999"]},
     // edge → オーケストレーター（設定の取得）
-    {"action": "accept", "src": ["tag:edge"], "dst": ["tag:pterodeploy:8080"]},
+    {"action": "accept", "src": ["tag:edge"], "dst": ["tag:hatch:8080"]},
     // オーケストレーター → パネル・Kuma
-    {"action": "accept", "src": ["tag:pterodeploy"], "dst": ["tag:panel:443", "tag:kuma:3001"]},
+    {"action": "accept", "src": ["tag:hatch"], "dst": ["tag:panel:443", "tag:kuma:3001"]},
     // Kuma → オーケストレーター（死活確認・Webhook の送り先）、Kuma → edge（edge の死活確認）
-    {"action": "accept", "src": ["tag:kuma"], "dst": ["tag:pterodeploy:8080", "tag:edge:*"]},
+    {"action": "accept", "src": ["tag:kuma"], "dst": ["tag:hatch:8080", "tag:edge:*"]},
     // パネル → Wings（パネルの通常の通信）
     {"action": "accept", "src": ["tag:panel"], "dst": ["tag:wings:8080,2022"]},
     // 管理者の端末
@@ -94,7 +94,7 @@
 5. Discord：アプリ・Bot・OAuth の戻り先・Intent、チャンネルとロール
 6. GitHub：リポジトリを公開して `v0.x.0` のタグを打つ
 7. edge：edge-1・edge-2 に `install-edge.sh`
-8. Proxmox：`ct/pterodeploy.sh` → コンテナ内で `pterodeploy-setup`（接続確認と自己監視の登録まで自動）
+8. Proxmox：`ct/hatch.sh` → コンテナ内で `hatch-setup`（接続確認と自己監視の登録まで自動）
 9. Web パネルの公開（Tunnel または nginx）
 10. 画面から：ドメイン → IP と紐付け → アドレス枠 → DNS の事前作成 → Discord ロールの対応表 → 利用規約の登録
 11. 自分で1台作って、接続・監視・バックアップ・ゴミ箱・復元・退会（テスト用アカウント）を確認

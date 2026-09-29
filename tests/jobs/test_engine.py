@@ -8,10 +8,10 @@ import uuid
 import psycopg
 import pytest
 
-from pterodeploy import db
-from pterodeploy.errors import AppError, TransientError
-from pterodeploy.jobs import engine as eng
-from pterodeploy.jobs.engine import Engine, JobContext, Step, enqueue, job_kind
+from hatch import db
+from hatch.errors import AppError, TransientError
+from hatch.jobs import engine as eng
+from hatch.jobs.engine import Engine, JobContext, Step, enqueue, job_kind
 
 CALLS: list[str] = []
 BEHAVIOR: dict[str, object] = {}

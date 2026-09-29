@@ -5,9 +5,9 @@ from __future__ import annotations
 import psycopg
 import pytest
 
-from pterodeploy import db
-from pterodeploy.errors import UpstreamError
-from pterodeploy.scheduler import enqueue_due_purges
+from hatch import db
+from hatch.errors import UpstreamError
+from hatch.scheduler import enqueue_due_purges
 from tests.api.test_domains_and_servers import env  # noqa: F401 - フィクスチャを共有
 
 pytestmark = pytest.mark.usefixtures("env")

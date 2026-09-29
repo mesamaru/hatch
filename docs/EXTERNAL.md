@@ -2,7 +2,7 @@
 
 アダプターを実装する人向けの資料です。**「要確認」と書いた項目は、実装時に実機（または公式ドキュメント）で動作を確かめ、結果をこのファイルに追記してください。** 推測で実装しないこと。
 
-共通：タイムアウトは接続5秒・全体15秒。429・502・503・504・タイムアウト・接続失敗は `TransientError`、それ以外のエラーは `UpstreamError`（`pterodeploy/adapters/http.py`）。**アダプター自身は再試行しない**。再試行はジョブ基盤が手順単位で行う（1秒、4秒、10秒）。二重に再試行して回数が掛け算にならないようにするため。応答本文をログに出すときは500文字で切り、キーやトークンを含むヘッダーは出さない。
+共通：タイムアウトは接続5秒・全体15秒。429・502・503・504・タイムアウト・接続失敗は `TransientError`、それ以外のエラーは `UpstreamError`（`hatch/adapters/http.py`）。**アダプター自身は再試行しない**。再試行はジョブ基盤が手順単位で行う（1秒、4秒、10秒）。二重に再試行して回数が掛け算にならないようにするため。応答本文をログに出すときは500文字で切り、キーやトークンを含むヘッダーは出さない。
 
 ---
 
@@ -76,7 +76,7 @@
 
 ### スケジュール（自動バックアップ）
 
-1. `POST /api/client/servers/{identifier}/schedules` `{"name":"pterodeploy 自動バックアップ","minute":"0","hour":"4","day_of_month":"*","month":"*","day_of_week":"*","is_active":true,"only_when_online":false}`
+1. `POST /api/client/servers/{identifier}/schedules` `{"name":"Hatch 自動バックアップ","minute":"0","hour":"4","day_of_month":"*","month":"*","day_of_week":"*","is_active":true,"only_when_online":false}`
 2. `POST …/schedules/{id}/tasks` `{"action":"backup","payload":"","time_offset":0}`
 
 同名のスケジュールが既にあれば作らない（再実行対策）。
@@ -107,13 +107,13 @@
 
 - `Authorization: Bearer <CF_API_TOKEN>`。トークンの権限：対象ゾーンの **Zone:Read** と **DNS:Edit** のみ。
 - ゾーン確認：`GET https://api.cloudflare.com/client/v4/zones/{zone_id}` → `result.name` が登録するドメイン名と一致すること。
-- 管理対象の一覧：`GET /zones/{zone}/dns_records?comment.startswith=pterodeploy:<PD_INSTANCE>&per_page=100&page=N`（全ページ）。**他のインスタンス（テスト環境など）のレコードには触らない**。
+- 管理対象の一覧：`GET /zones/{zone}/dns_records?comment.startswith=hatch:<PD_INSTANCE>&per_page=100&page=N`（全ページ）。**他のインスタンス（テスト環境など）のレコードには触らない**。
 - 作成：`POST /zones/{zone}/dns_records`
-  - CNAME：`{"type":"CNAME","name":"mc05trt.nuids.jp","content":"edge.nuids.jp","ttl":60,"proxied":false,"comment":"pterodeploy:prod slot=25565"}`
-  - A：`{"type":"A","name":"edge.nuids.jp","content":"203.0.113.10","ttl":60,"proxied":false,"comment":"pterodeploy:prod binding=1"}`
-  - SRV：`{"type":"SRV","name":"_minecraft._tcp.mc05trt.nuids.jp","data":{"priority":0,"weight":5,"port":25565,"target":"edge.nuids.jp"},"ttl":60,"comment":"pterodeploy:prod slot=25565"}`
+  - CNAME：`{"type":"CNAME","name":"mc05trt.nuids.jp","content":"edge.nuids.jp","ttl":60,"proxied":false,"comment":"hatch:prod slot=25565"}`
+  - A：`{"type":"A","name":"edge.nuids.jp","content":"203.0.113.10","ttl":60,"proxied":false,"comment":"hatch:prod binding=1"}`
+  - SRV：`{"type":"SRV","name":"_minecraft._tcp.mc05trt.nuids.jp","data":{"priority":0,"weight":5,"port":25565,"target":"edge.nuids.jp"},"ttl":60,"comment":"hatch:prod slot=25565"}`
 - 更新：`PATCH /zones/{zone}/dns_records/{id}`、削除：`DELETE …/{id}`（404 は成功扱い）。
-- **upsert の手順**：`GET …/dns_records?type=CNAME&name=<fqdn>` → あれば内容を比較して違えば PATCH、なければ POST。同名に **comment が `pterodeploy:<自分のインスタンス>` で始まらないレコード**（手動で作ったもの、または別インスタンスのもの）があれば上書きせず失敗させ、管理者に知らせる。
+- **upsert の手順**：`GET …/dns_records?type=CNAME&name=<fqdn>` → あれば内容を比較して違えば PATCH、なければ POST。同名に **comment が `hatch:<自分のインスタンス>` で始まらないレコード**（手動で作ったもの、または別インスタンスのもの）があれば上書きせず失敗させ、管理者に知らせる。
 - CNAME は同じ名前の他の種類のレコードと共存できない。作成に失敗したらエラーコードと名前を記録する。
 - 整合性チェックは `proxied` が true になっていたら false に戻す。
 
@@ -143,7 +143,7 @@ api.add_monitor(
 ```
 
   `monitor: tcp` のゲームは `type=MonitorType.PORT`。`monitor: push`（UDP のゲーム）は `type=MonitorType.PUSH` で作り、返ってきた push トークンを保存する。ワーカーが30秒ごとにパネルの `current_state` を確認し、`running` のときだけ `GET {KUMA_URL}/api/push/{token}?status=up&msg=running` を送る（送らなければ Kuma が停止と判断する）。
-- Webhook 通知は初回起動時に1つだけ作る：`add_notification(type=NotificationType.WEBHOOK, name="pterodeploy", webhookURL=f"{PD_INTERNAL_URL}/api/hooks/kuma/{KUMA_WEBHOOK_SECRET}", webhookContentType="json")`。ID は `app_settings.kuma_notification_id` に保存。
+- Webhook 通知は初回起動時に1つだけ作る：`add_notification(type=NotificationType.WEBHOOK, name="hatch", webhookURL=f"{PD_INTERNAL_URL}/api/hooks/kuma/{KUMA_WEBHOOK_SECRET}", webhookContentType="json")`。ID は `app_settings.kuma_notification_id` に保存。
 - 一時停止・再開・削除：`pause_monitor(id)`、`resume_monitor(id)`、`delete_monitor(id)`（存在しない ID は成功扱い）。
 
 ### 3.2 状態の読み取り（/metrics）
@@ -153,7 +153,7 @@ api.add_monitor(
 
 ### 3.3 自己監視の通知
 
-自己監視の監視（`pd:<instance>:self-*`、`push-*`）には、Kuma の **Discord 通知**（`NotificationType.DISCORD`、管理者用チャンネルの Webhook URL）を付ける。オーケストレーターが止まっていても Kuma から直接届くようにするため。Webhook URL は `pterodeploy-setup` で入力し、Kuma にだけ保存する（オーケストレーターの設定ファイルには残さない）。
+自己監視の監視（`pd:<instance>:self-*`、`push-*`）には、Kuma の **Discord 通知**（`NotificationType.DISCORD`、管理者用チャンネルの Webhook URL）を付ける。オーケストレーターが止まっていても Kuma から直接届くようにするため。Webhook URL は `hatch-setup` で入力し、Kuma にだけ保存する（オーケストレーターの設定ファイルには残さない）。
 
 ### 3.4 Webhook の受信
 
@@ -175,7 +175,7 @@ api.add_monitor(
 
 ## 5. プラグインの取得元
 
-- Modrinth：`GET https://api.modrinth.com/v2/search?query=…&facets=[["project_type:plugin"],["categories:<loader>"]]`。`User-Agent: pterodeploy/<version> (<PD_PUBLIC_URL>)` が必須。
+- Modrinth：`GET https://api.modrinth.com/v2/search?query=…&facets=[["project_type:plugin"],["categories:<loader>"]]`。`User-Agent: hatch/<version> (<PD_PUBLIC_URL>)` が必須。
   - StoriaMC → loader は `folia` のみ。Paper → `paper`。Forge → `forge`（project_type は `mod`）。
   - バージョン：`GET /v2/project/{id}/version?loaders=["folia"]&game_versions=["<サーバーの MC バージョン>"]`。ファイルは `primary: true` のもの。sha512 を検証してから置く。
 - Hangar：Paper 用のみ（Folia 対応の判定が確実でないため StoriaMC では使わない）。`GET https://hangar.papermc.io/api/v1/projects?q=…&platform=PAPER`。

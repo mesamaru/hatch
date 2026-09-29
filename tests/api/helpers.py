@@ -7,8 +7,8 @@ import secrets
 import httpx
 import psycopg
 
-from pterodeploy.auth.crypto import sha256_hex
-from pterodeploy.main import app
+from hatch.auth.crypto import sha256_hex
+from hatch.main import app
 
 
 def make_user(db_url: str, username: str, *, role: str = "user", max_servers: int = 3) -> str:

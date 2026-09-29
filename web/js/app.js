@@ -49,7 +49,7 @@ const LOGIN_ERRORS = {
   suspended: "アカウントが利用停止中です。",
   discord: "Discord との通信に失敗しました。時間をおいて試してください。",
 };
-const DISPLAY_KEY = "pterodeploy-display";
+const DISPLAY_KEY = "hatch-display";
 const BG_PRESETS = [
   { id: "none", name: "なし", light: "none", dark: "none" },
   {

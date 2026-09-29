@@ -8,8 +8,8 @@ import httpx
 import pytest
 import respx
 
-from pterodeploy.adapters.panel import NewPanelServer, NewPanelUser, PanelUserChanges, PterodactylPanel
-from pterodeploy.errors import AppError, TransientError, UpstreamError
+from hatch.adapters.panel import NewPanelServer, NewPanelUser, PanelUserChanges, PterodactylPanel
+from hatch.errors import AppError, TransientError, UpstreamError
 
 URL = "https://gp.test"
 
@@ -217,7 +217,7 @@ async def test_schedule_is_created_once(panel):
     lst = respx.get(f"{URL}/api/client/servers/abcd/schedules")
     lst.side_effect = [
         httpx.Response(200, json={"data": []}),
-        httpx.Response(200, json={"data": [{"attributes": {"id": 7, "name": "pterodeploy 自動バックアップ"}}]}),
+        httpx.Response(200, json={"data": [{"attributes": {"id": 7, "name": "Hatch 自動バックアップ"}}]}),
     ]
     mk = respx.post(f"{URL}/api/client/servers/abcd/schedules").mock(
         return_value=httpx.Response(200, json={"attributes": {"id": 7}})
@@ -225,10 +225,10 @@ async def test_schedule_is_created_once(panel):
     task = respx.post(f"{URL}/api/client/servers/abcd/schedules/7/tasks").mock(
         return_value=httpx.Response(200, json={})
     )
-    from pterodeploy.adapters.panel import Cron
+    from hatch.adapters.panel import Cron
 
-    assert await panel.ensure_schedule("abcd", "pterodeploy 自動バックアップ", Cron()) == 7
-    assert await panel.ensure_schedule("abcd", "pterodeploy 自動バックアップ", Cron()) == 7
+    assert await panel.ensure_schedule("abcd", "Hatch 自動バックアップ", Cron()) == 7
+    assert await panel.ensure_schedule("abcd", "Hatch 自動バックアップ", Cron()) == 7
     assert mk.call_count == 1 and task.call_count == 1
     assert json.loads(task.calls[0].request.content)["action"] == "backup"
 

@@ -1,8 +1,8 @@
 """JSON 1行のログ。秘密の値（設定のキーやトークン）はマスクしてから出す。
 
-from pterodeploy.logging import setup_logging, bind
+from hatch.logging import setup_logging, bind
 setup_logging()
-log = logging.getLogger("pterodeploy.jobs")
+log = logging.getLogger("hatch.jobs")
 log.info("手順を開始", extra=bind(job_id=12, server_id="..."))
 """
 

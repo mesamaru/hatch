@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  pterodeploy - Proxmox VE 用インストーラー（Proxmox VE Helper-Scripts 方式）
+#  Hatch - Proxmox VE 用インストーラー（Proxmox VE Helper-Scripts 方式）
 #
 #  Proxmox VE ホストのシェルで実行:
-#    bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/pterodeploy/main/ct/pterodeploy.sh)"
+#    bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/hatch.sh)"
 #
 #  インストール済みのコンテナ内で実行すると、更新として動作します。
 #  非対話で実行する場合は PD_YES=1 と var_* 変数を指定します（README 参照）。
 # =============================================================================
 set -Eeuo pipefail
 
-PD_REPO="${PD_REPO:-mesamaru/pterodeploy}"
+PD_REPO="${PD_REPO:-mesamaru/hatch}"
 PD_BRANCH="${PD_BRANCH:-main}"
 PD_CHANNEL="${PD_CHANNEL:-stable}"
 RAW="https://raw.githubusercontent.com/${PD_REPO}/${PD_BRANCH}"
@@ -29,7 +29,7 @@ die()      { msg_err "$1"; exit 1; }
 
 # ---- コンテナ内で実行された場合は更新に切り替え ------------------------------
 if ! command -v pct >/dev/null 2>&1; then
-  if [[ -d /opt/pterodeploy ]]; then
+  if [[ -d /opt/hatch ]]; then
     exec bash -c "$(curl -fsSL "${RAW}/misc/update.sh")" update "$@"
   fi
   die "Proxmox VE ホストのシェルで実行してください。"
@@ -44,13 +44,13 @@ PVE_MAJOR="$(pveversion | sed -n 's#^pve-manager/\([0-9]*\).*#\1#p')"
 
 cat << 'BANNER'
 
-   pterodeploy ─ Pterodactyl 自動デプロイ基盤のインストール
+   hatch ─ Pterodactyl 自動デプロイ基盤のインストール
 
 BANNER
 
 # ---- 既定値（環境変数で上書き可能） ------------------------------------------------
 CTID="${var_ctid:-$(pvesh get /cluster/nextid)}"
-HN="${var_hostname:-pterodeploy}"
+HN="${var_hostname:-hatch}"
 CPU="${var_cpu:-2}"
 RAM="${var_ram:-2048}"
 DISK="${var_disk:-10}"
@@ -66,10 +66,10 @@ TZ_HOST="$(timedatectl show -p Timezone --value 2>/dev/null || echo Asia/Tokyo)"
 [[ -n "$STORAGE" ]] || die "コンテナ用のストレージ（rootdir）が見つかりません。"
 [[ -n "$TSTORE" ]]  || die "テンプレート用のストレージ（vztmpl）が見つかりません。"
 
-ask() { whiptail --title "pterodeploy" --inputbox "$1" 10 66 "$2" 3>&1 1>&2 2>&3 || die "キャンセルしました。"; }
+ask() { whiptail --title "hatch" --inputbox "$1" 10 66 "$2" 3>&1 1>&2 2>&3 || die "キャンセルしました。"; }
 
 if [[ "${PD_YES:-0}" != "1" && -t 0 ]] && command -v whiptail >/dev/null; then
-  MODE=$(whiptail --title "pterodeploy" --menu "設定方法を選んでください" 13 70 2 \
+  MODE=$(whiptail --title "hatch" --menu "設定方法を選んでください" 13 70 2 \
     "1" "標準設定（CPU ${CPU} / メモリ ${RAM}MB / ディスク ${DISK}GB / DHCP）" \
     "2" "詳細設定" 3>&1 1>&2 2>&3) || die "キャンセルしました。"
   if [[ "$MODE" == "2" ]]; then
@@ -131,7 +131,7 @@ pct create "$CTID" "${TSTORE}:vztmpl/${TEMPLATE}" \
   --hostname "$HN" --cores "$CPU" --memory "$RAM" --swap 512 \
   --rootfs "${STORAGE}:${DISK}" --net0 "$NET0" \
   --unprivileged 1 --features nesting=1 --onboot 1 \
-  --ostype debian --tags pterodeploy --timezone "$TZ_HOST" >/dev/null
+  --ostype debian --tags hatch --timezone "$TZ_HOST" >/dev/null
 CREATED=1
 
 # Tailscale 用に /dev/net/tun をコンテナへ渡す（非特権コンテナで必要）
@@ -154,19 +154,19 @@ msg_ok "ネットワークに接続しました"
 msg_info "インストールしています（数分かかります）"
 pct exec "$CTID" -- bash -c "apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq curl ca-certificates >/dev/null"
 pct exec "$CTID" -- env PD_REPO="$PD_REPO" PD_BRANCH="$PD_BRANCH" PD_CHANNEL="$PD_CHANNEL" TS_AUTHKEY="$TS_AUTHKEY" \
-  bash -c "curl -fsSL '${RAW}/install/pterodeploy-install.sh' | bash"
+  bash -c "curl -fsSL '${RAW}/install/hatch-install.sh' | bash"
 msg_ok "インストールが完了しました"
 
 IP="$(pct exec "$CTID" -- hostname -I | awk '{print $1}')"
-pct set "$CTID" --description "pterodeploy — http://${IP}:8080 — 更新はコンテナ内で update" >/dev/null
+pct set "$CTID" --description "hatch — http://${IP}:8080 — 更新はコンテナ内で update" >/dev/null
 trap - ERR
 
 cat << DONE
 
- ${C_OK}pterodeploy の準備ができました。${C_RST}
+${C_OK}Hatch の準備ができました。${C_RST}
 
    パネル  http://${IP}:8080
-   初期設定 pct enter ${CTID} → pterodeploy-setup
+   初期設定 pct enter ${CTID} → hatch-setup
    更新    pct enter ${CTID} → update
    ${C_DIM}Tailscale を後から接続する場合: pct enter ${CTID} → tailscale up${C_RST}
 

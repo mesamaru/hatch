@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 対話式の初期設定。入力した値はその場で接続確認してから保存します。
 set -Eeuo pipefail
-ENV_FILE=/etc/pterodeploy/pterodeploy.env
+ENV_FILE=/etc/hatch/hatch.env
 [[ $EUID -eq 0 ]] || { echo "root で実行してください"; exit 1; }
 
 get() { sed -n "s/^$1=//p" "$ENV_FILE" | tail -1; }
@@ -13,9 +13,9 @@ put() { # put KEY VALUE（値に | や & が含まれても壊れないように
 ask() { local cur; cur="$(get "$1")"; read -rp " $2 [${cur:+設定済み}]: " v; echo "${v:-$cur}"; }
 check() { if eval "$2" >/dev/null 2>&1; then echo "   ✓ $1"; else echo "   ✗ $1（値を確認してください）"; fi; }
 
-echo; echo " pterodeploy 初期設定（空欄のまま Enter で現在の値を維持）"; echo
+echo; echo " hatch 初期設定（空欄のまま Enter で現在の値を維持）"; echo
 put PD_PUBLIC_URL "$(ask PD_PUBLIC_URL 'このパネルの公開 URL（例 https://panel.nuids.jp。Discord ログインの戻り先）')"
-put PD_INTERNAL_URL "$(ask PD_INTERNAL_URL 'Tailscale 内から見たこのコンテナの URL（例 http://pterodeploy:8080）')"
+put PD_INTERNAL_URL "$(ask PD_INTERNAL_URL 'Tailscale 内から見たこのコンテナの URL（例 http://hatch:8080）')"
 PANEL_URL="$(ask PANEL_URL 'Pterodactyl の URL（例 https://gp.example.net）')"; put PANEL_URL "${PANEL_URL%/}"
 PANEL_APP_KEY="$(ask PANEL_APP_KEY 'Application API キー（ptla_...）')"; put PANEL_APP_KEY "$PANEL_APP_KEY"
 put PANEL_PUBLIC_URL "$(ask PANEL_PUBLIC_URL '利用者に見せるゲームパネルの URL（空欄なら上と同じ）')"
@@ -40,6 +40,6 @@ put DISCORD_GUILD_ID "$(ask DISCORD_GUILD_ID 'Discord サーバーID')"
 put DISCORD_CHANNEL_ANNOUNCE "$(ask DISCORD_CHANNEL_ANNOUNCE 'お知らせを流すチャンネルID（空欄可）')"
 put DISCORD_CHANNEL_OPS "$(ask DISCORD_CHANNEL_OPS '管理者向け通知のチャンネルID（空欄可）')"
 
-chown root:pterodeploy "$ENV_FILE"; chmod 640 "$ENV_FILE"
-systemctl restart pterodeploy.target
+chown root:hatch "$ENV_FILE"; chmod 640 "$ENV_FILE"
+systemctl restart hatch.target
 echo; echo " 保存して再起動しました。"

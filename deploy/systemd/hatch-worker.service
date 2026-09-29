@@ -1,0 +1,27 @@
+[Unit]
+Description=Hatch ワーカー（ジョブの実行）
+After=network-online.target postgresql.service
+Wants=network-online.target
+PartOf=hatch.target
+
+[Service]
+Type=simple
+User=hatch
+Group=hatch
+EnvironmentFile=/etc/hatch/hatch.env
+Environment=PD_GAMES_FILE=/etc/hatch/games.yml
+WorkingDirectory=/opt/hatch/current
+ExecStart=/opt/hatch/current/.venv/bin/python -m hatch.worker
+# 実行中のジョブを最後まで終わらせるための猶予（途中で止まっても次の起動で再開される）
+TimeoutStopSec=120
+KillSignal=SIGTERM
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/hatch/shared /var/lib/hatch
+
+[Install]
+WantedBy=hatch.target

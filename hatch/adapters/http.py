@@ -33,7 +33,7 @@ class ServiceClient:
         self._own = client is None
         self.client = client or httpx.AsyncClient(timeout=timeout)
         self.base_url = base_url.rstrip("/")
-        self.headers = {"Accept": "application/json", "User-Agent": "pterodeploy", **headers}
+        self.headers = {"Accept": "application/json", "User-Agent": "Hatch", **headers}
 
     async def aclose(self) -> None:
         if self._own:

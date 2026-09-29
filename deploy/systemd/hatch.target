@@ -1,0 +1,6 @@
+[Unit]
+Description=Hatch（全サービス）
+Wants=hatch-api.service
+
+[Install]
+WantedBy=multi-user.target

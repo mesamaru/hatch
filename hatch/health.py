@@ -157,5 +157,5 @@ def full_report(now: datetime | None = None) -> Report:
                 Check(f"edge:{name}", "degraded" if age > EDGE_STALE_SECONDS else "ok", f"{age}秒前に報告", age)
             )
 
-    rep.checks.append(_disk_check("disk", os.environ.get("PD_DATA_DIR", "/var/lib/pterodeploy")))
+    rep.checks.append(_disk_check("disk", os.environ.get("PD_DATA_DIR", "/var/lib/hatch")))
     return rep

@@ -4,8 +4,8 @@ from dataclasses import replace
 
 import pytest
 
-from pterodeploy.domain.names import host_label_problem, server_name_problem
-from pterodeploy.domain.slots import Binding, SlotRule, expand, host_for, validate
+from hatch.domain.names import host_label_problem, server_name_problem
+from hatch.domain.slots import Binding, SlotRule, expand, host_for, validate
 
 MC = SlotRule(
     id=1,

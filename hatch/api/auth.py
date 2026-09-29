@@ -28,7 +28,7 @@ from ..errors import AppError, TransientError, UpstreamError
 from ..repo import audit
 from ..repo import users as users_repo
 
-log = logging.getLogger("pterodeploy.auth")
+log = logging.getLogger("hatch.auth")
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 TOTP_MAX_FAILURES = 5
 

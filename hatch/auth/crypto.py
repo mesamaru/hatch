@@ -71,7 +71,7 @@ def totp_match(secret_b32: str, code: str, *, after_counter: int = 0, at: float 
     return None
 
 
-def otpauth_url(secret_b32: str, account: str, issuer: str = "pterodeploy") -> str:
+def otpauth_url(secret_b32: str, account: str, issuer: str = "Hatch") -> str:
     return (
         f"otpauth://totp/{quote(issuer)}:{quote(account)}?secret={secret_b32}&issuer={quote(issuer)}&digits=6&period=30"
     )

@@ -27,7 +27,7 @@ class Limits:
     udp_per_ip_pps: int = 2000
 
 
-HEADER = "# pterodeploy が生成しました。手で編集しないでください（次の更新で上書きされます）。\n"
+HEADER = "# Hatch が生成しました。手で編集しないでください(次の更新で上書きされます)。\n"
 
 # ゲームの接続は長時間続くので、配布元の既定（50秒）より長いタイムアウトにする
 DEFAULTS = """defaults pd_tcp
@@ -88,7 +88,7 @@ def render_nft(targets: list[Target], limits: Limits) -> str:
     ports = ", ".join(str(t.port) for t in udp)
     dnat = "\n".join(f"    udp dport {t.port} dnat to {t.backend_ip}:{t.port}  # {_safe_label(t.label)}" for t in udp)
     masq = "\n".join(f"    ip daddr {t.backend_ip} udp dport {t.port} masquerade" for t in udp)
-    return f"""{HEADER}table ip pterodeploy {{
+    return f"""{HEADER}table ip hatch {{
   set udp_ports {{
     type inet_service
     elements = {{ {ports} }}

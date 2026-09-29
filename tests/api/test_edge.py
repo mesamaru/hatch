@@ -10,11 +10,11 @@ import httpx
 import psycopg
 import pytest
 
-from pterodeploy import db
-from pterodeploy.edge import publish as pub
-from pterodeploy.edge.render import Limits, Target, render_haproxy, render_nft
-from pterodeploy.games import parse
-from pterodeploy.main import app
+from hatch import db
+from hatch.edge import publish as pub
+from hatch.edge.render import Limits, Target, render_haproxy, render_nft
+from hatch.games import parse
+from hatch.main import app
 
 GAMES = parse(
     {
@@ -65,7 +65,7 @@ def test_haproxy_accepts_generated_config(tmp_path):
 def test_nft_accepts_generated_rules(tmp_path):
     f = tmp_path / "pd.nft"
     body = render_nft([Target(8211, "100.64.0.13", "udp", False, "pal")], Limits())
-    f.write_text("table ip pterodeploy\ndelete table ip pterodeploy\n" + body)
+    f.write_text("table ip hatch\ndelete table ip hatch\n" + body)
     r = subprocess.run(["nft", "-c", "-f", str(f)], capture_output=True, text=True)
     if r.returncode != 0 and "Operation not permitted" in r.stderr:
         pytest.skip("nft -c に権限が必要な環境")
@@ -191,7 +191,7 @@ async def test_report_masks_secrets(pool, db_url):
 
 
 def test_games_validation():
-    from pterodeploy.config import ConfigError
+    from hatch.config import ConfigError
 
     with pytest.raises(ConfigError, match="UDP"):
         parse({"x": {"kind": "other", "nest": 1, "egg": 1, "protocol": "udp"}})

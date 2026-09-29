@@ -4,7 +4,7 @@
 - 同期（移行・自己監視など小さな処理）: psycopg.connect を直接使ってよい
 
 ルール:
-  - SQL は pterodeploy/repo/ に置き、関数は必ず接続を引数で受け取る（トランザクションの範囲を呼び出し側が決める）
+  - SQL は hatch/repo/ に置き、関数は必ず接続を引数で受け取る（トランザクションの範囲を呼び出し側が決める）
   - 外部サービスの呼び出しをトランザクションの中で待たない（ロックを長く握らないため）
 """
 
@@ -33,7 +33,7 @@ async def open_pool(dsn: str | None = None, *, min_size: int = 1, max_size: int 
         max_size=max_size,
         kwargs={"row_factory": dict_row, "autocommit": False},
         open=False,
-        name="pterodeploy",
+        name="hatch",
     )
     await _pool.open(wait=True, timeout=10)
     return _pool
