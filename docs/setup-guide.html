@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hatch 構築ガイド</title>
+<style>
+  :root{
+    --bg:#F2F2F7; --bg2:#FFFFFF; --label:#000; --label2:rgba(60,60,67,.6); --sep:rgba(60,60,67,.18);
+    --blue:#007AFF; --green:#34C759; --orange:#FF9500; --red:#FF3B30; --indigo:#5856D6;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+    --mono:"SF Mono",ui-monospace,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#000; --bg2:#1C1C1E; --label:#fff; --label2:rgba(235,235,245,.6); --sep:rgba(84,84,88,.6);
+      --blue:#0A84FF; --green:#30D158; --orange:#FF9F0A; --red:#FF453A; --indigo:#5E5CE6; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--label);font-family:var(--font);line-height:1.7;font-size:16px}
+  a{color:var(--blue)}
+  code,.mono{font-family:var(--mono);font-size:.92em}
+  header{padding:48px 20px 28px;text-align:center}
+  header h1{font-size:32px;margin:0 0 8px}
+  header p{color:var(--label2);margin:0;max-width:640px;margin-inline:auto}
+  .wrap{max-width:920px;margin:0 auto;padding:0 20px 80px;display:grid;grid-template-columns:220px 1fr;gap:32px}
+  @media (max-width:760px){ .wrap{grid-template-columns:1fr} nav{position:static!important} }
+  nav{position:sticky;top:20px;align-self:start;background:var(--bg2);border-radius:16px;padding:16px;font-size:14px}
+  nav b{display:block;margin-bottom:8px;font-size:13px;color:var(--label2)}
+  nav a{display:block;padding:6px 8px;border-radius:8px;color:var(--label);text-decoration:none}
+  nav a:hover{background:var(--sep)}
+  main section{background:var(--bg2);border-radius:20px;padding:26px 28px;margin-bottom:20px}
+  main h2{font-size:22px;margin:0 0 6px;display:flex;align-items:center;gap:10px}
+  main h2 .num{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:var(--blue);color:#fff;font-size:15px;flex:0 0 30px}
+  main h3{font-size:17px;margin:22px 0 8px}
+  main p{margin:8px 0}
+  .lead{color:var(--label2);margin-top:0}
+  pre{background:#11131a;color:#e8e8ec;border-radius:12px;padding:14px 16px;overflow-x:auto;position:relative;font-size:13.5px}
+  pre code{font-family:var(--mono)}
+  .copy{position:absolute;top:8px;right:8px;font-size:12px;border:0;border-radius:8px;padding:5px 10px;background:rgba(255,255,255,.12);color:#fff;cursor:pointer}
+  .copy:hover{background:rgba(255,255,255,.22)}
+  table{width:100%;border-collapse:collapse;font-size:14.5px;margin:12px 0}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--sep);vertical-align:top}
+  th{color:var(--label2);font-weight:600}
+  .pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:10px;background:rgba(0,122,255,.12);color:var(--blue)}
+  .pill.warn{background:rgba(255,149,0,.15);color:var(--orange)}
+  .pill.ok{background:rgba(52,199,89,.15);color:var(--green)}
+  .note{border-left:4px solid var(--blue);background:rgba(0,122,255,.08);border-radius:0 10px 10px 0;padding:10px 14px;font-size:14.5px;margin:12px 0}
+  .note.warn{border-color:var(--orange);background:rgba(255,149,0,.1)}
+  .checklist{list-style:none;margin:10px 0;padding:0}
+  .checklist li{display:flex;gap:10px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--sep)}
+  .checklist li:last-child{border-bottom:0}
+  .checklist input{margin-top:4px;width:18px;height:18px;flex:0 0 18px}
+  .checklist label{flex:1}
+  .checklist small{display:block;color:var(--label2)}
+  .steps{counter-reset:step;list-style:none;margin:0;padding:0}
+  .steps>li{counter-increment:step;position:relative;padding:8px 0 8px 36px;margin-bottom:4px}
+  .steps>li::before{content:counter(step);position:absolute;left:0;top:8px;width:24px;height:24px;border-radius:50%;background:var(--indigo);color:#fff;font-size:13px;display:grid;place-items:center;font-weight:700}
+  footer{text-align:center;color:var(--label2);font-size:13px;padding:20px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Hatch 構築ガイド</h1>
+  <p>Discord と Web パネルからゲームサーバーを一回の指示で作成・公開・監視・運用するための基盤「Hatch」を、<br>
+  ゼロから動かすまでの手順をまとめています。まずは<strong>テスト環境</strong>で一通り試してから本番を作ってください。</p>
+</header>
+<div class="wrap">
+  <nav>
+    <b>目次</b>
+    <a href="#overview">全体の流れ</a>
+    <a href="#requirements">1. 必要なもの</a>
+    <a href="#external">2. 外部サービスの準備</a>
+    <a href="#install">3. インストール</a>
+    <a href="#edge">4. edge サーバー</a>
+    <a href="#publish">5. Web パネルの公開</a>
+    <a href="#firstrun">6. 画面からの初期設定</a>
+    <a href="#verify">7. 動作確認</a>
+    <a href="#operate">8. 更新・運用</a>
+    <a href="#trouble">困ったとき</a>
+  </nav>
+  <main>
+    <section id="overview">
+      <h2><span class="num">i</span>全体の流れ</h2>
+      <p class="lead">Hatch は次の部品で構成されています。まず土台（Proxmox・Tailscale・Cloudflare など）を用意し、
+      オーケストレーター本体（このリポジトリ）を1つの LXC コンテナにインストールする、という順番で進めます。</p>
+      <pre><code>プレイヤー ─► edge サーバー（Linode 等）── Tailscale ──┐
+                                                        │
+利用者 ─► panel.example.jp ─► オーケストレーター（Proxmox の LXC = Hatch 本体）
+                               │  PostgreSQL・API・worker・Bot
+                               ├─► Pterodactyl パネル ─► Wings ノード
+                               ├─► Uptime Kuma（監視。別の場所に設置）
+                               ├─► Object Storage（バックアップ）
+                               └─► Discord（Bot・ログイン・通知）</code></pre>
+      <div class="note">現在は開発の初期段階です。インストーラー・更新の仕組み・DB スキーマ・edge エージェント・画面のデモは動きますが、
+      サーバー作成の中心処理は今後のリリースで追加されます（<code>update</code> 一発で反映されます）。詳しくはリポジトリの
+      <code>docs/SPEC.md</code> を参照してください。</div>
+    </section>
+
+    <section id="requirements">
+      <h2><span class="num">1</span>必要なもの</h2>
+      <p class="lead">下のチェックを付けながら準備すると進捗が分かりやすくなります（ブラウザに保存されるだけで、送信はされません）。</p>
+      <ul class="checklist" data-store="hatch-setup-checklist">
+        <li><input type="checkbox" id="c1"><label for="c1">Proxmox VE 8 以降（amd64）のホスト<small>オーケストレーター用の LXC コンテナを1つ作ります</small></label></li>
+        <li><input type="checkbox" id="c2"><label for="c2">Pterodactyl パネル + Wings が動いている環境<small>ゲームサーバー本体。Wings ノードは Tailscale に参加させます</small></label></li>
+        <li><input type="checkbox" id="c3"><label for="c3">Linode などの edge サーバー 1〜2台（Debian / Ubuntu）<small>プレイヤーが接続する入口。HAProxy と nftables を配置します</small></label></li>
+        <li><input type="checkbox" id="c4"><label for="c4">Cloudflare で管理しているドメイン<small>ネームサーバーを Cloudflare に向けておきます</small></label></li>
+        <li><input type="checkbox" id="c5"><label for="c5">Tailscale アカウント<small>全部品の内部通信に使います（無料プランで足ります）</small></label></li>
+        <li><input type="checkbox" id="c6"><label for="c6">Uptime Kuma 2.x（オーケストレーターとは別の場所に設置）<small>監視と自己監視に使います</small></label></li>
+        <li><input type="checkbox" id="c7"><label for="c7">S3 互換の Object Storage（バックアップ用）<small>Linode Object Storage など</small></label></li>
+        <li><input type="checkbox" id="c8"><label for="c8">Discord アプリ（Bot と OAuth）<small>ログイン・通知・スラッシュコマンドに使います</small></label></li>
+        <li><input type="checkbox" id="c9"><label for="c9">GitHub アカウント<small>このリポジトリを自分のアカウント配下に公開し、Actions でビルドします</small></label></li>
+      </ul>
+      <p><span class="pill">メール不要</span> 通知とパスワード再設定は Discord の DM で行うため、メールサーバーは不要です。</p>
+    </section>
+
+    <section id="external">
+      <h2><span class="num">2</span>外部サービスの準備</h2>
+      <p class="lead">詳細な設定値は <code>docs/ENVIRONMENT.md</code> にまとめてあります。ここでは順番だけ示します。</p>
+      <ol class="steps">
+        <li><b>Cloudflare</b>：ドメインのネームサーバーを移し、DNS 編集権限だけの API トークンを作成</li>
+        <li><b>Tailscale</b>：<code>tag:hatch</code>・<code>tag:edge</code>・<code>tag:wings</code>・<code>tag:kuma</code> のタグと ACL、LXC・edge 用の認証キーを用意</li>
+        <li><b>Uptime Kuma</b>：オーケストレーターとは別の場所に立て、連携用ユーザー・API キー・自己監視通知用の Discord Webhook を用意</li>
+        <li><b>Object Storage</b>：バケットとアクセスキーを作成し、パネルのバックアップ先を S3 に設定</li>
+        <li><b>Discord</b>：Developer Portal でアプリを作成（Bot トークン、クライアント ID・シークレット、OAuth コールバック <code class="mono">https://&lt;パネルのドメイン&gt;/api/auth/callback</code>、<strong>Server Members Intent を有効化</strong>）。お知らせ・運営通知用のチャンネルとロールも用意</li>
+        <li><b>GitHub</b>：このリポジトリを自分のアカウントに <code>fork</code> または新規作成し、<code>git tag v0.1.0 &amp;&amp; git push --tags</code> で最初のリリースを作る（Actions が配布ファイルを作成）</li>
+      </ol>
+      <h3>Tailscale ACL の例</h3>
+      <pre><button class="copy" data-copy>コピー</button><code>{
+  "tagOwners": {
+    "tag:hatch": ["autogroup:admin"], "tag:edge": ["autogroup:admin"],
+    "tag:wings": ["autogroup:admin"], "tag:kuma": ["autogroup:admin"], "tag:panel": ["autogroup:admin"]
+  },
+  "acls": [
+    {"action": "accept", "src": ["tag:edge"], "dst": ["tag:wings:25560-25569,30000-30999"]},
+    {"action": "accept", "src": ["tag:edge"], "dst": ["tag:hatch:8080"]},
+    {"action": "accept", "src": ["tag:hatch"], "dst": ["tag:panel:443", "tag:kuma:3001"]},
+    {"action": "accept", "src": ["tag:kuma"], "dst": ["tag:hatch:8080", "tag:edge:*"]},
+    {"action": "accept", "src": ["tag:panel"], "dst": ["tag:wings:8080,2022"]},
+    {"action": "accept", "src": ["autogroup:admin"], "dst": ["*:*"]}
+  ]
+}</code></pre>
+      <p>ポート範囲は、実際に作るアドレス枠（例：25560〜25569）に合わせて変更してください。</p>
+    </section>
+
+    <section id="install">
+      <h2><span class="num">3</span>オーケストレーターのインストール</h2>
+      <p class="lead">Proxmox VE ホストのシェルで実行します。Debian 13 のテンプレートは自動で取得されます。</p>
+      <pre><button class="copy" data-copy>コピー</button><code>bash -c "$(curl -fsSL https://raw.githubusercontent.com/&lt;あなたのユーザー名&gt;/hatch/main/ct/hatch.sh)"</code></pre>
+      <p>完了したら、コンテナに入って初期設定をします。入力した値はその場で接続確認されます。</p>
+      <pre><button class="copy" data-copy>コピー</button><code>pct enter &lt;コンテナID&gt;
+hatch-setup</code></pre>
+      <h3>非対話でインストールする場合</h3>
+      <pre><button class="copy" data-copy>コピー</button><code>PD_YES=1 var_cpu=2 var_ram=2048 var_disk=10 \
+  var_net=192.168.1.50/24 var_gateway=192.168.1.1 \
+  var_ts_authkey=tskey-auth-xxxx \
+  bash -c "$(curl -fsSL https://raw.githubusercontent.com/&lt;あなたのユーザー名&gt;/hatch/main/ct/hatch.sh)"</code></pre>
+      <table>
+        <tr><th>変数</th><th>既定値</th><th>内容</th></tr>
+        <tr><td class="mono">var_hostname</td><td class="mono">hatch</td><td>ホスト名</td></tr>
+        <tr><td class="mono">var_cpu / var_ram / var_disk</td><td class="mono">2 / 2048 / 10</td><td>コア数 / MB / GB</td></tr>
+        <tr><td class="mono">var_net / var_gateway</td><td class="mono">dhcp</td><td>固定 IP は <span class="mono">192.168.1.50/24</span> の形式</td></tr>
+        <tr><td class="mono">var_ts_authkey</td><td>なし</td><td>Tailscale 認証キー</td></tr>
+        <tr><td class="mono">PD_CHANNEL</td><td class="mono">stable</td><td><span class="mono">beta</span> でベータ版を使う</td></tr>
+      </table>
+      <div class="note warn">テスト環境を作る場合は、同じ Proxmox にもう1つ LXC を作り、<code>hatch-setup</code> の中で <code>PD_INSTANCE=stg</code> を指定してください。本番とレコード・監視が混ざりません。</div>
+    </section>
+
+    <section id="edge">
+      <h2><span class="num">4</span>edge サーバーのセットアップ</h2>
+      <p class="lead">プレイヤーが接続する入口です。Linode などの Debian / Ubuntu サーバーで root 実行します。</p>
+      <pre><button class="copy" data-copy>コピー</button><code>PD_REPO=&lt;あなたのユーザー名&gt;/hatch \
+  bash -c "$(curl -fsSL https://raw.githubusercontent.com/&lt;あなたのユーザー名&gt;/hatch/main/edge/install-edge.sh)"</code></pre>
+      <p>edge エージェントはオーケストレーターから HAProxy 設定を取りに行き、検証してから適用します。
+      オーケストレーターが止まっていても最後に取得した設定で動き続けます。</p>
+      <div class="note">Linode のファイアウォールでは、アドレス枠のポート範囲（TCP・UDP）と 80/443 だけを開放してください。</div>
+    </section>
+
+    <section id="publish">
+      <h2><span class="num">5</span>Web パネルの公開</h2>
+      <p class="lead">オーケストレーターの API を直接インターネットに公開しないでください。どちらかの方法で Web パネルだけを公開します。</p>
+      <table>
+        <tr><th>方法</th><th>内容</th></tr>
+        <tr><td><span class="pill ok">おすすめ</span></td><td>Cloudflare Tunnel（LXC に <code class="mono">cloudflared</code> を入れる。受信ポートを開けなくてよい）</td></tr>
+        <tr><td>代替</td><td>edge サーバーの nginx から Tailscale 経由で中継し、Let's Encrypt の証明書を使う</td></tr>
+      </table>
+    </section>
+
+    <section id="firstrun">
+      <h2><span class="num">6</span>画面からの初期設定</h2>
+      <p class="lead">ここまで終わったら、ブラウザで <code class="mono">https://&lt;パネルのドメイン&gt;/</code> を開き、Discord でログインします。</p>
+      <ol class="steps">
+        <li><b>管理 → ドメイン</b>で使用するドメインを登録（Cloudflare のゾーン ID を入力すると <code class="mono">edge.&lt;ドメイン&gt;</code> が自動で作られます）</li>
+        <li><b>管理 → IP と紐付け</b>で edge サーバーの IP を確認</li>
+        <li><b>管理 → アドレス枠</b>で、例えば「25560–25569 / <code class="mono">mc{nn}trt</code> / 対象外 25560」を作成し、「DNS を作成」を押す</li>
+        <li><b>管理 → Discord ロール連携</b>でロールと権限・上限台数の対応を登録</li>
+        <li><b>管理 → 利用規約</b>を登録（同意していない利用者には同意シートが出ます）</li>
+      </ol>
+      <p>これで利用者は作成画面で <code class="mono">mc01trt.nuids.jp</code> のようなアドレスを選ぶだけになります。</p>
+    </section>
+
+    <section id="verify">
+      <h2><span class="num">7</span>動作確認</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" id="v1"><label for="v1">自分のアカウントでログインできる（管理者は二段階認証の設定まで）</label></li>
+        <li><input type="checkbox" id="v2"><label for="v2">テスト用のサーバーを1台作成し、アドレスに接続できる</label></li>
+        <li><input type="checkbox" id="v3"><label for="v3">監視画面に反映され、意図的に停止すると「応答なし」になる</label></li>
+        <li><input type="checkbox" id="v4"><label for="v4">バックアップの作成・ゴミ箱への移動・復元ができる</label></li>
+        <li><input type="checkbox" id="v5"><label for="v5">退会（テスト用アカウント）の申請と取り消しができる</label></li>
+      </ul>
+    </section>
+
+    <section id="operate">
+      <h2><span class="num">8</span>更新・運用</h2>
+      <p class="lead">コンテナ内で次のコマンドが使えます。更新前に DB を自動で退避し、起動を確認できなければ自動で前のバージョンに戻ります。</p>
+      <pre><button class="copy" data-copy>コピー</button><code>update                 # 最新の安定版へ
+update --check         # 更新があるか確認だけ
+update --channel beta  # ベータ版を含めて最新へ
+update --rollback      # 1つ前に戻す（--restore-db で DB も戻す）</code></pre>
+    </section>
+
+    <section id="trouble">
+      <h2><span class="num">?</span>困ったとき</h2>
+      <table>
+        <tr><th>症状</th><th>確認するところ</th></tr>
+        <tr><td>コンテナ内で API が起動しない</td><td><code class="mono">journalctl -u hatch-api -n 80</code>、<code class="mono">hatch-setup</code> を再実行して設定漏れを確認</td></tr>
+        <tr><td>edge に反映されない</td><td>edge サーバーで <code class="mono">journalctl -u hatch-edge -f</code>、オーケストレーターとの Tailscale 疎通</td></tr>
+        <tr><td>DNS が作られない</td><td>Cloudflare トークンの権限（Zone:Read・DNS:Edit）とゾーン ID の一致</td></tr>
+        <tr><td>ログインできない</td><td>Discord アプリの OAuth コールバック URL と Server Members Intent</td></tr>
+      </table>
+      <p>詳しい仕様は <a href="../docs/SPEC.md">docs/SPEC.md</a>、環境の詳細は <a href="../docs/ENVIRONMENT.md">docs/ENVIRONMENT.md</a>、
+      作業ルールは <a href="../AGENTS.md">AGENTS.md</a> を参照してください。リポジトリ：
+      <a href="https://github.com/mesamaru/hatch">github.com/mesamaru/hatch</a></p>
+    </section>
+  </main>
+</div>
+<footer>Hatch 構築ガイド — このファイルはドキュメントです。画面（Web パネル）本体には含まれません。</footer>
+<script>
+"use strict";
+document.querySelectorAll(".copy").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const code = btn.parentElement.querySelector("code").innerText;
+    navigator.clipboard.writeText(code).then(() => {
+      const old = btn.textContent;
+      btn.textContent = "コピーしました";
+      setTimeout(() => { btn.textContent = old; }, 1500);
+    });
+  });
+});
+const KEY = "hatch-setup-checklist";
+const boxes = document.querySelectorAll(".checklist input[type=checkbox]");
+try {
+  const saved = JSON.parse(localStorage.getItem(KEY) || "{}");
+  boxes.forEach((b) => { if (saved[b.id]) b.checked = true; });
+} catch (e) { /* 読み込めなければ未チェックのまま */ }
+boxes.forEach((b) => b.addEventListener("change", () => {
+  const state = {};
+  boxes.forEach((x) => { state[x.id] = x.checked; });
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) { /* 保存できなくても動作は続ける */ }
+}));
+</script>
+</body>
+</html>

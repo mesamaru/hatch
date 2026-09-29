@@ -6,6 +6,8 @@ Discord と Web パネルから、Pterodactyl のゲームサーバーを **一�
 > 現在はフェーズ0です。インストーラー・更新の仕組み・DB スキーマ・edge エージェント・UI デモが入っています。
 > デプロイ処理本体は今後のリリースで追加され、`update` 一発で反映されます。詳細は [docs/SPEC.md](docs/SPEC.md)。
 
+構築手順を画面で見たい場合は [docs/setup-guide.html](docs/setup-guide.html) を開いてください（チェックリスト付き）。
+
 ## 必要なもの
 
 - Proxmox VE 8 以降（amd64）
