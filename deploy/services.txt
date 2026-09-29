@@ -1,0 +1,6 @@
+# このリリースで動かすサービス（update が有効化・再起動します）
+pterodeploy-api.service
+pterodeploy-worker.service
+pterodeploy-scheduler.service
+# フェーズ2で追加予定:
+# pterodeploy-bot.service

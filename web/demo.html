@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<title>Hatch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F2F7; --bg2:#FFFFFF; --fill:rgba(120,120,128,.12); --fill2:rgba(120,120,128,.2);
+  --label:#000000; --label2:rgba(60,60,67,.6); --label3:rgba(60,60,67,.3); --sep:rgba(60,60,67,.18);
+  --blue:#007AFF; --green:#34C759; --red:#FF3B30; --orange:#FF9500; --indigo:#5856D6; --teal:#30B0C7; --gray:#8E8E93;
+  --glass:rgba(250,250,252,var(--ga)); --glass-line:rgba(0,0,0,.14); --glass-hi:rgba(255,255,255,.7);
+  --ga:.72; --blur:24px; --r-group:22px; --r-card:18px;
+  --shadow:0 8px 32px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.06);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro JP","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#000000; --bg2:#1C1C1E; --fill:rgba(120,120,128,.24); --fill2:rgba(120,120,128,.36);
+  --label:#FFFFFF; --label2:rgba(235,235,245,.6); --label3:rgba(235,235,245,.3); --sep:rgba(84,84,88,.6);
+  --blue:#0A84FF; --green:#30D158; --red:#FF453A; --orange:#FF9F0A; --indigo:#5E5CE6; --teal:#40C8E0;
+  --glass:rgba(30,30,32,var(--ga)); --glass-line:rgba(255,255,255,.16); --glass-hi:rgba(255,255,255,.08); --shadow:0 8px 32px rgba(0,0,0,.5);
+}}
+:root[data-theme="dark"]{
+  --bg:#000000; --bg2:#1C1C1E; --fill:rgba(120,120,128,.24); --fill2:rgba(120,120,128,.36);
+  --label:#FFFFFF; --label2:rgba(235,235,245,.6); --label3:rgba(235,235,245,.3); --sep:rgba(84,84,88,.6);
+  --blue:#0A84FF; --green:#30D158; --red:#FF453A; --orange:#FF9F0A; --indigo:#5E5CE6; --teal:#40C8E0;
+  --glass:rgba(30,30,32,var(--ga)); --glass-line:rgba(255,255,255,.16); --glass-hi:rgba(255,255,255,.08); --shadow:0 8px 32px rgba(0,0,0,.5);
+}
+@media (prefers-reduced-transparency:reduce){:root{--ga:.97!important}}
+html{height:100%;-webkit-tap-highlight-color:transparent}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--label);font-family:var(--font);font-size:17px;line-height:1.35;letter-spacing:-.01em;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer}
+code,.mono{font-family:var(--mono);font-size:.88em;letter-spacing:0}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--blue) 60%,transparent);outline-offset:2px;border-radius:10px}
+.glass{background:var(--glass);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);backdrop-filter:blur(var(--blur)) saturate(180%);border:.5px solid var(--glass-line);box-shadow:inset 0 1px 0 var(--glass-hi),var(--shadow)}
+/* ---- 背景 ---- */
+#bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;background:var(--bg)}
+#bg .img{position:absolute;inset:-40px;background:var(--bgimg,none) center/cover no-repeat;filter:blur(var(--bgblur,0px))}
+#bg .dim{position:absolute;inset:0;background:var(--bg);opacity:var(--dim,0)}
+.has-bg body{background:transparent}
+.has-bg .large,.has-bg .subtitle,.has-bg .gh,.has-bg .gf,.has-bg .navbar:not(.scrolled) .back{text-shadow:0 0 14px var(--bg),0 0 3px var(--bg),0 0 1px var(--bg)}
+.has-bg .gh,.has-bg .gf,.has-bg .subtitle{color:color-mix(in srgb,var(--label) 75%,transparent)}
+.bgpick{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))!important}
+.bgpick .pk{padding:8px 8px 10px;min-height:0}
+.bgpick .pk b{font-size:15px}.bgpick .pk small{font-size:12px}
+.sw svg{width:26px;height:26px}
+.sw{display:block;height:52px;border-radius:12px;margin-bottom:6px;background-size:cover;background-position:center;box-shadow:inset 0 0 0 .5px var(--sep)}
+.bgprev{position:relative;height:150px;border-radius:18px;overflow:hidden;margin-bottom:6px}
+.bgprev .img{position:absolute;inset:-20px;background:center/cover no-repeat}
+.bgprev .dim{position:absolute;inset:0;background:var(--bg)}
+.bgprev .card{position:absolute;left:14px;right:14px;bottom:14px;background:var(--bg2);border-radius:14px;padding:10px 12px;font-size:15px}
+.bgprev .t{position:absolute;left:16px;top:12px;font-size:24px;font-weight:700;text-shadow:0 0 14px var(--bg),0 0 3px var(--bg)}
+.demo{display:flex;gap:10px;align-items:center;padding:8px 14px;padding-top:calc(8px + env(safe-area-inset-top,0px));font-size:13px;color:var(--label2);overflow-x:auto;white-space:nowrap;border-bottom:.5px solid var(--sep);background:var(--bg2)}
+.demo b{color:var(--label)}
+.demo select{font-size:13px;border:0;background:var(--fill);border-radius:8px;padding:4px 8px}
+.demo .sp{flex:1}
+.demo button{font-size:13px;border:0;background:none;color:var(--blue);padding:4px 6px}
+.app{display:grid;grid-template-columns:300px 1fr;min-height:calc(100vh - 42px);min-height:calc(100dvh - 42px)}
+.side{position:sticky;top:0;height:calc(100vh - 42px);height:calc(100dvh - 42px);padding:12px;display:flex;flex-direction:column}
+.side-in{flex:1;border-radius:26px;padding:14px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.side h1{font-size:22px;font-weight:700;margin:4px 10px 10px}
+.sbtn{display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border:0;border-radius:12px;background:none;text-align:left;font-size:16px;width:100%;flex:0 0 auto}
+.sbtn:hover{background:var(--fill)}
+.sbtn[aria-current=page]{background:var(--blue);color:#fff}
+.sbtn svg{width:22px;height:22px;flex:0 0 22px}
+.sbtn .cnt{margin-left:auto}
+.side .search{margin:0 2px 10px;flex:0 0 40px}
+.side .foot{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 8px 2px;font-size:15px}
+main{min-width:0;padding:0 max(28px,env(safe-area-inset-right,0px)) 60px 28px;container-type:inline-size;container-name:main}
+.page{max-width:760px;margin:0 auto}
+.page.wide{max-width:1000px}
+.navbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:8px;min-height:56px;margin:0 -28px;padding:8px 28px}
+.navbar.scrolled{background:var(--glass);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);backdrop-filter:blur(var(--blur)) saturate(180%);border-bottom:.5px solid var(--glass-line)}
+.navbar .ttl{flex:1;text-align:center;font-weight:600;font-size:17px;opacity:0;transition:opacity .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.navbar.scrolled .ttl{opacity:1}
+.navbar .l,.navbar .r{display:flex;gap:6px;min-width:90px;align-items:center}
+.navbar .r{justify-content:flex-end}
+.back{display:inline-flex;align-items:center;gap:2px;border:0;background:none;color:var(--blue);font-size:17px;padding:6px 4px;margin-left:-6px;max-width:170px}
+.back svg{width:22px;height:22px;flex:0 0 22px}
+.back span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.circle{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;border:.5px solid var(--glass-line);background:var(--glass);-webkit-backdrop-filter:blur(var(--blur));backdrop-filter:blur(var(--blur));color:var(--label);padding:0}
+.circle svg{width:20px;height:20px}
+.circle.tint{background:var(--blue);color:#fff;border-color:transparent}
+.large{font-size:34px;line-height:1.2;font-weight:700;letter-spacing:.01em;margin:4px 0 14px;word-break:break-all}
+.subtitle{color:var(--label2);font-size:15px;margin:-8px 0 18px}
+.gh{font-size:13px;color:var(--label2);margin:22px 18px 7px}
+.gf{font-size:13px;color:var(--label2);margin:7px 18px 0;line-height:1.45}
+.group{background:var(--bg2);border-radius:var(--r-group);overflow:hidden}
+.group>*{position:relative}
+.group>*+*::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:.5px solid var(--sep);z-index:1}
+.group>.has-ico+*::before{left:60px}
+.cell{display:flex;align-items:center;gap:14px;min-height:52px;padding:10px 16px;width:100%;border:0;background:none;text-align:left;font-size:17px}
+button.cell:active{background:var(--fill)}
+button.cell:disabled{opacity:.4}
+.cellwrap{display:flex;align-items:center}
+.cellwrap>.cell{flex:1;min-width:0}
+.cellwrap .more{flex:0 0 44px;height:44px;margin-right:6px;border:0;border-radius:50%;background:none;color:var(--label2);display:grid;place-items:center}
+.cellwrap .more:hover{background:var(--fill)}
+.cellwrap .more svg{width:22px;height:22px}
+.ico{width:30px;height:30px;flex:0 0 30px;border-radius:8px;display:grid;place-items:center;color:#fff}
+.ico svg{width:19px;height:19px}
+.tx{flex:1;min-width:0}
+.tx .t{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tx .s{font-size:14px;color:var(--label2);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx .s.wrap{white-space:normal}
+.val{color:var(--label2);font-size:16px;text-align:right;white-space:nowrap;display:flex;gap:6px;align-items:center}
+.chev{width:14px;height:14px;color:var(--label3);flex:0 0 14px}
+.cell.danger{color:var(--red);justify-content:center}
+.cell.action{color:var(--blue)}
+.cell.center{justify-content:center}
+.dot{width:10px;height:10px;border-radius:50%;flex:0 0 10px;background:var(--green);display:inline-block}
+.dot.down,.dot.suspended{background:var(--red)}.dot.maint{background:var(--indigo)}.dot.installing{background:var(--orange)}.dot.off{background:var(--gray)}
+.pill{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:11px;font-size:13px;font-weight:500;background:var(--fill);color:var(--label2);white-space:nowrap}
+.pill.g{background:color-mix(in srgb,var(--green) 18%,transparent);color:color-mix(in srgb,var(--green) 70%,var(--label))}
+.pill.r{background:color-mix(in srgb,var(--red) 16%,transparent);color:var(--red)}
+.pill.o{background:color-mix(in srgb,var(--orange) 18%,transparent);color:color-mix(in srgb,var(--orange) 70%,var(--label))}
+.pill.b{background:color-mix(in srgb,var(--blue) 15%,transparent);color:var(--blue)}
+.badge{min-width:22px;height:22px;border-radius:11px;background:var(--red);color:#fff;font-size:13px;font-weight:600;display:inline-grid;place-items:center;padding:0 6px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@container main (min-width:600px){.tiles.four{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.tile{background:var(--bg2);border-radius:var(--r-card);padding:12px 14px;border:0;text-align:left;display:flex;flex-direction:column;gap:6px;min-height:84px}
+button.tile:active{transform:scale(.98)}
+button.tile:disabled{opacity:.5}
+.tile .top{display:flex;justify-content:space-between;align-items:center}
+.tile .n{font-size:28px;font-weight:700;line-height:1}
+.tile .l{font-size:15px;color:var(--label2);font-weight:500}
+.hero{background:var(--bg2);border-radius:26px;padding:18px;margin-bottom:6px}
+.hero .addr{display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px 12px;border-radius:14px;background:var(--fill);font-family:var(--mono);font-size:15px;border:0;width:100%;text-align:left}
+.hero .addr span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hero .addr svg{width:18px;height:18px;color:var(--blue);flex:0 0 18px}
+.acts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.act{display:flex;flex-direction:column;align-items:center;gap:6px;border:0;background:var(--fill);border-radius:16px;padding:12px 2px 10px;font-size:11.5px;white-space:nowrap;letter-spacing:-.03em;font-weight:500;color:var(--blue)}
+.act svg{width:22px;height:22px}
+.act:disabled{opacity:.35}
+.act.red{color:var(--red)}
+.meter{height:6px;border-radius:3px;background:var(--fill);overflow:hidden;margin-top:6px}
+.meter i{display:block;height:100%;border-radius:3px;background:var(--blue)}
+.meter i.mid{background:var(--orange)}.meter i.hot{background:var(--red)}
+.beats{display:flex;gap:2px;height:22px;margin-top:8px}
+.beats i{flex:1;border-radius:3px;background:var(--green)}
+.beats i.d{background:var(--red)}.beats i.m{background:var(--indigo)}.beats i.e{background:var(--fill2)}.beats i.s{background:var(--gray)}
+.banner{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;border-radius:var(--r-card);background:var(--bg2);margin-bottom:10px;font-size:15px}
+.banner>svg{width:22px;height:22px;flex:0 0 22px;color:var(--blue)}
+.banner.w>svg{color:var(--orange)}.banner.e>svg{color:var(--red)}.banner.ok>svg{color:var(--green)}
+.banner .tx b{display:block;font-weight:600;font-size:16px;margin-bottom:2px}
+.banner .bb{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:44px;padding:0 20px;border-radius:22px;border:0;background:var(--fill);color:var(--blue);font-size:17px;font-weight:600;white-space:nowrap}
+.btn.fill{background:var(--blue);color:#fff}
+.btn.red{color:var(--red)}
+.btn.sm{height:34px;padding:0 14px;font-size:15px;border-radius:17px}
+.btn.block{width:100%}
+.btn:disabled{opacity:.4;cursor:default}
+.btn svg{width:18px;height:18px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.field{display:flex;align-items:center;gap:12px;min-height:52px;padding:0 16px}
+.field label{flex:0 0 auto;min-width:92px;font-size:17px}
+.field input,.field select,.field textarea{flex:1;min-width:0;border:0;background:none;font-size:17px;text-align:right;padding:14px 0;outline:none}
+.field textarea{text-align:left;min-height:90px;resize:vertical}
+.field.col{flex-direction:column;align-items:stretch;gap:0;padding-top:10px}
+.field.col label{font-size:13px;color:var(--label2)}
+.field.col input,.field.col textarea{text-align:left;padding:8px 0 12px}
+.field select{appearance:none;-webkit-appearance:none;color:var(--blue);cursor:pointer;text-align-last:right}
+.field select:disabled{color:var(--label3)}
+.field .unit{color:var(--label2);font-family:var(--mono);font-size:15px}
+.err-t{color:var(--red)!important}
+.switch{appearance:none;-webkit-appearance:none;width:51px;height:31px;border-radius:16px;background:var(--fill2);position:relative;cursor:pointer;flex:0 0 51px;margin:0;transition:background .2s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);transition:left .2s}
+.switch:checked{background:var(--green)}
+.switch:checked::after{left:22px}
+.switch:disabled{opacity:.4}
+.seg{display:flex;background:var(--fill);border-radius:10px;padding:2px;gap:2px;margin-bottom:12px;overflow-x:auto}
+.seg button{flex:1;border:0;background:none;border-radius:8px;height:32px;font-size:14px;font-weight:500;white-space:nowrap;padding:0 10px}
+.seg button[aria-pressed=true]{background:var(--bg2);box-shadow:0 3px 8px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.04)}
+input[type=range]{width:100%;accent-color:var(--blue)}
+.searchbox{display:flex;align-items:center;gap:8px;height:40px;border-radius:12px;background:var(--fill);padding:0 12px;color:var(--label2);border:0;width:100%;font-size:17px;text-align:left}
+.searchbox svg{width:18px;height:18px;flex:0 0 18px}
+.searchbox input{flex:1;border:0;background:none;outline:none;font-size:17px;min-width:0;color:var(--label)}
+.kbd{margin-left:auto;font-size:12px;border:1px solid var(--sep);border-radius:5px;padding:0 5px}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.pk{border:2px solid transparent;background:var(--bg2);border-radius:var(--r-card);padding:12px 14px;text-align:left;display:flex;flex-direction:column;gap:3px;min-height:78px}
+.pk b{font-size:17px}
+.pk small{font-size:13px;color:var(--label2);line-height:1.35}
+.pk[aria-pressed=true]{border-color:var(--blue)}
+.pv{width:100%;border-collapse:collapse;font-size:15px}
+.pv td{padding:9px 16px;border-top:.5px solid var(--sep);word-break:break-all}
+.pv tr:first-child td{border-top:0}
+.pv td:first-child{font-family:var(--mono);color:var(--label2);width:80px}
+.pv tr.x td{color:var(--label3);text-decoration:line-through}
+.slotgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.slot{background:var(--bg2);border-radius:14px;padding:10px 12px;border:0;text-align:left;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.slot .p{font-family:var(--mono);color:var(--label2);font-size:13px}
+.slot .h{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot.used{box-shadow:inset 0 0 0 2px var(--blue)}
+.slot.held{box-shadow:inset 0 0 0 2px var(--orange)}
+.slot.off{opacity:.45}
+.tabbar{position:fixed;left:14px;bottom:calc(10px + env(safe-area-inset-bottom,0px));z-index:40;display:none;gap:2px;padding:5px;border-radius:32px}
+.tb{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:64px;height:54px;border:0;border-radius:27px;background:none;font-size:10.5px;font-weight:600;color:var(--label);position:relative}
+.tb svg{width:24px;height:24px}
+.tb[aria-current=page]{color:var(--blue);background:var(--fill)}
+.tb .badge{position:absolute;top:2px;right:8px;min-width:18px;height:18px;font-size:11px;border-radius:9px}
+.tsearch{position:fixed;right:14px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;display:none!important;width:58px!important;height:58px!important}
+/* ---- 画面幅ごとの配置 ----
+   1100px〜      PC：サイドバー300px
+   700〜1099px   フォルダブルを開いた状態・タブレット：細めのサイドバー
+   〜699px       スマホ・フォルダブルを閉じた状態：下のタブバー
+   〜359px       幅の狭い画面（折りたたみ時のカバー画面など）：さらに詰める */
+@media (max-width:1099px) and (min-width:700px){
+  .app{grid-template-columns:248px 1fr}
+  .side{padding:10px 0 10px 10px}
+  .side h1{font-size:20px}
+  main{padding:0 20px 48px}
+  .navbar{margin:0 -20px;padding:8px 20px}
+}
+@media (max-width:699px){
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  .tabbar{display:flex}
+  .tsearch:not([hidden]){display:grid!important}
+  main{padding:0 max(16px,env(safe-area-inset-right,0px)) calc(110px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+  .navbar{margin:0 -16px;padding:8px 16px}
+  .large{font-size:32px}
+}
+@media (max-width:370px){.tb{width:56px}}
+@media (max-width:359px){
+  main{padding-left:12px;padding-right:12px}
+  .navbar{margin:0 -12px;padding:8px 12px}
+  .large{font-size:28px}
+  .tb{width:52px;font-size:10px}
+  .tabbar{left:10px}.tsearch{right:10px}
+  .tiles{gap:8px}.tile{padding:10px 12px;min-height:76px}.tile .n{font-size:24px}.tile .l{font-size:14px}
+  .hero{padding:14px;border-radius:22px}.hero h1{font-size:24px!important}
+  .acts{gap:6px}.act{font-size:10.5px}
+  .cell{padding:10px 12px;gap:12px}
+  .field{padding:0 12px}.field label{min-width:76px;font-size:16px}
+  .pick{grid-template-columns:repeat(auto-fill,minmax(128px,1fr))}
+  .slotgrid{grid-template-columns:repeat(auto-fill,minmax(128px,1fr))}
+  .seg button{padding:0 8px;font-size:13px}
+}
+/* 横向きのスマホ（高さが低い）：タイトルを小さく、シートは画面いっぱい */
+@media (max-height:500px) and (orientation:landscape){
+  .large{font-size:26px;margin-bottom:8px}
+  .scrim{align-items:stretch;padding:0 max(12px,env(safe-area-inset-left,0px))}
+  .sheet,.sheet.small{max-height:100dvh;border-radius:24px 24px 0 0}
+}
+/* 折り目のある端末（左右2画面）：左の画面にサイドバー、右の画面に本文。折り目の上に文字を置かない */
+@media (horizontal-viewport-segments:2){
+  .app{grid-template-columns:env(viewport-segment-width 0 0) 1fr}
+  .side{display:flex;padding:10px}
+  .tabbar,.tsearch{display:none!important}
+  main{padding-left:calc(env(viewport-segment-left 1 0) - env(viewport-segment-right 0 0) + 20px);padding-bottom:48px}
+  .scrim{justify-content:flex-end;padding-left:env(viewport-segment-left 1 0)}
+  .sheet,.sheet.small{width:env(viewport-segment-width 1 0)}
+}
+/* 上下2画面（テーブルトップの姿勢）：シートは下の画面に出す */
+@media (vertical-viewport-segments:2){
+  .scrim{align-items:flex-end;padding-top:env(viewport-segment-top 0 1)}
+  .sheet,.sheet.small{max-height:env(viewport-segment-height 0 1)}
+}
+@media (hover:none){.cellwrap .more{color:var(--label2)}}
+.scrim{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:20px}
+.sheet{width:min(620px,100%);max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);background:var(--bg);border-radius:32px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.sheet.small{width:min(460px,100%)}
+.sheet-h{display:flex;align-items:center;gap:8px;padding:14px 16px 8px}
+.sheet-h h2{flex:1;text-align:center;font-size:17px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet-h .l,.sheet-h .r{min-width:84px;display:flex}
+.sheet-h .r{justify-content:flex-end}
+.sheet-h button{border:0;background:none;color:var(--blue);font-size:17px;padding:6px 4px}
+.sheet-h button.done{font-weight:600}
+.sheet-h button:disabled{color:var(--label3)}
+.sheet-b{padding:4px 16px 24px;overflow-y:auto;overscroll-behavior:contain}
+.grab{display:none;width:36px;height:5px;border-radius:3px;background:var(--label3);margin:8px auto 0}
+@media (max-width:640px){
+  .scrim{align-items:flex-end;padding:0}
+  .sheet,.sheet.small{width:100%;max-height:94vh;max-height:94dvh;border-radius:32px 32px 0 0;padding-bottom:env(safe-area-inset-bottom,0px)}
+  .grab{display:block}
+}
+.menu{position:fixed;z-index:65;min-width:240px;border-radius:20px;padding:6px;display:flex;flex-direction:column}
+.menu button{display:flex;align-items:center;gap:12px;border:0;background:none;padding:11px 12px;border-radius:12px;font-size:16px;text-align:left}
+.menu button:hover{background:var(--fill)}
+.menu button svg{width:20px;height:20px;margin-left:auto;color:var(--label2)}
+.menu button.red,.menu button.red svg{color:var(--red)}
+.menu hr{border:0;border-top:.5px solid var(--sep);margin:4px 8px}
+.steps{list-style:none;margin:0;padding:0}
+.steps li{display:flex;gap:10px;align-items:center;padding:6px 0;font-size:15px;color:var(--label3)}
+.steps li svg{width:20px;height:20px;flex:0 0 20px}
+.steps li.done{color:var(--label)}.steps li.done svg{color:var(--green)}
+.steps li.run{color:var(--label);font-weight:600}.steps li.run svg{color:var(--blue)}
+.steps li.fail{color:var(--red)}.steps li.undone{color:var(--label2)}.steps li.undone svg{color:var(--orange)}
+.steps li small{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--label3)}
+.prog{height:6px;border-radius:3px;background:var(--fill);overflow:hidden}
+.prog i{display:block;height:100%;border-radius:3px;background:var(--blue);transition:width .3s}
+#toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translate(-50%,-160%);z-index:80;display:flex;align-items:center;gap:10px;padding:10px 18px 10px 12px;border-radius:26px;font-size:15px;font-weight:500;transition:transform .35s cubic-bezier(.2,.9,.3,1.2);width:max-content;max-width:calc(100vw - 24px)}
+#toast.on{transform:translate(-50%,0)}
+#toast svg{width:22px;height:22px;color:var(--green);flex:0 0 22px}
+.dc{--d1:#2B2D31;--d2:#313338;--d3:#383A40;--dt:#DBDEE1;--dm:#949BA4;background:var(--d2);color:var(--dt);min-height:calc(100vh - 42px);min-height:calc(100dvh - 42px);display:flex;flex-direction:column;font-family:"gg sans","Noto Sans JP",system-ui,sans-serif;font-size:15px}
+.dc-top{height:48px;display:flex;align-items:center;padding:0 16px;font-weight:600;border-bottom:1px solid #1E1F22}
+.dc-msgs{flex:1;padding:16px;display:flex;flex-direction:column;gap:14px;max-width:820px}
+.dc-msg{display:flex;gap:12px}
+.dc-av{width:40px;height:40px;border-radius:50%;flex:0 0 40px;display:grid;place-items:center;color:#fff;font-weight:700}
+.dc-name{font-weight:600}.dc-name small{color:var(--dm);font-weight:400;font-size:12px;margin-left:6px}
+.dc-app{background:#5865F2;color:#fff;font-size:10px;border-radius:3px;padding:1px 4px;margin-left:4px}
+.dc-cmd b{color:#C9CDFB;background:rgba(88,101,242,.3);border-radius:3px;padding:0 2px;font-weight:500}
+.dc-e{margin-top:6px;max-width:520px;background:var(--d1);border-left:4px solid #5865F2;border-radius:4px;padding:10px 14px 12px;font-size:14px}
+.dc-e.ok{border-left-color:#23A55A}.dc-e.er{border-left-color:#F23F43}.dc-e.wa{border-left-color:#F0B232}
+.dc-e h5{margin:2px 0 6px;font-size:15px;color:#fff}
+.dc-e p{margin:4px 0}
+.dc-f{display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:6px}
+.dc-f b{display:block;font-size:12px;color:var(--dm)}
+.dc-f .w{grid-column:1/-1}
+.dc-steps{list-style:none;margin:0;padding:0}
+.dc-steps li{display:flex;gap:8px;color:var(--dm)}.dc-steps li.on{color:var(--dt)}
+.dc-steps li small{margin-left:auto;font-family:var(--mono);font-size:11.5px}
+.dc-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.dc-btns span{background:#4E5058;color:#fff;border-radius:3px;padding:4px 14px;font-size:13.5px}
+.dc-btns span.g{background:#248046}.dc-btns span.bl{background:#5865F2}
+.dc-bar{padding:0 16px 16px;position:sticky;bottom:0;background:var(--d2)}
+.dc-cmds{display:flex;gap:6px;flex-wrap:wrap;padding-top:8px;margin-bottom:8px}
+.dc-cmds button{background:var(--d3);color:var(--dt);border:0;border-radius:4px;padding:6px 10px;font-size:13px}
+.dc-cmds button.ev{background:none;border:1px dashed #4E5058;color:var(--dm)}
+.dc-in{background:var(--d3);border-radius:8px;padding:11px 14px;color:var(--dm);font-size:14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div id="bg" aria-hidden="true"><div class="img"></div><div class="dim"></div></div>
+<div class="demo" role="region" aria-label="デモの操作">
+  <b>デモ</b>
+  <select id="d-surface" aria-label="表示"><option value="panel">Webパネル</option><option value="discord">Discord</option></select>
+  <select id="d-user" aria-label="ユーザー"><option value="tanaka">tanaka（利用者）</option><option value="admin">admin（管理者）</option></select>
+  <label><input type="checkbox" id="d-fail"> 失敗を再現</label>
+  <button data-act="demo-tos">初回ログイン</button>
+  <span class="sp"></span>
+  <button data-act="demo-reset">リセット</button>
+</div>
+<div class="app" id="app">
+  <aside class="side"><div class="side-in glass" id="side"></div></aside>
+  <main id="main"></main>
+</div>
+<nav class="tabbar glass" id="tabbar" aria-label="タブ"></nav>
+<button class="tsearch glass circle" id="tsearch" data-act="search" aria-label="検索"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg></button>
+<div id="dc" hidden></div>
+<div class="scrim" id="scrim" hidden></div>
+<div class="menu glass" id="menu" hidden role="menu"></div>
+<div id="toast" class="glass" role="status" aria-live="polite"></div>
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const LABEL = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+const NAME_RE = /^[a-z0-9][a-z0-9-]{1,30}[a-z0-9]$/;
+const RESERVED = ["www","edge","edge-1","edge-2","panel","gp","api","status","mail","admin","play","kuma","dev","_minecraft"];
+const I = {
+  server:'<rect x="4" y="4" width="16" height="7" rx="2"/><rect x="4" y="13" width="16" height="7" rx="2"/><path d="M8 7.5h.01M8 16.5h.01"/>',
+  pulse:'<path d="M3 12h4l2.5-6 5 12 2.5-6h4"/>',
+  shield:'<path d="M12 3.5 19 6v5.5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6z"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M4 7.4l2 1.2M18 15.4l2 1.2M4 16.6l2-1.2M18 8.6l2-1.2"/>',
+  search:'<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  play:'<path d="M8 5.5v13l10-6.5z" fill="currentColor"/>',
+  stop:'<rect x="6.5" y="6.5" width="11" height="11" rx="2" fill="currentColor"/>',
+  restart:'<path d="M19 12a7 7 0 1 1-2.1-5"/><path d="M19 4.5V9h-4.5"/>',
+  open:'<path d="M14 4h6v6M20 4l-8.5 8.5M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  chev:'<path d="m9 5 7 7-7 7"/>',
+  back:'<path d="m15 5-7 7 7 7"/>',
+  more:'<circle cx="6" cy="12" r="1.4" fill="currentColor"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18" cy="12" r="1.4" fill="currentColor"/>',
+  trash:'<path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/>',
+  restore:'<path d="M5 12a7 7 0 1 0 2.1-5"/><path d="M5 4.5V9h4.5"/>',
+  cloud:'<path d="M7 18a4 4 0 0 1-.6-8 6 6 0 0 1 11.5 1.5A3.5 3.5 0 0 1 17.5 18z"/>',
+  people:'<circle cx="9" cy="8.5" r="3"/><path d="M3.5 19c.7-3 2.8-4.8 5.5-4.8s4.8 1.8 5.5 4.8"/><circle cx="17" cy="9.5" r="2.2"/><path d="M16.5 14.4c2 .2 3.5 1.7 4 4.1"/>',
+  globe:'<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.3 2.4 3.3 5 3.3 8s-1 5.6-3.3 8c-2.3-2.4-3.3-5-3.3-8s1-5.6 3.3-8z"/>',
+  plug:'<path d="M9 3v5M15 3v5M6.5 8h11v3a5.5 5.5 0 0 1-11 0zM12 16.5V21"/>',
+  net:'<rect x="9" y="3" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><rect x="15" y="16" width="6" height="5" rx="1"/><path d="M12 8v4M6 16v-2h12v2"/>',
+  info:'<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>',
+  warn:'<path d="M12 4 21 19.5H3z"/><path d="M12 10v4.5M12 17h.01"/>',
+  xc:'<circle cx="12" cy="12" r="8.5"/><path d="m9 9 6 6M15 9l-6 6"/>',
+  ok:'<circle cx="12" cy="12" r="8.5" fill="currentColor" stroke="none"/><path d="m8.5 12.3 2.4 2.4 4.8-5" stroke="#fff"/>',
+  ring:'<circle cx="12" cy="12" r="7.5"/>',
+  spin:'<path d="M12 4.5a7.5 7.5 0 1 1-7.5 7.5"/>',
+  bell:'<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15zM10 20.5a2 2 0 0 0 4 0"/>',
+  key:'<circle cx="8" cy="15" r="3.5"/><path d="m10.5 12.5 8-8M16 7l2.5 2.5M14 9l2 2"/>',
+  list:'<path d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01"/>',
+  user:'<circle cx="12" cy="8.5" r="3.8"/><path d="M4.5 20c1-3.8 3.8-6 7.5-6s6.5 2.2 7.5 6"/>',
+  copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+  wrench:'<path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.5 2.5-2.5-.5-.5-2.5z"/>',
+  doc:'<path d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20z"/><path d="M14 3.5V8h4M9.5 12h5M9.5 15.5h5"/>',
+  gavel:'<path d="m13 4 7 7M10.5 6.5l7 7M12 5l-4.5 4.5 7 7L19 12M9.8 11.8 3.5 18l2.5 2.5 6.2-6.2"/>',
+  swap:'<path d="M7 7h12l-3-3M17 17H5l3 3"/>',
+  pin:'<path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/>',
+  grid:'<rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/>',
+  clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  sparkle:'<path d="M12 4v4M12 16v4M4 12h4M16 12h4M6.5 6.5l2.5 2.5M15 15l2.5 2.5M6.5 17.5 9 15M15 9l2.5-2.5"/>',
+  tune:'<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/>',
+};
+const ic = (n, cls = "") => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" class="${cls}" aria-hidden="true">${I[n] || ""}</svg>`;
+const icoBox = (n, color) => `<span class="ico" style="background:${color}">${ic(n)}</span>`;
+
+/* ---------------- デモデータ ---------------- */
+const PLANS = {light:{name:"Light",ram:"2GB",cpu:"1コア",disk:"10GB",bk:3}, standard:{name:"Standard",ram:"4GB",cpu:"2コア",disk:"20GB",bk:5}};
+const GAMES = [
+  {id:"storiamc",name:"StoriaMC",desc:"Folia ベース・大人数向け",kind:"mc"},
+  {id:"paper",name:"Paper",desc:"定番の Minecraft",kind:"mc"},
+  {id:"velocity",name:"Velocity",desc:"複数サーバーをつなぐ",kind:"proxy"},
+  {id:"forge",name:"Forge",desc:"Mod を使う Minecraft",kind:"mod"},
+  {id:"palworld",name:"Palworld",desc:"UDP・パネル経由で監視",kind:"tcp"},
+];
+const game = id => GAMES.find(g => g.id === id) || GAMES[1];
+const COLORS = {tanaka:"#007AFF", suzuki:"#AF52DE", sato:"#34C759", admin:"#8E8E93"};
+const bk = n => Array.from({length:n}, (_, i) => ({at:`9/${27 - i} 04:00`, size:(1.2 + i * .05).toFixed(1) + "GB", kind:"自動"}));
+function baseData(){
+  const S = o => Object.assign({st:"up",ping:20,up:100,plan:"standard",cpu:20,ram:50,disk:40,players:"0/20",days:30,backups:bk(3),shares:[],domain:null,auto:true,pub:false,proxy:null,plugins:null,updated:false,dev:false,node:"node-tokyo-1",suspend:null,stopped:false}, o);
+  return {
+    domains:[{id:1,name:"nuids.jp",zone:"8f2c…a91d",edgeHost:"edge",def:true,verified:true},{id:2,name:"example.net",zone:"1b7e…04c2",edgeHost:"edge",def:false,verified:true}],
+    ips:[{id:1,label:"edge-1（東京）",addr:"203.0.113.10",edge:"edge-1"},{id:2,label:"edge-2（大阪）",addr:"198.51.100.20",edge:"edge-2"}],
+    bindings:[{id:1,domain:1,host:"edge",follow:true,ip:null},{id:2,domain:2,host:"edge",follow:true,ip:null}],
+    rules:[
+      {id:1,name:"Minecraft 共有枠",domain:1,ps:25560,pe:25569,tpl:"mc{nn}trt",start:0,excl:[25560],mode:"cname_edge",ip:null,srv:true,pre:true,assign:"shared",user:null},
+      {id:2,name:"tanaka 専用",domain:2,ps:30010,pe:30019,tpl:"{server}",start:0,excl:[],mode:"cname_edge",ip:null,srv:true,pre:false,assign:"user",user:"tanaka"},
+      {id:3,name:"suzuki 専用",domain:2,ps:30020,pe:30029,tpl:"{server}",start:0,excl:[],mode:"cname_edge",ip:null,srv:true,pre:false,assign:"user",user:"suzuki"},
+      {id:4,name:"sato 専用",domain:2,ps:30030,pe:30039,tpl:"{server}",start:0,excl:[],mode:"cname_edge",ip:null,srv:true,pre:false,assign:"user",user:"sato"},
+    ],
+    dnsPublished:{1:true}, disabledSlots:[],
+    servers:[
+      S({id:"lobby",owner:"tanaka",game:"paper",port:25561,ping:22,plan:"light",cpu:14,ram:58,disk:41,players:"4/20",days:3}),
+      S({id:"survival",owner:"tanaka",game:"paper",port:25562,ping:31,up:99.6,cpu:37,ram:71,disk:92,players:"11/40",days:18,backups:bk(4),shares:[{user:"suzuki",perm:"コンソール操作"}],domain:{name:"mc.tanaka-craft.jp",state:"有効"}}),
+      S({id:"net",owner:"tanaka",game:"velocity",port:30013,ping:9,plan:"light",cpu:6,ram:28,disk:5,players:"15/100",days:18,backups:bk(2),pub:true}),
+      S({id:"rpg",owner:"suzuki",game:"storiamc",port:25563,ping:40,cpu:52,ram:80,disk:55,players:"23/60",days:25,backups:bk(5),node:"node-tokyo-2"}),
+      S({id:"modpack",owner:"suzuki",game:"forge",port:30021,st:"down",ping:null,up:91.2,cpu:0,ram:0,disk:77,players:"—",days:9,backups:bk(5),node:"node-tokyo-2"}),
+      S({id:"pal",owner:"suzuki",game:"palworld",port:30022,ping:18,up:99.9,cpu:61,ram:83,disk:30,players:"6/16",days:2,backups:bk(2),node:"node-tokyo-2"}),
+      S({id:"test",owner:"suzuki",game:"paper",port:30025,st:"maint",ping:null,up:null,plan:"light",cpu:3,ram:20,disk:12,days:14,backups:bk(1),auto:false,node:"node-tokyo-2"}),
+      S({id:"hub",owner:"sato",game:"velocity",port:30030,ping:12,plan:"light",cpu:9,ram:33,disk:8,players:"29/200",days:40}),
+    ],
+    trash:[{id:"event",owner:"tanaka",game:"paper",port:25564,plan:"light",trashedAt:"9/26 13:20",purgeIn:41}],
+    users:[
+      {n:"admin",role:"admin",discord:"admin",roleLabel:"@運営",max:0,ptero:{id:1,sync:true,root:true},state:"有効",tos:true},
+      {n:"tanaka",role:"user",discord:"tanaka",roleLabel:"@サポーター",max:5,ptero:{id:12,sync:true,root:false},state:"有効",tos:true},
+      {n:"suzuki",role:"user",discord:"suzuki_mc",roleLabel:"@サポーター",max:5,ptero:{id:15,sync:true,root:false},state:"有効",tos:true},
+      {n:"sato",role:"user",discord:"sato",roleLabel:"@サーバー利用者",max:1,ptero:{id:18,sync:false,root:false},state:"有効",tos:true},
+    ],
+    announcements:[
+      {id:1,sev:"info",title:"バックアップの保存数を増やしました",body:"自動バックアップの保存数がプランごとに1つずつ増えました。",aud:"all",at:"9/25"},
+      {id:2,sev:"warning",title:"10/3 2:00〜4:00 node-tokyo-2 のメンテナンス",body:"対象のサーバーは最大10分ほど停止します。",aud:"node-tokyo-2",at:"9/26"},
+    ],
+    violations:[{id:1,user:"suzuki",server:"pal",reason:"規約で禁止している外部への大量接続",action:"警告",at:"9/20",resolved:true}],
+    findings:[
+      {sev:"auto",msg:"DNS：_minecraft._tcp.oldsurvival.example.net が残っています",fix:"削除"},
+      {sev:"auto",msg:"Uptime Kuma：監視 #33 に対応するサーバーがありません",fix:"削除"},
+      {sev:"auto",msg:"ゲームパネル：sato の情報が 9/25 以降同期されていません",fix:"再同期",user:"sato"},
+      {sev:"manual",msg:"ゲームパネル：DB にないサーバー「event2」が動いています",fix:"取り込む"},
+    ],
+    audit:[
+      ["9/27 09:40","system","システム","パスワードを同期","tanaka","成功"],
+      ["9/27 04:00","system","システム","定期バックアップ","8台","成功"],
+      ["9/26 22:15","system","システム","自動再起動","suzuki/modpack","3回目で停止"],
+      ["9/26 21:02","suzuki","Discord","メンテナンスを開始","suzuki/test","成功"],
+      ["9/26 13:20","tanaka","Web","ゴミ箱へ移動","tanaka/event","成功"],
+      ["9/26 12:11","tanaka","Web","共同管理者を追加","tanaka/survival → suzuki","成功"],
+    ],
+    edge:"edge-1", discord:[],
+  };
+}
+
+/* ---------------- アドレス枠（スロット） ---------------- */
+function hostFor(rule, port, serverName){
+  const n = rule.start + (port - rule.ps);
+  return rule.tpl.replace(/\{server\}/g, serverName || "{server}").replace(/\{nnn\}/g, String(n).padStart(3, "0")).replace(/\{nn\}/g, String(n).padStart(2, "0")).replace(/\{n\}/g, String(n)).replace(/\{port\}/g, String(port));
+}
+const domainOf = id => D.domains.find(d => d.id === Number(id));
+const ruleOfPort = p => D.rules.find(r => p >= r.ps && p <= r.pe);
+const isFixed = r => !r.tpl.includes("{server}");
+function slotsOf(rule){
+  const out = [];
+  for (let p = rule.ps; p <= rule.pe; p++){
+    const excluded = rule.excl.includes(p), sv = D.servers.find(s => s.port === p), tr = D.trash.find(s => s.port === p), disabled = D.disabledSlots.includes(p);
+    out.push({port:p, rule, server:sv, trash:tr, host:isFixed(rule) ? hostFor(rule, p) : (sv ? sv.id : tr ? tr.id : null),
+      status: excluded ? "excluded" : sv ? "assigned" : tr ? "held" : disabled ? "disabled" : "free"});
+  }
+  return out;
+}
+const fqdnOf = (rule, slot) => `${slot.host || "（サーバー名）"}.${domainOf(rule.domain).name}`;
+function addrOf(s){
+  if (s.domain && s.domain.state === "有効") return s.domain.name;
+  const r = ruleOfPort(s.port); if (!r) return `edge:${s.port}`;
+  return `${isFixed(r) ? hostFor(r, s.port) : s.id}.${domainOf(r.domain).name}`;
+}
+const edgeName = s => { const r = ruleOfPort(s.port); return r ? `${domainOf(r.domain).edgeHost}.${domainOf(r.domain).name}` : "edge"; };
+const rulesFor = owner => D.rules.filter(r => r.assign === "shared" || r.user === owner);
+const freeSlots = owner => rulesFor(owner).flatMap(r => slotsOf(r).filter(x => x.status === "free"));
+
+/* ---------------- 状態 ---------------- */
+let D, S, timers = [], jobSeq = 1840;
+function resetState(){
+  timers.forEach(clearTimeout); timers = [];
+  D = baseData();
+  S = Object.assign({surface:$("#d-surface").value, user:$("#d-user").value, tab:"servers", stack:[], mfilter:"all", afilter:"all", jobs:[], sheet:null, wiz:null, rule:null, pending:false},
+    {glass:.72, theme:"", bg:{kind:"default"}, dim:.25, blur:0}, loadDisplay());
+  D.defaultBg = {kind:"preset", id:"aurora"};
+}
+/* 表示の設定（本番では /api/me/preferences に保存。デモではこのブラウザにだけ保存） */
+const DISPLAY_KEY = "pterodeploy-demo-display";
+function loadDisplay(){
+  try { const v = JSON.parse(localStorage.getItem(DISPLAY_KEY) || "null"); if (v && typeof v === "object") return {glass:v.glass ?? .72, theme:v.theme ?? "", bg:v.bg || {kind:"default"}, dim:v.dim ?? .25, blur:v.blur ?? 0}; } catch (e) {}
+  return {};
+}
+function saveDisplay(){
+  try { localStorage.setItem(DISPLAY_KEY, JSON.stringify({glass:S.glass, theme:S.theme, bg:S.bg, dim:S.dim, blur:S.blur})); return true; }
+  catch (e) { return false; }
+}
+
+/* ---------------- 背景 ---------------- */
+const BG_PRESETS = [
+  {id:"none", name:"なし", light:"none", dark:"none"},
+  {id:"aurora", name:"オーロラ",
+    light:"radial-gradient(at 15% 10%,#c9b9ff 0,transparent 50%),radial-gradient(at 85% 15%,#a3f0d2 0,transparent 45%),radial-gradient(at 50% 95%,#a6ccff 0,transparent 55%),linear-gradient(#eef1f8,#eef1f8)",
+    dark:"radial-gradient(at 15% 10%,#5b3fc4 0,transparent 50%),radial-gradient(at 85% 15%,#16825b 0,transparent 45%),radial-gradient(at 50% 95%,#0a4fb8 0,transparent 55%),linear-gradient(#0b0d14,#0b0d14)"},
+  {id:"sunset", name:"夕焼け", light:"linear-gradient(160deg,#ffd6c7 0%,#ffbccd 45%,#cfbcff 100%)", dark:"linear-gradient(160deg,#6e2a35 0%,#521d49 45%,#1b1330 100%)"},
+  {id:"ocean", name:"海", light:"linear-gradient(180deg,#e3f1ff 0%,#b1d5ff 60%,#8ab7f2 100%)", dark:"linear-gradient(180deg,#0d2742 0%,#0b3a68 60%,#06162a 100%)"},
+  {id:"forest", name:"森", light:"linear-gradient(160deg,#ebf8da 0%,#c6e7a9 50%,#98ccb0 100%)", dark:"linear-gradient(160deg,#1b3718 0%,#153c2b 50%,#0a1f25 100%)"},
+  {id:"blocks", name:"ブロック", light:"repeating-conic-gradient(#d3e8b6 0 25%,#c2de9e 0 50%) 0 0/56px 56px", dark:"repeating-conic-gradient(#2a3d21 0 25%,#324729 0 50%) 0 0/56px 56px"},
+];
+const isDark = () => S.theme === "dark" || (S.theme === "" && matchMedia("(prefers-color-scheme: dark)").matches);
+const effectiveBg = () => S.bg.kind === "default" ? D.defaultBg : S.bg;
+function bgCss(bg){
+  if (bg.kind === "upload") return `url("${bg.data}")`;
+  const p = BG_PRESETS.find(x => x.id === bg.id) || BG_PRESETS[0];
+  return isDark() ? p.dark : p.light;
+}
+function bgName(bg){
+  if (bg.kind === "default") return `既定（${bgName(D.defaultBg)}）`;
+  if (bg.kind === "upload") return "写真";
+  return (BG_PRESETS.find(x => x.id === bg.id) || BG_PRESETS[0]).name;
+}
+function applyBg(){
+  const root = document.documentElement, bg = effectiveBg(), css = bgCss(bg), on = css !== "none";
+  root.classList.toggle("has-bg", on);
+  root.style.setProperty("--bgimg", on ? css : "none");
+  root.style.setProperty("--dim", on ? S.dim : 0);
+  root.style.setProperty("--bgblur", `${S.blur}px`);
+  // 写真はぼかしで端が透けないように少し拡大している（#bg .img の inset:-40px）
+  const img = $("#bg .img"); if (img) img.style.background = on ? `${css} center/cover no-repeat` : "none";
+  if (img && bg.kind === "preset" && bg.id === "blocks") img.style.background = css;
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", () => applyBg());
+function bgPreviewHtml(){
+  const bg = effectiveBg(), css = bgCss(bg), on = css !== "none";
+  return `<div class="bgprev" id="bg-prev" style="background:var(--bg)"><div class="img" style="background:${on ? (bg.kind === "preset" && bg.id === "blocks" ? css : `${css} center/cover no-repeat`) : "none"};filter:blur(${S.blur}px)"></div><div class="dim" style="opacity:${on ? S.dim : 0}"></div><div class="t">サーバー</div><div class="card"><b>lobby</b><div style="font-size:13px;color:var(--label2)">mc01trt.nuids.jp</div></div></div>`;
+}
+function openBgSheet(){
+  const cur = S.bg, sel = b => (cur.kind === b.kind && (b.kind !== "preset" || cur.id === b.id));
+  const sw = css => `<span class="sw" style="background:${css === "none" ? "var(--bg)" : css}${css.includes("repeating") ? "" : ";background-size:cover"}"></span>`;
+  sheet(`${sheetHead("背景", {left:"閉じる", right:"完了", rightAct:"close"})}<div class="sheet-b">
+    ${bgPreviewHtml()}
+    <div class="gh">背景を選ぶ</div>
+    <div class="pick bgpick" role="group" aria-label="背景">
+      <button class="pk" data-act="bg-pick" data-arg="default" aria-pressed="${sel({kind:"default"})}">${sw(bgCss(D.defaultBg))}<b>既定</b><small>${esc(bgName(D.defaultBg))}</small></button>
+      ${BG_PRESETS.map(p => `<button class="pk" data-act="bg-pick" data-arg="${p.id}" aria-pressed="${sel({kind:"preset", id:p.id})}">${sw(isDark() ? p.dark : p.light)}<b>${p.name}</b></button>`).join("")}
+      <button class="pk" data-act="bg-upload" aria-pressed="${cur.kind === "upload"}">${cur.kind === "upload" ? `<span class="sw" style="background:url('${cur.data}') center/cover"></span>` : `<span class="sw" style="display:grid;place-items:center;background:var(--fill);color:var(--blue)">${ic("plus")}</span>`}<b>${cur.kind === "upload" ? "写真（変更）" : "写真を選ぶ"}</b><small>20MB まで</small></button>
+    </div>
+    <input type="file" id="bg-file" accept="image/*" hidden>
+    ${group([
+      `<div class="cell" style="display:block"><div style="display:flex;justify-content:space-between"><label for="bg-dim">見やすさ</label><span class="val" id="bg-dim-v">${Math.round(S.dim * 100)}%</span></div><input type="range" id="bg-dim" min="0" max="0.85" step="0.01" value="${S.dim}" data-set="dim" aria-describedby="bg-f"></div>`,
+      `<div class="cell" style="display:block"><div style="display:flex;justify-content:space-between"><label for="bg-blur">ぼかし</label><span class="val" id="bg-blur-v">${S.blur}px</span></div><input type="range" id="bg-blur" min="0" max="40" step="1" value="${S.blur}" data-set="blur"></div>`,
+    ], "調整", `<span id="bg-f">「見やすさ」を上げると背景が薄くなり、文字が読みやすくなります。写真は長辺2560pxに縮小し、位置情報などを取り除いて保存します。</span>`)}
+    <div style="height:18px"></div>
+    ${group([`<button class="cell action center" data-act="bg-reset">既定に戻す</button>`].concat(isAdmin() ? [`<button class="cell action center" data-act="bg-default" ${S.bg.kind === "default" ? "disabled" : ""}>この背景を全員の既定にする</button>`] : []), "", isAdmin() ? "全員の既定にしても、自分で背景を選んだ人の設定は変わりません。" : "")}
+  </div>`);
+}
+function refreshBgPreview(){
+  const pv = $("#bg-prev"); if (pv) pv.outerHTML = bgPreviewHtml();
+}
+async function loadBgFile(file){
+  if (!file) return;
+  if (!/^image\//.test(file.type) && !/\.(heic|heif)$/i.test(file.name)) return toast("画像ファイルを選んでください", "warn");
+  if (file.size > 20 * 1024 * 1024) return toast("20MB 以下の画像を選んでください", "warn");
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((ok, ng) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ng; i.src = url; });
+    const scale = Math.min(1, 2560 / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement("canvas");
+    c.width = Math.round(img.naturalWidth * scale); c.height = Math.round(img.naturalHeight * scale);
+    c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);   // 描き直すことで位置情報（EXIF）も消える
+    S.bg = {kind:"upload", data:c.toDataURL("image/jpeg", .85)};
+    if (S.dim < .3) S.dim = .35;   // 写真は文字と重なりやすいので少し薄くする
+    applyBg();
+    toast(saveDisplay() ? "背景を変更しました" : "背景を変更しました（容量が足りず、再読み込みすると元に戻ります）", "ok");
+    openBgSheet();
+  } catch (e) {
+    toast("この画像は読み込めませんでした。JPEG か PNG で試してください", "warn");
+  } finally { URL.revokeObjectURL(url); }
+}
+const isAdmin = () => S.user === "admin";
+const me = () => D.users.find(u => u.n === S.user);
+const srv = id => D.servers.find(s => s.id === id);
+const canSee = s => isAdmin() || s.owner === S.user || s.shares.some(x => x.user === S.user);
+const isOwner = s => isAdmin() || s.owner === S.user;
+const visible = () => D.servers.filter(canSee);
+const at = (ms, fn) => timers.push(setTimeout(fn, reduce ? Math.min(ms, 250) : ms));
+function now(){ const d = new Date(); return `9/27 ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; }
+function audit(act, target, res = "成功", who = S.user, via = "Web"){ D.audit.unshift([now(), who, who === "system" ? "システム" : via, act, target, res]); }
+let toastTimer;
+function toast(msg, icon = "ok"){ const t = $("#toast"); t.innerHTML = ic(icon) + `<span>${esc(msg)}</span>`; t.classList.add("on"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("on"), 2600); }
+function nameProblem(name){
+  if (!name) return "名前を入力してください";
+  if (!NAME_RE.test(name)) return "英小文字・数字・ハイフンで3〜32文字（先頭と末尾は英数字）";
+  if (RESERVED.includes(name)) return "システムで使う名前のため選べません";
+  if (D.servers.some(s => s.id === name)) return "同じ名前のサーバーがあります";
+  if (D.trash.some(s => s.id === name)) return "ゴミ箱に同じ名前があります（完全に削除されるまで使えません）";
+  return "";
+}
+
+/* ---------------- 部品 ---------------- */
+const stLabel = s => ({up:"稼働中", down:s.stopped ? "停止中" : "応答なし", maint:"メンテナンス中", suspended:"利用停止中", installing:"作成中"})[s.st];
+const stPill = s => `<span class="pill ${({up:"g",down:s.stopped ? "" : "r",suspended:"r",installing:"o",maint:"b"})[s.st] || ""}">${stLabel(s)}</span>`;
+const stDot = s => `<span class="dot ${s.st === "up" ? "" : s.st === "down" && s.stopped ? "off" : s.st}"></span>`;
+function cell({icon, color, title, sub, val, act, arg, chev, cls = "", more, subWrap}){
+  const tag = act ? "button" : "div", a = act ? ` type="button" data-act="${act}" data-arg="${esc(arg ?? "")}"` : "";
+  const inner = `${icon ? icoBox(icon, color || "var(--gray)") : ""}<div class="tx"><div class="t">${title}</div>${sub ? `<div class="s ${subWrap ? "wrap" : ""}">${sub}</div>` : ""}</div>${val !== undefined && val !== "" ? `<span class="val">${val}</span>` : ""}${(chev ?? !!act) ? ic("chev", "chev") : ""}`;
+  const c = `<${tag} class="cell ${cls} ${icon && !more ? "has-ico" : ""}"${a}>${inner}</${tag}>`;
+  return more ? `<div class="cellwrap ${icon ? "has-ico" : ""}">${c}<button class="more" type="button" data-act="${more.act}" data-arg="${esc(more.arg)}" aria-label="${esc(more.label || "操作")}">${ic("more")}</button></div>` : c;
+}
+const group = (items, head = "", foot = "") => `${head ? `<div class="gh">${head}</div>` : ""}<div class="group">${items.join("")}</div>${foot ? `<div class="gf">${foot}</div>` : ""}`;
+function banner(kind, title, text, btns = ""){
+  const icn = {info:"info", w:"warn", e:"xc", ok:"ok"}[kind];
+  return `<div class="banner ${kind}" role="${kind === "e" ? "alert" : "status"}">${ic(icn)}<div class="tx">${title ? `<b>${esc(title)}</b>` : ""}${text}${btns ? `<div class="bb">${btns}</div>` : ""}</div></div>`;
+}
+function beats(s){
+  let h = 0; for (const c of s.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const out = [];
+  for (let i = 0; i < 30; i++){
+    let c = "";
+    if (s.fresh) c = i < 30 - s.fresh ? "e" : "";
+    else if (s.st === "installing") c = "e";
+    else if (s.st === "maint") c = i > 22 ? "m" : "";
+    else if (s.st === "suspended" || (s.st === "down" && s.stopped)) c = i > 20 ? "s" : "";
+    else if (s.st === "down") c = i > 25 ? "d" : "";
+    else if (s.recovered && i >= 27 && i < 29) c = "d";
+    else c = ((h + i * 7919) % 29 === 0) ? "d" : "";
+    out.push(`<i class="${c}"></i>`);
+  }
+  return `<div class="beats" role="img" aria-label="直近30回の確認結果">${out.join("")}</div>`;
+}
+function meter(label, pct, cap){
+  const c = pct >= 90 ? "hot" : pct >= 75 ? "mid" : "";
+  return `<div class="cell" style="display:block"><div style="display:flex;justify-content:space-between"><span>${label}</span><span class="val">${pct}%<span style="font-size:13px"> / ${cap}</span></span></div><div class="meter"><i class="${c}" style="width:${pct}%"></i></div></div>`;
+}
+
+/* ---------------- ナビゲーション ---------------- */
+const TABS = [{id:"servers",label:"サーバー",icon:"server"},{id:"monitor",label:"監視",icon:"pulse"},{id:"admin",label:"管理",icon:"shield",admin:true},{id:"settings",label:"設定",icon:"gear"}];
+const topPage = () => S.stack[S.stack.length - 1];
+function go(page, arg){ S.stack.push({page, arg}); window.scrollTo(0, 0); render(); }
+function goTab(tab, page, arg){ S.tab = tab; S.stack = page ? [{page, arg}] : []; window.scrollTo(0, 0); render(); }
+function renderChrome(){
+  const down = visible().filter(s => s.st === "down" && !s.stopped).length;
+  const badge = t => t === "monitor" && down ? down : t === "admin" && D.findings.length ? D.findings.length : 0;
+  const tabs = TABS.filter(t => !t.admin || isAdmin());
+  $("#tabbar").innerHTML = tabs.map(t => `<button class="tb" data-act="tab" data-arg="${t.id}" ${S.tab === t.id ? 'aria-current="page"' : ""}>${ic(t.icon)}<span>${t.label}</span>${badge(t.id) ? `<span class="badge">${badge(t.id)}</span>` : ""}</button>`).join("");
+  const u = me(), t = topPage();
+  $("#side").innerHTML = `<h1>Hatch</h1>
+    <button class="searchbox search" data-act="search">${ic("search")}<span>検索</span><span class="kbd">/</span></button>
+    ${tabs.map(x => `<button class="sbtn" data-act="tab" data-arg="${x.id}" ${S.tab === x.id && !(t && t.page === "server") ? 'aria-current="page"' : ""}>${ic(x.icon)}<span>${x.label}</span>${badge(x.id) ? `<span class="badge cnt">${badge(x.id)}</span>` : ""}</button>`).join("")}
+    <div style="font-size:13px;color:var(--label2);margin:14px 12px 4px">サーバー</div>
+    ${visible().filter(s => !s.dev).map(s => `<button class="sbtn" data-act="open-server" data-arg="${esc(s.id)}" ${t && t.page === "server" && t.arg === s.id ? 'aria-current="page"' : ""} style="height:36px;font-size:15px">${stDot(s)}<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(s.id)}</span></button>`).join("")}
+    <div class="foot"><span class="ico" style="background:${COLORS[u.n] || "#8E8E93"};border-radius:50%;font-weight:700;font-size:14px">${u.n[0].toUpperCase()}</span><div><div>${esc(u.n)}</div><div style="font-size:13px;color:var(--label2)">${isAdmin() ? "管理者" : "利用者"}</div></div></div>`;
+}
+function navbar(title, {back, right = ""} = {}){
+  return `<div class="navbar" id="navbar"><div class="l">${back ? `<button class="back" data-act="back">${ic("back")}<span>${esc(back)}</span></button>` : ""}</div><div class="ttl">${esc(title)}</div><div class="r">${right}</div></div>`;
+}
+const TITLES = {system:"システムの状態",plugins:"プラグイン",network:"ネットワーク",backups:"バックアップ",share:"共有",address:"アドレス",behavior:"動作",trash:"ゴミ箱",domains:"ドメイン",domain:"ドメイン",ips:"IP と紐付け",rules:"アドレス枠",rule:"アドレス枠",users:"ユーザー",roles:"ロール連携",announce:"お知らせ",violations:"違反対応",health:"整合性チェック",nodes:"ノードと edge",audit:"操作ログ",keys:"API キー",expiring:"期限が近い",history:"操作履歴"};
+function pageTitle(p){ if (p.page === "server") return p.arg; if (p.page === "rule") return D.rules.find(x => x.id === Number(p.arg))?.name || "アドレス枠"; if (p.page === "domain") return domainOf(p.arg)?.name || "ドメイン"; return TITLES[p.page] || ""; }
+const backLabel = () => S.stack.length > 1 ? pageTitle(S.stack[S.stack.length - 2]) : TABS.find(t => t.id === S.tab).label;
+
+/* ---------------- サーバー一覧 ---------------- */
+function jobBlock(j){
+  const pct = Math.round(j.done / j.steps.length * 100);
+  const title = j.status === "done" ? `${esc(j.name)} を公開しました` : j.status === "failed" ? `${esc(j.name)} の作成に失敗しました` : `${esc(j.name)} を作成中`;
+  return `<div class="banner ${j.status === "failed" ? "e" : j.status === "done" ? "ok" : "info"}" data-job="${j.id}">${ic(j.status === "failed" ? "xc" : j.status === "done" ? "ok" : "clock")}<div class="tx"><b>${title}</b>
+    ${j.status === "run" ? `<div class="prog" style="margin:6px 0"><i data-jbar style="width:${pct}%"></i></div><div style="font-size:14px;color:var(--label2)" data-jstep>${esc(j.steps[Math.min(j.done, j.steps.length - 1)].t)}</div>` : j.status === "failed" ? "作成したものはすべて取り消しました。管理者に通知済みです。" : `<span class="mono">${esc(j.fqdn)}</span> で接続できます。`}
+    <div class="bb">${j.status === "done" ? `<button class="btn sm fill" data-act="open-server" data-arg="${esc(j.name)}">開く</button>` : ""}<button class="btn sm" data-act="job" data-arg="${j.id}">手順</button>${j.status !== "run" ? `<button class="btn sm" data-act="dismiss" data-arg="${j.id}">閉じる</button>` : ""}</div></div></div>`;
+}
+function pServers(){
+  const list = visible(), u = me();
+  const anns = D.announcements.filter(a => isAdmin() || a.aud === "all" || list.some(s => s.owner === S.user && s.node === a.aud));
+  const need = list.filter(s => (s.st === "down" && !s.stopped) || s.st === "suspended" || s.disk >= 90 || s.days <= 3);
+  const up = list.filter(s => s.st === "up").length;
+  const trash = D.trash.filter(t => isAdmin() || t.owner === S.user);
+  const left = isAdmin() ? null : Math.max(0, u.max - D.servers.filter(s => s.owner === S.user && !s.dev).length);
+  const row = s => cell({title:`${stDot(s)}<b style="font-weight:600">${esc(s.id)}</b>${isAdmin() || s.owner !== S.user ? `<span class="pill">${esc(s.owner)}</span>` : ""}${s.dev ? '<span class="pill">開発用</span>' : ""}`,
+    sub:s.st === "installing" ? `<span data-jstep-row="${s.job}">作成中…</span>` : `<span class="mono">${esc(addrOf(s))}</span>`,
+    val:s.st === "installing" ? "" : s.st === "up" ? esc(s.players) : stLabel(s), act:"open-server", arg:s.id, more:{act:"menu-server", arg:s.id, label:`${s.id} の操作`}});
+  return `${navbar("サーバー", {right:`<button class="circle tint" data-act="wizard" aria-label="新しいサーバー">${ic("plus")}</button>`})}
+    <div class="page"><h1 class="large">サーバー</h1>
+    ${u.deleting ? banner("w", "退会の手続き中です", `${esc(u.deleting)} にすべてのデータを削除します。取り消すと、サーバーを再び起動できます。`, `<button class="btn sm fill" data-act="withdraw-cancel">退会を取り消す</button>`) : ""}
+    ${anns.map(a => banner(a.sev === "warning" ? "w" : "info", a.title, esc(a.body))).join("")}
+    ${S.jobs.filter(j => !j.dismissed).map(jobBlock).join("")}
+    <div class="tiles four">
+      <button class="tile" data-act="tab" data-arg="monitor"><div class="top">${icoBox("pulse", "var(--green)")}<span class="n">${up}</span></div><span class="l">稼働中 / ${list.length}台</span></button>
+      <button class="tile" data-act="scroll-need"><div class="top">${icoBox("warn", need.length ? "var(--red)" : "var(--gray)")}<span class="n">${need.length}</span></div><span class="l">要対応</span></button>
+      <button class="tile" data-act="wizard" ${left === 0 ? "disabled" : ""}><div class="top">${icoBox("plus", "var(--blue)")}<span class="n">${left ?? "∞"}</span></div><span class="l">作成できる残り</span></button>
+      <button class="tile" data-act="go" data-arg="trash"><div class="top">${icoBox("trash", "var(--gray)")}<span class="n">${trash.length}</span></div><span class="l">ゴミ箱</span></button>
+    </div>
+    ${need.length ? `<div id="need">${group(need.map(s => cell({icon:"warn", color:"var(--red)", title:esc(s.id), sub:[s.st === "down" ? "応答がありません" : "", s.st === "suspended" ? "管理者により利用停止中" : "", s.disk >= 90 ? `ディスク ${s.disk}%` : "", s.days <= 3 ? `期限まで${s.days}日` : ""].filter(Boolean).join("・"), act:"open-server", arg:s.id})), "要対応")}</div>` : ""}
+    ${group(list.length ? list.map(row) : [cell({title:"サーバーはまだありません", sub:"右上の＋から作成できます"})], isAdmin() ? "すべてのサーバー" : "あなたのサーバー")}
+    </div>`;
+}
+
+/* ---------------- サーバー詳細 ---------------- */
+function pServer(id){
+  const s = srv(id);
+  if (!s || !canSee(s)) return `${navbar("", {back:backLabel()})}<div class="page"><h1 class="large">見つかりません</h1><p>削除されたか、表示する権限がありません。</p></div>`;
+  const owner = isOwner(s), locked = s.st === "suspended" && !isAdmin(), busy = s.st === "installing";
+  const p = PLANS[s.plan], k = game(s.game).kind, running = s.st === "up" || (s.st === "down" && !s.stopped);
+  return `${navbar(s.id, {back:backLabel(), right:`<button class="circle" data-act="menu-server" data-arg="${esc(s.id)}" aria-label="その他の操作">${ic("more")}</button>`})}
+  <div class="page">
+    <div class="hero">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h1 style="font-size:28px;margin:0;word-break:break-all">${esc(s.id)}</h1>${stPill(s)}</div>
+      <div style="color:var(--label2);font-size:15px;margin-top:4px">${esc(game(s.game).name)}・${p.name}・${esc(s.node)}${s.owner !== S.user ? `・所有者 ${esc(s.owner)}` : ""}</div>
+      <button class="addr" data-act="copy" data-arg="${esc(addrOf(s))}" aria-label="アドレスをコピー"><span>${esc(addrOf(s))}</span>${ic("copy")}</button>
+      <div class="acts">
+        <button class="act ${running ? "red" : ""}" data-act="power" ${locked || busy || s.st === "maint" ? "disabled" : ""}>${running ? ic("stop") + "停止" : ic("play") + "起動"}</button>
+        <button class="act" data-act="restart" ${locked || busy || !running ? "disabled" : ""}>${ic("restart")}再起動</button>
+        <button class="act" data-act="bk-now" ${locked || busy ? "disabled" : ""}>${ic("cloud")}バックアップ</button>
+        <button class="act" data-act="gp">${ic("open")}パネル</button>
+      </div>
+    </div>
+    ${s.st === "suspended" ? banner("e", "管理者により利用停止中", `理由：${esc(s.suspend || "—")}`) : ""}
+    ${s.st === "maint" ? banner("info", "メンテナンス中", "監視と自動再起動を止めています。", owner ? `<button class="btn sm fill" data-act="maint">終了</button>` : "") : ""}
+    ${busy ? banner("info", "作成しています", "完了するまで一部の操作はできません。") : ""}
+    ${group([meter("CPU", s.cpu, p.cpu), meter("メモリ", s.ram, p.ram), meter("ディスク", s.disk, p.disk), cell({title:"プレイヤー", val:esc(s.players)})], "いまの状態", s.disk >= 90 ? `<span class="err-t">ディスクが90%を超えています。不要なワールドやログを整理してください。</span>` : "")}
+    ${group([cell({title:`あと ${s.days} 日`, sub:s.dev ? "開発用コピーは7日でゴミ箱へ" : "期限日に停止、14日後にゴミ箱へ", subWrap:true, val:owner ? `<button class="btn sm ${isAdmin() ? "fill" : ""}" data-act="extend">${isAdmin() ? "30日延長" : "延長を申請"}</button>` : ""})], "利用期限")}
+    <div style="height:22px"></div>
+    ${group([
+      k === "proxy" ? cell({icon:"net", color:"var(--indigo)", title:"ネットワーク", val:`${D.servers.filter(x => x.proxy === s.id).length}台`, act:"go", arg:"network"})
+        : k !== "tcp" ? cell({icon:"plug", color:"var(--orange)", title:k === "mod" ? "Mod" : "プラグイン", val:s.updated ? "" : '<span class="pill o">更新あり</span>', act:"go", arg:"plugins"}) : "",
+      cell({icon:"cloud", color:"var(--blue)", title:"バックアップ", val:`${s.backups.length} / ${p.bk}`, act:"go", arg:"backups"}),
+      cell({icon:"people", color:"var(--green)", title:"共有", val:s.shares.length ? `${s.shares.length}人` : "なし", act:"go", arg:"share"}),
+      cell({icon:"globe", color:"var(--teal)", title:"アドレスとドメイン", val:s.domain ? esc(s.domain.state) : "", act:"go", arg:"address"}),
+      cell({icon:"tune", color:"var(--gray)", title:"動作", sub:`自動再起動 ${s.auto ? "オン" : "オフ"}${s.pub ? "・状態ページ公開" : ""}${s.proxy ? `・${esc(s.proxy)} 経由` : ""}`, act:"go", arg:"behavior"}),
+    ].filter(Boolean))}
+    ${owner ? `<div style="height:22px"></div>${group([`<button class="cell danger" data-act="trash" ${busy ? "disabled" : ""}>サーバーを削除</button>`], "", "ゴミ箱へ移動します。72時間以内なら元に戻せます。")}` : ""}
+  </div>`;
+}
+function curServer(){ for (let i = S.stack.length - 1; i >= 0; i--) if (S.stack[i].page === "server") return srv(S.stack[i].arg); return null; }
+function pSub(page){
+  const s = curServer();
+  if (!s) return `${navbar("", {back:backLabel()})}<div class="page"><p>サーバーが見つかりません。</p></div>`;
+  const owner = isOwner(s), locked = s.st === "suspended" && !isAdmin(), p = PLANS[s.plan], T = TITLES[page];
+  let b = "";
+  if (page === "plugins"){
+    if (!s.plugins) s.plugins = game(s.game).kind === "mod" ? [{n:"JEI",up:false},{n:"Create",up:true}] : [{n:"LuckPerms",up:false},{n:"EssentialsX",up:true},{n:"CoreProtect",up:false}];
+    b = `${s.game === "storiamc" ? banner("info", "", "StoriaMC は Folia ベースのため、Folia 対応と明記されたものだけを表示します。") : ""}
+      ${group([cell({title:esc(game(s.game).name), sub:s.updated ? "最新のビルドです" : "新しいビルドがあります", val:`<button class="btn sm fill" data-act="update-core" ${s.updated || locked ? "disabled" : ""}>更新</button>`})], "サーバー本体", `更新前に自動でバックアップします。${!s.dev && owner ? '<br><button class="btn sm" data-act="devcopy" style="margin-top:8px">開発用コピーで先に試す</button>' : ""}`)}
+      ${group(s.plugins.map((x, i) => cell({title:esc(x.n), sub:x.up ? "更新があります" : "最新", val:`${x.up ? `<button class="btn sm" data-act="pl-up" data-arg="${i}">更新</button>` : ""}<button class="btn sm red" data-act="pl-rm" data-arg="${i}" aria-label="${esc(x.n)} を削除">${ic("trash")}</button>`})).concat([`<div class="field"><input id="pl-q" placeholder="Modrinth・Hangar から追加" style="text-align:left" aria-label="追加する名前"><button class="btn sm fill" data-act="pl-add">追加</button></div>`]), "導入済み", "追加・更新は次回の再起動で反映されます。")}`;
+  }
+  if (page === "network"){
+    const bs = D.servers.filter(x => x.proxy === s.id);
+    b = group(bs.length ? bs.map(x => cell({icon:"server", color:"var(--indigo)", title:esc(x.id), sub:"Tailscale 経由で接続", val:owner ? `<button class="btn sm" data-act="unproxy" data-arg="${esc(x.id)}">外す</button>` : ""})) : [cell({title:"配下のサーバーはありません", sub:"各サーバーの「動作」でこのプロキシを選ぶと追加されます", subWrap:true})], "配下のサーバー", "配下のサーバーは外部からの直接接続を閉じ、プロキシ経由でだけ入れるようにします。secret は自動で配布します。");
+  }
+  if (page === "backups"){
+    b = `${group(s.backups.length ? s.backups.map((x, i) => cell({title:esc(x.at), sub:`${x.kind}・${x.size}`, more:{act:"menu-backup", arg:String(i), label:`${x.at} の操作`}})) : [cell({title:"まだありません", sub:"毎日 4:00 に自動で作成されます"})], `${s.backups.length} / ${p.bk} 個`, "毎日 4:00 に自動作成。上限を超えると古い自動バックアップから削除します。")}
+      <div style="margin-top:16px"><button class="btn fill block" data-act="bk-now" ${locked ? "disabled" : ""}>${ic("cloud")}今すぐバックアップ</button></div>`;
+  }
+  if (page === "share"){
+    b = `${group(s.shares.length ? s.shares.map((x, i) => cell({icon:"user", color:COLORS[x.user] || "var(--gray)", title:esc(x.user), sub:esc(x.perm), val:owner ? `<button class="btn sm" data-act="unshare" data-arg="${i}">外す</button>` : ""})) : [cell({title:"まだ誰とも共有していません"})], "共同管理者")}
+      ${owner ? group([`<div class="field"><label for="sh-n">Discord 名</label><input id="sh-n" placeholder="例：sato" autocomplete="off" autocapitalize="off"></div>`, `<div class="field"><label for="sh-p">できること</label><select id="sh-p"><option>閲覧のみ</option><option selected>コンソール操作</option><option>ファイル編集</option><option>すべて</option></select></div>`, `<button class="cell action center" data-act="share">招待</button>`], "招待する", "招待された人はパネルとゲームパネルの両方で操作でき、監視も見られます。") : ""}`;
+  }
+  if (page === "address"){
+    const r = ruleOfPort(s.port), d = s.domain;
+    b = `${group([cell({icon:"pin", color:"var(--teal)", title:`<span class="mono">${esc(r ? `${isFixed(r) ? hostFor(r, s.port) : s.id}.${domainOf(r.domain).name}` : "—")}</span>`, sub:`${r ? esc(r.name) : ""}・ポート ${s.port}`, val:`<button class="btn sm" data-act="copy" data-arg="${esc(r ? `${isFixed(r) ? hostFor(r, s.port) : s.id}.${domainOf(r.domain).name}` : "")}" aria-label="コピー">${ic("copy")}</button>`}),
+      cell({icon:"net", color:"var(--gray)", title:`<span class="mono">${esc(edgeName(s))}:${s.port}</span>`, sub:"ポートを指定して直接接続する場合"})], "標準のアドレス", s.proxy ? `${esc(s.proxy)} の配下のため、直接は接続できません。` : "")}
+      ${!d ? group([`<div class="field"><input id="dm" placeholder="例：play.my-server.jp" style="text-align:left" autocomplete="off" autocapitalize="off" aria-label="独自ドメイン"><button class="btn sm fill" data-act="dm-add">追加</button></div>`], "独自ドメイン", `<span id="dm-help">自分で管理している DNS にレコードを追加できる必要があります。</span>`)
+        : `${group([cell({icon:"globe", color:"var(--teal)", title:`<span class="mono">${esc(d.name)}</span>`, val:`<span class="pill ${d.state === "有効" ? "g" : "o"}">${esc(d.state)}</span>`})], "独自ドメイン")}
+        <div class="gf" style="margin-top:10px">お使いの DNS に次のレコードを追加してください。</div>
+        ${group([cell({title:"TXT", sub:`<span class="mono">_pterodeploy.${esc(d.name)} = pd-verify-7f3c91a2</span>`, subWrap:true}), cell({title:"CNAME", sub:`<span class="mono">${esc(d.name)} → ${esc(edgeName(s))}</span>`, subWrap:true}), cell({title:"SRV", sub:`<span class="mono">_minecraft._tcp.${esc(d.name)} 0 5 ${s.port} ${esc(edgeName(s))}</span>`, subWrap:true})])}
+        <div class="row" style="margin-top:14px">${d.state !== "有効" ? `<button class="btn fill" data-act="dm-verify">設定を確認</button>` : ""}<button class="btn red" data-act="dm-rm">外す</button></div>`}`;
+  }
+  if (page === "behavior"){
+    const proxies = D.servers.filter(x => game(x.game).kind === "proxy" && x.owner === s.owner && x.id !== s.id);
+    const canJoin = ["mc", "mod"].includes(game(s.game).kind);
+    b = `${group([
+      cell({title:"ダウン時に自動で再起動", sub:"1時間に3回まで。超えたら止めて通知", val:`<input type="checkbox" class="switch" data-bind="auto" ${s.auto ? "checked" : ""} aria-label="自動再起動">`}),
+      cell({title:"ダウン・復旧の通知", sub:"所有者と共同管理者に DM", val:`<input type="checkbox" class="switch" checked aria-label="ダウン通知">`}),
+      cell({title:"状態ページに公開", sub:s.pub ? `status.nuids.jp/${esc(s.id)}` : "稼働状況と人数だけを公開", val:`<input type="checkbox" class="switch" data-bind="pub" ${s.pub ? "checked" : ""} aria-label="状態ページに公開">`}),
+    ])}
+    ${canJoin ? group([`<div class="field"><label for="px">プロキシ</label><select id="px" data-bind="proxy" ${proxies.length ? "" : "disabled"}><option value="">参加しない</option>${proxies.map(x => `<option value="${esc(x.id)}" ${s.proxy === x.id ? "selected" : ""}>${esc(x.id)}</option>`).join("")}</select></div>`], "Velocity ネットワーク", proxies.length ? "選ぶとプロキシ経由でのみ接続できるようになります。" : "同じ所有者の Velocity サーバーがあると選べます。") : ""}
+    ${owner ? `<div style="height:22px"></div>${group([`<button class="cell action center" data-act="maint">${s.st === "maint" ? "メンテナンスを終了" : "メンテナンスを開始"}</button>`], "", "監視と自動再起動を止めます。2時間後に自動で戻ります。")}` : ""}`;
+  }
+  return `${navbar(T, {back:backLabel()})}<div class="page"><h1 class="large">${T}</h1>${b}</div>`;
+}
+function pTrash(){
+  const trash = D.trash.filter(t => isAdmin() || t.owner === S.user);
+  return `${navbar("ゴミ箱", {back:backLabel()})}<div class="page"><h1 class="large">ゴミ箱</h1>
+    ${group(trash.length ? trash.map(t => cell({icon:"trash", color:"var(--gray)", title:`${esc(t.id)}${isAdmin() ? ` <span class="pill">${esc(t.owner)}</span>` : ""}`, sub:`あと${t.purgeIn}時間で完全に削除・${esc(t.trashedAt)}`, more:{act:"menu-trash", arg:t.id, label:`${t.id} の操作`}})) : [cell({title:"ゴミ箱は空です"})], "", "72時間後に完全に削除されます。それまでは元に戻せます。名前とアドレスは完全に削除されるまで予約されたままです。")}</div>`;
+}
+
+/* ---------------- 監視 ---------------- */
+function pMonitor(){
+  let list = visible().filter(s => !s.dev);
+  const c = {up:0, down:0, maint:0, other:0};
+  list.forEach(s => { if (s.st === "up") c.up++; else if (s.st === "down" && !s.stopped) c.down++; else if (s.st === "maint") c.maint++; else c.other++; });
+  if (isAdmin() && S.mfilter !== "all") list = list.filter(s => s.owner === S.mfilter);
+  return `${navbar("監視")}<div class="page"><h1 class="large">監視</h1>
+    <p class="subtitle">${isAdmin() ? "すべてのサーバー" : "あなたのサーバーと共有されたサーバー"}・30秒ごとに更新</p>
+    <div class="tiles four">
+      <div class="tile"><div class="top">${icoBox("ok", "var(--green)")}<span class="n">${c.up}</span></div><span class="l">稼働</span></div>
+      <div class="tile"><div class="top">${icoBox("xc", c.down ? "var(--red)" : "var(--gray)")}<span class="n">${c.down}</span></div><span class="l">応答なし</span></div>
+      <div class="tile"><div class="top">${icoBox("wrench", "var(--indigo)")}<span class="n">${c.maint}</span></div><span class="l">メンテナンス</span></div>
+      <div class="tile"><div class="top">${icoBox("stop", "var(--gray)")}<span class="n">${c.other}</span></div><span class="l">停止・その他</span></div>
+    </div>
+    ${isAdmin() ? `<div style="height:14px"></div><div class="seg" role="group" aria-label="所有者">${["all","tanaka","suzuki","sato"].map(o => `<button data-act="mfilter" data-arg="${o}" aria-pressed="${S.mfilter === o}">${o === "all" ? "全員" : o}</button>`).join("")}</div>` : `<div style="height:14px"></div>`}
+    ${group(list.length ? list.map(s => `<button class="cell" data-act="open-server" data-arg="${esc(s.id)}" style="display:block"><div style="display:flex;align-items:center;gap:8px">${stDot(s)}<b style="font-weight:600">${esc(s.id)}</b>${isAdmin() ? `<span class="pill">${esc(s.owner)}</span>` : ""}${s.recovered ? '<span class="pill g">自動で復旧</span>' : ""}${s.fresh ? '<span class="pill o">新規</span>' : ""}<span class="val" style="margin-left:auto">${s.st === "up" ? `${s.ping}ms` : stLabel(s)}</span></div>
+      <div style="font-size:13px;color:var(--label2);margin-top:3px">${game(s.game).kind === "tcp" ? "パネル経由" : "GameDig"}・${s.up !== null ? `24時間 ${s.up}%` : "—"}・自動再起動 ${s.auto ? "オン" : "オフ"}</div>${beats(s)}</button>`) : [cell({title:"監視中のサーバーはありません"})])}
+  </div>`;
+}
+
+/* ---------------- 管理 ---------------- */
+function pAdmin(){
+  const slotsFree = D.rules.reduce((a, r) => a + slotsOf(r).filter(x => x.status === "free").length, 0);
+  return `${navbar("管理")}<div class="page"><h1 class="large">管理</h1>
+    ${group([
+      cell({icon:"pulse", color:sysLevel() === "ok" ? "var(--green)" : sysLevel() === "error" ? "var(--red)" : "var(--orange)", title:"システムの状態", val:({ok:"正常", degraded:'<span class="pill o">注意</span>', error:'<span class="pill r">異常</span>'})[sysLevel()], act:"go", arg:"system"}),
+      cell({icon:"sparkle", color:D.findings.length ? "var(--red)" : "var(--green)", title:"整合性チェック", val:D.findings.length ? `<span class="badge">${D.findings.length}</span>` : "問題なし", act:"go", arg:"health"}),
+      cell({icon:"server", color:"var(--blue)", title:"ノードと edge", val:`使用中 ${esc(D.edge)}`, act:"go", arg:"nodes"}),
+      cell({icon:"clock", color:"var(--orange)", title:"期限が近いサーバー", val:`${D.servers.filter(s => s.days <= 7).length}台`, act:"go", arg:"expiring"}),
+    ], "運用")}
+    ${group([
+      cell({icon:"globe", color:"var(--teal)", title:"ドメイン", val:`${D.domains.length}`, act:"go", arg:"domains"}),
+      cell({icon:"pin", color:"var(--indigo)", title:"IP と紐付け", val:`${D.bindings.length}件`, act:"go", arg:"ips"}),
+      cell({icon:"grid", color:"var(--blue)", title:"アドレス枠", val:`空き ${slotsFree}`, act:"go", arg:"rules"}),
+    ], "アドレス", "ポートとホスト名の対応（例 25561 ↔ mc01trt.nuids.jp）を先に作っておけます。")}
+    ${group([
+      cell({icon:"people", color:"var(--green)", title:"ユーザー", val:`${D.users.length}人`, act:"go", arg:"users"}),
+      cell({icon:"user", color:"var(--indigo)", title:"Discord ロール連携", act:"go", arg:"roles"}),
+      cell({icon:"bell", color:"var(--red)", title:"お知らせ", val:`${D.announcements.length}件`, act:"go", arg:"announce"}),
+      cell({icon:"gavel", color:"var(--orange)", title:"違反対応", val:D.violations.some(v => !v.resolved) ? '<span class="pill r">対応中</span>' : "", act:"go", arg:"violations"}),
+    ], "利用者")}
+    ${group([cell({icon:"list", color:"var(--gray)", title:"操作ログ", act:"go", arg:"audit"}), cell({icon:"key", color:"var(--gray)", title:"API キー", act:"go", arg:"keys"})], "記録と設定")}
+  </div>`;
+}
+function adminPage(page, arg){
+  let b = "", right = "", wide = false;
+  const T = pageTitle({page, arg});
+  if (page === "health"){
+    b = `${group(D.findings.length ? D.findings.map((f, i) => cell({icon:f.sev === "manual" ? "warn" : "info", color:f.sev === "manual" ? "var(--orange)" : "var(--blue)", title:esc(f.msg), subWrap:true, sub:f.sev === "manual" ? "確認が必要です" : "自動で修正できます", val:`<button class="btn sm ${f.sev === "manual" ? "" : "fill"}" data-act="fix" data-arg="${i}">${esc(f.fix)}</button>`})) : [cell({icon:"ok", color:"var(--green)", title:"ズレは見つかりませんでした"})], "", "10分ごとに DB とゲームパネル・DNS・edge・監視を突き合わせています。")}
+      <div style="margin-top:16px"><button class="btn block" data-act="recheck">${ic("restart")}今すぐ確認</button></div>`;
+  }
+  if (page === "nodes"){
+    const ea = D.edge;
+    b = `${group([
+      cell({icon:"server", color:"var(--blue)", title:"node-tokyo-1", sub:"CPU 41%・メモリ 63%（空き 11.2GB）", val:`${D.servers.filter(x => x.node === "node-tokyo-1").length}台`}),
+      cell({icon:"server", color:"var(--blue)", title:"node-tokyo-2", sub:"CPU 55%・メモリ 72%（空き 6.8GB）", val:`${D.servers.filter(x => x.node === "node-tokyo-2").length}台`}),
+    ], "Wings ノード", "新しいサーバーは空きメモリが最も多いノードに配置します。")}
+    ${group([
+      cell({icon:"net", color:ea === "edge-1" ? "var(--green)" : "var(--gray)", title:"edge-1（東京）", sub:"203.0.113.10・設定は最新", val:`<span class="pill ${ea === "edge-1" ? "g" : ""}">${ea === "edge-1" ? "使用中" : "待機"}</span>`}),
+      cell({icon:"net", color:ea === "edge-2" ? "var(--green)" : "var(--gray)", title:"edge-2（大阪）", sub:"198.51.100.20・設定は最新", val:`<span class="pill ${ea === "edge-2" ? "g" : ""}">${ea === "edge-2" ? "使用中" : "待機"}</span>`}),
+      `<button class="cell action center" data-act="failover">${ea === "edge-1" ? "edge-2" : "edge-1"} に切り替える</button>`,
+    ], "edge", `使用中が3回続けて応答しなければ自動で切り替えます。「使用中の edge に追従」する紐付け（${D.bindings.filter(x => x.follow).length}件）がまとめて切り替わります。`)}
+    ${group([cell({icon:"shield", color:"var(--gray)", title:"IP ごとに同時20接続・10秒に30回", sub:"サーバーごとに最大500接続。超えた IP は10分遮断"}), cell({icon:"warn", color:"var(--orange)", title:":30021 に1分で4,200件の接続", sub:"812件の IP を10分間遮断・今日 09:52"})], "接続保護")}`;
+  }
+  if (page === "system"){
+    const lv = {ok:["ok","var(--green)"], degraded:["warn","var(--orange)"], error:["xc","var(--red)"]};
+    const rows = sysChecks().map(c => cell({icon:lv[c.level][0], color:lv[c.level][1], title:esc(c.label), sub:esc(c.msg), subWrap:true}));
+    b = `${banner(sysLevel() === "ok" ? "ok" : sysLevel() === "error" ? "e" : "w", sysLevel() === "ok" ? "すべて正常です" : sysLevel() === "error" ? "止まっている部品があります" : "注意が必要な項目があります", "30秒ごとに確認しています。オーケストレーター自身が止まったときは、Uptime Kuma が Discord に直接知らせます。")}
+      ${group(rows, "オーケストレーター")}
+      ${group([cell({icon:"globe", color:"var(--teal)", title:"HTTP：/api/health", sub:"応答がなければ停止と判断（1分ごと）"}), cell({icon:"search", color:"var(--teal)", title:"キーワード：/api/health/full", sub:"\"status\":\"ok\" が無ければ注意（1分ごと）"}), cell({icon:"pulse", color:"var(--teal)", title:"Push：worker・scheduler・bot", sub:"2分間報告がなければ停止と判断"})], "Uptime Kuma からの監視", "これらの監視の通知先は Kuma に直接設定した Discord の Webhook です（オーケストレーターを経由しません）。")}
+      <div class="row" style="margin-top:16px"><button class="btn" data-act="sys-check">${ic("restart")}今すぐ確認</button><button class="btn" data-act="sys-toggle-bot">${D.botDown ? "（デモ）Bot を戻す" : "（デモ）Bot を止める"}</button></div>`;
+  }
+  if (page === "expiring") b = group([...D.servers].sort((a, c) => a.days - c.days).slice(0, 6).map(s => cell({title:`${esc(s.owner)}/${esc(s.id)}`, sub:`あと${s.days}日${s.days <= 3 ? "・通知済み" : ""}`, val:`<button class="btn sm" data-act="extend-admin" data-arg="${esc(s.id)}">30日延長</button>`})));
+  if (page === "domains"){
+    right = `<button class="circle tint" data-act="domain-add" aria-label="ドメインを追加">${ic("plus")}</button>`;
+    b = group(D.domains.map(d => cell({icon:"globe", color:"var(--teal)", title:`<span class="mono">${esc(d.name)}</span>${d.def ? '<span class="pill b">既定</span>' : ""}`, sub:`ゾーン ${esc(d.zone)}・${d.verified ? "接続確認済み" : "未確認"}`, val:`${D.rules.filter(r => r.domain === d.id).length}枠`, act:"go-domain", arg:String(d.id)})), "", "Cloudflare の API トークンには、登録したすべてのゾーンの DNS 編集権限が必要です。");
+  }
+  if (page === "domain"){
+    const d = domainOf(arg);
+    if (!d) return `${navbar("", {back:backLabel()})}<div class="page"><p>見つかりません。</p></div>`;
+    b = `${group([cell({title:"Cloudflare ゾーンID", val:`<span class="mono">${esc(d.zone)}</span>`}), cell({title:"接続確認", val:d.verified ? '<span class="pill g">成功</span>' : '<span class="pill o">未確認</span>'}), cell({title:"既定のドメイン", sub:"新しい枠を作るときの初期値", val:`<input type="checkbox" class="switch" data-domain-def="${d.id}" ${d.def ? "checked disabled" : ""} aria-label="既定にする">`})])}
+      ${group(D.bindings.filter(x => x.domain === d.id).map(x => cell({icon:"pin", color:"var(--indigo)", title:`<span class="mono">${esc(x.host === "@" ? d.name : `${x.host}.${d.name}`)}</span>`, sub:x.follow ? `使用中の edge に追従（いまは ${esc(D.ips.find(i => i.edge === D.edge).addr)}）` : `→ ${esc(D.ips.find(i => i.id === x.ip)?.addr || "—")}`})).concat([`<button class="cell action" data-act="bind-add" data-arg="${d.id}">紐付けを追加</button>`]), "IP の紐付け（A レコード）")}
+      ${group(D.rules.filter(r => r.domain === d.id).map(r => cell({icon:"grid", color:"var(--blue)", title:esc(r.name), sub:`<span class="mono">${esc(r.tpl)}</span>・${r.ps}–${r.pe}`, act:"go-rule", arg:String(r.id)})).concat([`<button class="cell action" data-act="rule-new" data-arg="${d.id}">このドメインで枠を追加</button>`]), "アドレス枠")}`;
+  }
+  if (page === "ips"){
+    right = `<button class="circle tint" data-act="ip-add" aria-label="IP を追加">${ic("plus")}</button>`;
+    b = `${group(D.ips.map(i => cell({icon:"pin", color:"var(--indigo)", title:esc(i.label), sub:`<span class="mono">${esc(i.addr)}</span>`, val:i.edge === D.edge ? '<span class="pill g">使用中の edge</span>' : ""})), "IP アドレス")}
+      ${group(D.bindings.map(x => { const d = domainOf(x.domain); return cell({title:`<span class="mono">${esc(x.host === "@" ? d.name : `${x.host}.${d.name}`)}</span>`, sub:x.follow ? "使用中の edge に追従" : `→ ${esc(D.ips.find(i => i.id === x.ip)?.addr || "—")}`, val:`<button class="btn sm red" data-act="bind-rm" data-arg="${x.id}" aria-label="紐付けを削除">${ic("trash")}</button>`}); }).concat([`<button class="cell action" data-act="bind-add" data-arg="">紐付けを追加</button>`]), "ホスト名 → IP", "アドレス枠は既定で edge.&lt;ドメイン&gt; への CNAME を作ります。edge を切り替えると、追従する紐付けがまとめて書き換わります。")}`;
+  }
+  if (page === "rules"){
+    right = `<button class="circle tint" data-act="rule-new" data-arg="" aria-label="枠を追加">${ic("plus")}</button>`;
+    b = D.domains.map(d => { const rs = D.rules.filter(r => r.domain === d.id); return rs.length ? group(rs.map(r => { const sl = slotsOf(r); return cell({icon:"grid", color:isFixed(r) ? "var(--blue)" : "var(--gray)", title:esc(r.name), sub:`<span class="mono">${esc(r.tpl)}</span>・${r.ps}–${r.pe}・${r.assign === "shared" ? "全員" : esc(r.user) + " 専用"}`, val:`空き ${sl.filter(x => x.status === "free").length}/${sl.filter(x => x.status !== "excluded").length}`, act:"go-rule", arg:String(r.id)}); }), esc(d.name)) : ""; }).join("") + `<div class="gf" style="margin-top:12px">固定のホスト名（例 mc{nn}trt）は DNS を先に作っておけます。{server} はサーバー名がホスト名になります。</div>`;
+  }
+  if (page === "rule"){
+    const r = D.rules.find(x => x.id === Number(arg));
+    if (!r) return `${navbar("", {back:backLabel()})}<div class="page"><p>見つかりません。</p></div>`;
+    const d = domainOf(r.domain), sl = slotsOf(r), pub = !!D.dnsPublished[r.id], cnt = sl.filter(x => x.status !== "excluded").length;
+    wide = true;
+    right = `<button class="back" data-act="rule-edit" data-arg="${r.id}" style="margin:0">編集</button>`;
+    b = `<p class="subtitle"><span class="mono">${esc(r.tpl)}.${esc(d.name)}</span>・${r.ps}–${r.pe}・${r.assign === "shared" ? "全員で共有" : esc(r.user) + " 専用"}</p>
+      ${isFixed(r) && r.pre ? banner(pub ? "ok" : "w", pub ? "DNS は作成済み" : "DNS はまだ作成していません", pub ? `割り当てた瞬間から接続できます（CNAME${r.srv ? "・SRV" : ""} ${cnt}件）。` : "作成しておくと、割り当てた瞬間から接続できます。", pub ? "" : `<button class="btn sm fill" data-act="publish" data-arg="${r.id}">DNS を作成</button>`) : ""}
+      <div class="slotgrid">${sl.map(x => `<button class="slot ${x.status === "assigned" ? "used" : x.status === "held" ? "held" : x.status === "excluded" || x.status === "disabled" ? "off" : ""}" data-act="menu-slot" data-arg="${x.port}" ${x.status === "excluded" ? "disabled" : ""}><span class="p">${x.port}</span><span class="h">${esc(x.host || "（名前で決定）")}</span><span style="font-size:12px;color:var(--label2)">${({free:"空き", assigned:`使用中：${esc(x.server?.id)}`, held:`ゴミ箱：${esc(x.trash?.id)}`, excluded:"対象外", disabled:"停止中"})[x.status]}</span></button>`).join("")}</div>
+      <div class="gf" style="margin-top:12px">スロットをタップすると、コピー・停止・割り当て先への移動ができます。</div>`;
+  }
+  if (page === "users"){
+    right = `<button class="circle tint" data-act="invite" aria-label="招待">${ic("plus")}</button>`;
+    b = group(D.users.map((u, i) => cell({icon:"user", color:COLORS[u.n] || "var(--gray)", title:`${esc(u.n)}${u.role === "admin" ? '<span class="pill b">管理者</span>' : ""}${u.state !== "有効" ? `<span class="pill r">${esc(u.state)}</span>` : ""}${u.deleting ? `<span class="pill o">退会予定 ${esc(u.deleting)}</span>` : ""}`, sub:`${esc(u.roleLabel)}・サーバー ${D.servers.filter(s => s.owner === u.n).length}台`, val:u.ptero.sync ? "" : '<span class="pill o">要同期</span>', act:"user", arg:String(i)})), "", "パネルとゲームパネルのアカウントは1対1で紐付いています。");
+  }
+  if (page === "roles") b = group([cell({title:"@サーバー利用者", sub:"利用者・Light 1台・専用枠1"}), cell({title:"@サポーター", sub:"利用者・Standard 5台・専用枠1"}), cell({title:"@運営", sub:"管理者（二段階認証必須）"})], "", "ロールを付けるだけで利用開始、外すと通知して7日後に所有サーバーを停止します。専用枠は、ロール付与時に空いているポート範囲から自動で作ります。");
+  if (page === "announce"){
+    right = `<button class="circle tint" data-act="announce-new" aria-label="新しいお知らせ">${ic("plus")}</button>`;
+    b = group(D.announcements.length ? D.announcements.map(a => cell({icon:a.sev === "warning" ? "warn" : "bell", color:a.sev === "warning" ? "var(--orange)" : "var(--blue)", title:esc(a.title), sub:`${esc(a.at)}・${a.aud === "all" ? "全員" : esc(a.aud) + " の利用者"}`, val:`<button class="btn sm red" data-act="an-del" data-arg="${a.id}" aria-label="取り下げ">${ic("trash")}</button>`})) : [cell({title:"お知らせはありません"})]);
+  }
+  if (page === "violations"){
+    right = `<button class="circle tint" data-act="violation" data-arg="" aria-label="記録する">${ic("plus")}</button>`;
+    b = group(D.violations.map(v => cell({icon:"gavel", color:v.resolved ? "var(--gray)" : "var(--red)", title:`${esc(v.user)}/${esc(v.server)}：${esc(v.action)}`, sub:`${esc(v.reason)}・${esc(v.at)}`, val:v.resolved ? '<span class="pill">解決済み</span>' : `<button class="btn sm" data-act="unsuspend" data-arg="${esc(v.server)}">解除</button>`})), "", "停止する場合は理由が所有者に通知され、操作ログに残ります。");
+  }
+  if (page === "audit"){
+    const f = S.afilter;
+    const rows = D.audit.filter(r => f === "all" || (f === "system" ? r[1] === "system" : f === "admin" ? r[1] === "admin" : r[1] !== "system" && r[1] !== "admin"));
+    b = `<div class="seg" role="group" aria-label="絞り込み">${[["all","すべて"],["admin","管理者"],["user","利用者"],["system","システム"]].map(([k, l]) => `<button data-act="afilter" data-arg="${k}" aria-pressed="${f === k}">${l}</button>`).join("")}</div>
+      ${group(rows.map(r => cell({title:esc(r[3]), sub:`${esc(r[0])}・${esc(r[1])}・${esc(r[2])}・${esc(r[4])}`, subWrap:true, val:`<span class="pill ${r[5] === "成功" ? "g" : "o"}">${esc(r[5])}</span>`})), "", "追記専用で1年間保存します。")}`;
+  }
+  if (page === "keys") b = group([["ゲームパネル Application","ユーザー・サーバー・ノード"],["ゲームパネル Client","サブユーザー・バックアップ・スケジュール"],["Cloudflare","登録ドメインの DNS 編集のみ"],["Uptime Kuma","連携専用アカウント"],["Object Storage","バックアップ用バケットのみ"],["edge エージェント","設定の取得と報告のみ"]].map(k => cell({icon:"key", color:"var(--gray)", title:k[0], sub:k[1], act:"rotate", arg:k[0]})), "", "キーはサーバーだけが持ち、ブラウザや Bot には渡しません。変更はコンテナ内の pterodeploy-setup で行います。");
+  return `${navbar(T, {back:backLabel(), right})}<div class="page ${wide ? "wide" : ""}"><h1 class="large">${esc(T)}</h1>${b}</div>`;
+}
+
+/* ---------------- 自己監視（デモ） ---------------- */
+function sysChecks(){
+  return [
+    {label:"API・Web", level:"ok", msg:"動いています・v0.2.0"},
+    {label:"データベース", level:"ok", msg:"接続できます"},
+    {label:"ジョブ実行（worker）", level:"ok", msg:"12秒前に報告"},
+    {label:"定期処理（scheduler）", level:"ok", msg:"8秒前に報告"},
+    {label:"Discord Bot", level:D.botDown ? "degraded" : "ok", msg:D.botDown ? "134秒間報告がありません（自動で再起動を試みています）" : "5秒前に報告"},
+    {label:"待ちジョブ", level:"ok", msg:"待ちジョブはありません"},
+    {label:"取り消せなかったジョブ", level:"ok", msg:"24時間以内はありません"},
+    {label:"edge-1（東京）", level:"ok", msg:"20秒前に報告・設定は最新"},
+    {label:"edge-2（大阪）", level:"ok", msg:"25秒前に報告・設定は最新"},
+    {label:"ディスク", level:"ok", msg:"空き 71%（14GB）"},
+  ];
+}
+function sysLevel(){ const l = sysChecks().map(c => c.level); return l.includes("error") ? "error" : l.includes("degraded") ? "degraded" : "ok"; }
+
+/* ---------------- 設定 ---------------- */
+function pSettings(){
+  const u = me();
+  return `${navbar("設定")}<div class="page"><h1 class="large">設定</h1>
+    ${u.deleting ? banner("w", "退会の手続き中です", `${esc(u.deleting)} にすべてのデータを削除します。サーバーは停止しています。`) : ""}
+    ${group([cell({icon:"user", color:COLORS[u.n] || "var(--gray)", title:`<b style="font-weight:600">${esc(u.n)}</b>`, sub:`Discord ${esc(u.discord)}・${esc(u.roleLabel)}`})])}
+    ${group([cell({icon:"open", color:"var(--blue)", title:"ゲームパネル", sub:"同じユーザー名とパスワードでログイン", val:u.ptero.sync ? "同期済み" : '<span class="pill o">要同期</span>'}), cell({icon:"key", color:"var(--gray)", title:"パスワードを変更", act:"pw"}), cell({icon:"shield", color:"var(--green)", title:"二段階認証", val:u.role === "admin" ? "必須・有効" : "任意"})], "ログイン", "パスワードはパネルとゲームパネルに同時に反映されます。")}
+    ${group([cell({title:"ダウンと復旧", val:'<input type="checkbox" class="switch" checked aria-label="ダウン通知">'}), cell({title:"期限のお知らせ", sub:"7日前・3日前・前日", val:'<input type="checkbox" class="switch" checked aria-label="期限通知">'}), cell({title:"ディスクの警告", sub:"90% を超えたとき", val:'<input type="checkbox" class="switch" checked aria-label="ディスク警告">'})], "Discord の DM で通知")}
+    ${group([`<div class="field"><label for="th">テーマ</label><select id="th" data-set="theme"><option value="" ${S.theme === "" ? "selected" : ""}>自動</option><option value="light" ${S.theme === "light" ? "selected" : ""}>ライト</option><option value="dark" ${S.theme === "dark" ? "selected" : ""}>ダーク</option></select></div>`,
+      cell({icon:"sparkle", color:"var(--indigo)", title:"背景", val:esc(bgName(S.bg)), act:"bg-open"}),
+      `<div class="cell" style="display:block"><div style="display:flex;justify-content:space-between"><label for="gl">ガラスの透明度</label><span class="val" id="gl-v">${S.glass >= .9 ? "不透明" : S.glass <= .55 ? "透明" : "標準"}</span></div><input type="range" id="gl" min="0.5" max="0.97" step="0.01" value="${S.glass}" data-set="glass"></div>`], "表示", "文字が読みにくい場合は右（不透明）へ。端末の「透明度を下げる」設定にも従います。")}
+    ${group([cell({icon:"doc", color:"var(--gray)", title:"利用規約", val:"2026-10-01 版", act:"tos-view"}), cell({icon:"list", color:"var(--gray)", title:"あなたの操作履歴", act:"go", arg:"history"})])}
+    <div style="height:22px"></div>
+    ${u.deleting ? group([`<button class="cell action center" data-act="withdraw-cancel">退会を取り消す</button>`], "", `${esc(u.deleting)} に削除します。それまでは取り消せます。`)
+      : group([`<button class="cell danger" data-act="withdraw">退会する</button>`], "", "申請から7日後に、サーバー・バックアップ・ゲームパネルのアカウントを含めてすべて削除します。")}
+  </div>`;
+}
+function pHistory(){
+  const mine = D.audit.filter(r => r[1] === S.user);
+  return `${navbar("操作履歴", {back:backLabel()})}<div class="page"><h1 class="large">操作履歴</h1>${group(mine.length ? mine.map(r => cell({title:esc(r[3]), sub:`${esc(r[0])}・${esc(r[4])}・${esc(r[2])}`})) : [cell({title:"まだありません"})])}</div>`;
+}
+
+/* ---------------- シート・メニュー・検索 ---------------- */
+function sheet(html, cls = ""){
+  S.sheet = true;
+  $("#scrim").innerHTML = `<div class="sheet ${cls}" role="dialog" aria-modal="true" aria-labelledby="sh-title"><div class="grab"></div>${html}</div>`;
+  $("#scrim").hidden = false;
+  setTimeout(() => { if (matchMedia("(pointer:coarse)").matches) return; const f = $("#scrim").querySelector("[autofocus]") || $("#scrim").querySelector(".sheet-b input:not([type=checkbox]):not([type=range]), .sheet-b textarea"); if (f) f.focus(); else { const h = $("#scrim").querySelector(".sheet-h button"); if (h) h.focus(); } }, 30);
+}
+function closeSheet(){ S.sheet = null; S.wiz = null; S.rule = null; $("#scrim").hidden = true; $("#scrim").innerHTML = ""; if (S.pending){ S.pending = false; render(); } }
+const sheetHead = (title, {left = "キャンセル", leftAct = "close", right = "", rightAct = "", rightDisabled = false, rightId = ""} = {}) =>
+  `<div class="sheet-h"><div class="l"><button data-act="${leftAct}">${left}</button></div><h2 id="sh-title">${esc(title)}</h2><div class="r">${right ? `<button class="done" data-act="${rightAct}" ${rightDisabled ? "disabled" : ""} ${rightId ? `id="${rightId}"` : ""}>${right}</button>` : ""}</div></div>`;
+function confirmSheet({title, body, ok, danger = false, requireText = "", onOk}){
+  S.onConfirm = onOk; S.requireText = requireText;
+  sheet(`${sheetHead(title)}<div class="sheet-b"><div style="font-size:16px;line-height:1.5;margin:4px 4px 16px">${body}</div>
+    ${requireText ? group([`<div class="field col"><label for="cf-t">確認のため「${esc(requireText)}」と入力</label><input id="cf-t" autocomplete="off" autocapitalize="off"></div>`]) + "<div style='height:14px'></div>" : ""}
+    <button class="btn block ${danger ? "red" : "fill"}" data-act="confirm-ok" ${requireText ? "disabled" : ""}>${esc(ok)}</button></div>`, "small");
+}
+function menu(items, anchor){
+  const m = $("#menu");
+  m.innerHTML = items.map(x => x === "-" ? "<hr>" : `<button role="menuitem" class="${x.red ? "red" : ""}" data-act="${x.act}" data-arg="${esc(x.arg ?? "")}" ${x.disabled ? "disabled style='opacity:.4'" : ""}>${esc(x.label)}${ic(x.icon)}</button>`).join("");
+  m.hidden = false;
+  const r = anchor && anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : {right:innerWidth - 20, bottom:80, top:60};
+  const w = m.offsetWidth, h = m.offsetHeight;
+  const left = Math.min(innerWidth - w - 12, Math.max(12, r.right - w));
+  let t = r.bottom + 6; if (t + h > innerHeight - 12) t = Math.max(12, r.top - h - 6);
+  m.style.left = left + "px"; m.style.top = t + "px";
+  const f = m.querySelector("button:not([disabled])"); if (f) f.focus();
+}
+const closeMenu = () => { $("#menu").hidden = true; };
+function searchIndex(){
+  const out = [];
+  visible().forEach(s => out.push({g:"サーバー", t:s.id, s:`${addrOf(s)}・${s.port}`, act:"open-server", arg:s.id, k:`${s.id} ${addrOf(s)} ${s.port} ${s.owner} ${game(s.game).name}`}));
+  if (isAdmin()){
+    D.rules.forEach(r => slotsOf(r).filter(x => x.host && x.status !== "excluded").forEach(x => out.push({g:"アドレス", t:fqdnOf(r, x), s:`${x.port}・${({free:"空き",assigned:"使用中",held:"ゴミ箱",disabled:"停止中"})[x.status]}`, act:"go-rule", arg:String(r.id), k:`${fqdnOf(r, x)} ${x.port}`})));
+    [["システムの状態","system"],["整合性チェック","health"],["ノードと edge","nodes"],["ドメイン","domains"],["IP と紐付け","ips"],["アドレス枠","rules"],["ユーザー","users"],["Discord ロール連携","roles"],["お知らせ","announce"],["違反対応","violations"],["操作ログ","audit"],["API キー","keys"],["期限が近いサーバー","expiring"]].forEach(([t, p]) => out.push({g:"管理", t, s:"", act:"admin-go", arg:p, k:t}));
+    D.users.forEach((u, i) => out.push({g:"ユーザー", t:u.n, s:u.roleLabel, act:"admin-user", arg:String(i), k:`${u.n} ${u.discord}`}));
+  }
+  [["新しいサーバー","wizard"],["ゴミ箱","trash-go"],["パスワードを変更","pw"],["表示（テーマ・透明度）","settings-go"],["操作履歴","history-go"]].forEach(([t, a]) => out.push({g:"操作", t, s:"", act:a, arg:"", k:t}));
+  return out;
+}
+function openSearch(){
+  closeMenu();
+  sheet(`${sheetHead("検索", {left:"閉じる"})}<div class="sheet-b"><div class="searchbox" style="margin-bottom:10px">${ic("search")}<input id="q" placeholder="名前・アドレス・ポート・画面" autocomplete="off" autocapitalize="off" autofocus aria-label="検索"></div><div id="qr"></div></div>`);
+  renderSearch("");
+  setTimeout(() => { const q = $("#q"); if (q) q.focus(); }, 40);
+}
+function renderSearch(q){
+  const v = q.trim().toLowerCase();
+  const items = searchIndex().filter(x => !v || x.k.toLowerCase().includes(v));
+  const groups = [...new Set(items.map(x => x.g))];
+  $("#qr").innerHTML = items.length ? groups.map(g => group(items.filter(x => x.g === g).slice(0, v ? 12 : 5).map(x => cell({title:esc(x.t), sub:x.s ? esc(x.s) : "", act:x.act, arg:x.arg})), g)).join("") : `<p style="text-align:center;color:var(--label2);margin-top:30px">「${esc(q)}」は見つかりませんでした</p>`;
+}
+
+/* ---------------- 新規作成 ---------------- */
+function openWizard(){
+  closeMenu();
+  const owner = isAdmin() ? "tanaka" : S.user;
+  S.wiz = {step:0, game:"storiamc", name:"", plan:"standard", owner, port:freeSlots(owner)[0]?.port ?? null};
+  renderWizard();
+}
+function wizAddr(w){ const r = w.port && ruleOfPort(w.port); return r ? `${isFixed(r) ? hostFor(r, w.port) : (w.name || "（サーバー名）")}.${domainOf(r.domain).name}` : "—"; }
+function renderWizard(){
+  const w = S.wiz; if (!w) return;
+  const u = D.users.find(x => x.n === w.owner), count = D.servers.filter(s => s.owner === w.owner && !s.dev).length;
+  const atLimit = (!isAdmin() && u.max && count >= u.max) || !!u.deleting, fs = freeSlots(w.owner);
+  if (!fs.some(x => x.port === w.port)) w.port = fs[0]?.port ?? null;
+  const g = game(w.game), p = PLANS[w.plan];
+  let head = "", body = "";
+  if (w.step === 0){
+    head = sheetHead("新しいサーバー", {right:"次へ", rightAct:"wz-next", rightDisabled:!!atLimit || !fs.length});
+    body = `<div class="pick" role="group" aria-label="ゲーム">${GAMES.map(x => `<button class="pk" data-act="wz-game" data-arg="${x.id}" aria-pressed="${w.game === x.id}"><b>${x.name}</b><small>${x.desc}</small></button>`).join("")}</div>
+      ${atLimit ? `<div style="height:12px"></div>${u.deleting ? banner("w", "退会の手続き中は作成できません", "設定から退会を取り消すと作成できます。") : banner("w", "作成できる台数の上限です", `${count} / ${u.max} 台を使っています。`)}` : ""}
+      ${!fs.length ? `<div style="height:12px"></div>${banner("w", "空いているアドレスがありません", "ゴミ箱のサーバーを完全に削除するか、管理者に枠の追加を依頼してください。")}` : ""}
+      <div style="height:16px"></div><button class="btn fill block" data-act="wz-next" ${atLimit || !fs.length ? "disabled" : ""}>次へ</button>`;
+  }
+  if (w.step === 1){
+    const prob = w.name ? nameProblem(w.name) : "";
+    const byRule = [...new Set(fs.map(x => x.rule))];
+    const opts = byRule.map(r => `<optgroup label="${esc(r.name)}">${fs.filter(x => x.rule === r).map(x => `<option value="${x.port}" ${w.port === x.port ? "selected" : ""}>${esc(x.host || w.name || "名前")}.${esc(domainOf(r.domain).name)}（${x.port}）</option>`).join("")}</optgroup>`).join("");
+    head = sheetHead(`${g.name} の設定`, {left:"戻る", leftAct:"wz-back", right:"次へ", rightAct:"wz-next", rightDisabled:!w.name || !!prob, rightId:"wz-next"});
+    body = `${isAdmin() ? group([`<div class="field"><label for="wz-owner">所有者</label><select id="wz-owner" data-wz="owner">${["tanaka","suzuki","sato"].map(n => `<option ${w.owner === n ? "selected" : ""}>${n}</option>`).join("")}</select></div>`]) + "<div style='height:14px'></div>" : ""}
+      ${group([`<div class="field"><label for="wz-name">名前</label><input id="wz-name" data-wz="name" value="${esc(w.name)}" placeholder="例：storia" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="next" aria-describedby="wz-h"></div>`], "", `<span id="wz-h" class="${prob ? "err-t" : ""}">${prob ? esc(prob) : "ゲームパネルでの表示名にもなります。"}</span>`)}
+      <div class="gh">プラン</div><div class="pick">${Object.entries(PLANS).map(([k, x]) => `<button class="pk" data-act="wz-plan" data-arg="${k}" aria-pressed="${w.plan === k}"><b>${x.name}</b><small>${x.ram}・${x.cpu}・${x.disk}<br>バックアップ ${x.bk}個・30日</small></button>`).join("")}</div>
+      ${group([`<div class="field"><label for="wz-port">アドレス</label><select id="wz-port" data-wz="port">${opts}</select></div>`], "接続アドレス", `<span id="wz-addr" class="mono">${esc(wizAddr(w))}</span>`)}`;
+  }
+  if (w.step === 2){
+    const r = ruleOfPort(w.port), pre = r && isFixed(r) && D.dnsPublished[r.id];
+    head = sheetHead("確認", {left:"戻る", leftAct:"wz-back", right:"作成", rightAct:"wz-run"});
+    body = `<div class="hero" style="text-align:center;margin-bottom:6px"><div style="font-size:13px;color:var(--label2)">接続アドレス</div><div class="mono" style="font-size:20px;font-weight:600;margin-top:4px;word-break:break-all">${esc(wizAddr(w))}</div><div style="font-size:14px;color:var(--label2);margin-top:4px">${g.name}・${p.name}・ポート ${w.port}</div></div>
+      ${group([
+        cell({icon:"server", color:"var(--blue)", title:"ゲームパネルにサーバーを作成", sub:`${esc(w.owner)} のアカウント・空きメモリ最大のノード`, subWrap:true}),
+        cell({icon:"net", color:"var(--indigo)", title:`edge にポート ${w.port} を公開`, sub:"接続制限付き・両方の edge に配布"}),
+        cell({icon:"globe", color:"var(--teal)", title:pre ? "DNS は作成済み（確認のみ）" : "DNS を作成", sub:`CNAME${g.kind === "tcp" || (r && !r.srv) ? "" : "・SRV"}（プロキシなし）`}),
+        cell({icon:"pulse", color:"var(--green)", title:"監視を追加", sub:g.kind === "tcp" ? "パネル上の状態（UDP のため）" : "GameDig"}),
+        cell({icon:"cloud", color:"var(--blue)", title:"バックアップを予約", sub:`毎日 4:00・${p.bk}個まで`}),
+        cell({icon:"clock", color:"var(--orange)", title:"利用期限", sub:"30日後。7日前・3日前・前日に通知"}),
+      ], "実行する内容", "まだ何も作成していません。途中で失敗したら、作成したものはすべて自動で取り消します。")}
+      <div style="height:16px"></div><button class="btn fill block" data-act="wz-run">作成</button>`;
+  }
+  sheet(head + `<div class="sheet-b">${body}</div>`);
+  if (w.step === 1){ const inp = $("#wz-name"); if (inp && !matchMedia("(pointer:coarse)").matches){ inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } }
+}
+
+/* ---------------- アドレス枠の編集 ---------------- */
+function openRule(id, domainId){
+  const r = id ? D.rules.find(x => x.id === Number(id)) : null;
+  S.rule = r ? {...r, excl:[...r.excl], exclText:r.excl.join(", ")}
+    : {id:null, name:"", domain:Number(domainId) || D.domains.find(d => d.def).id, ps:25560, pe:25569, tpl:"mc{nn}trt", start:0, excl:[], exclText:"", mode:"cname_edge", ip:null, srv:true, pre:true, assign:"shared", user:null};
+  if (!r){ // 既存の枠と重ならない初期値にする
+    while (D.rules.some(x => !(S.rule.pe < x.ps || S.rule.ps > x.pe))){ S.rule.ps += 10; S.rule.pe += 10; }
+    S.rule.start = S.rule.ps % 100;
+  }
+  renderRule();
+}
+function ruleProblems(r){
+  const p = [];
+  if (!r.name.trim()) p.push("名前を入力してください");
+  if (!(Number.isInteger(r.ps) && Number.isInteger(r.pe) && r.ps >= 1024 && r.ps <= 65535 && r.pe >= 1024 && r.pe <= 65535)) p.push("ポートは 1024〜65535 の整数にしてください");
+  else if (r.pe < r.ps) p.push("終了ポートは開始ポート以上にしてください");
+  else if (r.pe - r.ps >= 200) p.push("1つの枠は200ポートまでです");
+  else { const o = D.rules.find(x => x.id !== r.id && !(r.pe < x.ps || r.ps > x.pe)); if (o) p.push(`ポートが「${o.name}」（${o.ps}–${o.pe}）と重なっています`); }
+  if (!Number.isInteger(r.start) || r.start < 0) p.push("開始番号は0以上の整数にしてください");
+  const tokens = r.tpl.match(/\{[^}]*\}/g) || [];
+  const bad = tokens.filter(t => !["{n}","{nn}","{nnn}","{port}","{server}"].includes(t));
+  if (!r.tpl) p.push("ホスト名を入力してください");
+  if (bad.length) p.push(`使えない記号：${bad.join(" ")}`);
+  if (r.tpl.includes("{server}") && r.tpl !== "{server}") p.push("{server} は単独で使ってください");
+  if (r.tpl && !r.tpl.includes("{server}") && !/\{(n|nn|nnn|port)\}/.test(r.tpl)) p.push("番号（{nn} など）か {port} を含めてください");
+  if (r.mode === "a_ip" && !r.ip) p.push("IP アドレスを選んでください");
+  if (r.assign === "user" && !r.user) p.push("専用にするユーザーを選んでください");
+  if (!p.filter(x => x !== "名前を入力してください").length && isFixed(r)){
+    const d = domainOf(r.domain), seen = new Set();
+    for (let port = r.ps; port <= r.pe; port++){
+      if (r.excl.includes(port)) continue;
+      const h = hostFor(r, port);
+      if (!LABEL.test(h)){ p.push(`「${h}」はホスト名に使えません（英小文字・数字・ハイフン、63文字まで）`); break; }
+      if (RESERVED.includes(h)){ p.push(`「${h}」はシステムで使う名前です`); break; }
+      if (seen.has(h)){ p.push(`「${h}」が重複しています`); break; } seen.add(h);
+      const clash = D.rules.find(x => x.id !== r.id && x.domain === r.domain && isFixed(x) && slotsOf(x).some(s => s.host === h && s.status !== "excluded"));
+      if (clash){ p.push(`${h}.${d.name} は「${clash.name}」で使われています`); break; }
+      if (D.bindings.some(b => b.domain === r.domain && b.host === h)){ p.push(`${h}.${d.name} は IP の紐付けで使われています`); break; }
+    }
+  }
+  if (r.id){
+    const inUse = slotsOf(D.rules.find(x => x.id === r.id)).filter(x => x.status === "assigned" || x.status === "held");
+    const lost = inUse.filter(x => x.port < r.ps || x.port > r.pe || r.excl.includes(x.port));
+    if (lost.length) p.push(`使用中のポート（${lost.map(x => x.port).join(", ")}）を範囲外・対象外にはできません`);
+    const o = D.rules.find(x => x.id === r.id);
+    if (inUse.length && (o.tpl !== r.tpl || o.domain !== r.domain || o.start !== r.start)) p.push("使用中のスロットがある間は、ホスト名の決め方とドメインを変更できません");
+  }
+  return p;
+}
+function renderRule(){
+  const r = S.rule, d = domainOf(r.domain), probs = ruleProblems(r), fixed = isFixed(r);
+  const rows = [];
+  if (Number.isInteger(r.ps) && Number.isInteger(r.pe) && r.pe >= r.ps && r.pe - r.ps < 200)
+    for (let port = r.ps; port <= r.pe && rows.length < 40; port++){
+      const x = r.excl.includes(port);
+      rows.push(`<tr class="${x ? "x" : ""}"><td>${port}</td><td class="mono">${esc(fixed ? hostFor(r, port) : "（サーバー名）")}.${esc(d.name)}${port === 25565 && !x ? ' <span class="pill b">既定ポート</span>' : ""}</td></tr>`);
+    }
+  const cnt = Number.isInteger(r.ps) && Number.isInteger(r.pe) && r.pe >= r.ps ? r.pe - r.ps + 1 - r.excl.filter(x => x >= r.ps && x <= r.pe).length : 0;
+  sheet(`${sheetHead(r.id ? "アドレス枠を編集" : "アドレス枠を追加", {right:"保存", rightAct:"rule-save", rightDisabled:probs.length > 0, rightId:"rule-save"})}<div class="sheet-b">
+    ${group([`<div class="field"><label for="r-name">名前</label><input id="r-name" data-rule="name" value="${esc(r.name)}" placeholder="例：Minecraft 共有枠"></div>`, `<div class="field"><label for="r-dom">ドメイン</label><select id="r-dom" data-rule="domain">${D.domains.map(x => `<option value="${x.id}" ${x.id === r.domain ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></div>`])}
+    ${group([`<div class="field"><label for="r-ps">開始ポート</label><input id="r-ps" data-rule="ps" type="number" inputmode="numeric" value="${Number.isInteger(r.ps) ? r.ps : ""}"></div>`, `<div class="field"><label for="r-pe">終了ポート</label><input id="r-pe" data-rule="pe" type="number" inputmode="numeric" value="${Number.isInteger(r.pe) ? r.pe : ""}"></div>`, `<div class="field"><label for="r-ex">対象外</label><input id="r-ex" data-rule="excl" value="${esc(r.exclText)}" placeholder="例：25560" inputmode="numeric"></div>`], "ポート", "対象外のポートは使いません。番号はポートに固定なので、25560 を対象外にしても 25561 は mc01 のままです。")}
+    ${group([`<div class="field"><label for="r-tpl">ホスト名</label><input id="r-tpl" data-rule="tpl" value="${esc(r.tpl)}" class="mono" autocomplete="off" autocapitalize="off" spellcheck="false"><span class="unit">.${esc(d.name)}</span></div>`, `<div class="field"><label for="r-st">開始番号</label><input id="r-st" data-rule="start" type="number" inputmode="numeric" value="${Number.isInteger(r.start) ? r.start : ""}" ${fixed ? "" : "disabled"}></div>`, `<div class="cell" style="flex-wrap:wrap;gap:6px">${["{nn}","{n}","{nnn}","{port}","{server}"].map(t => `<button class="btn sm" data-act="tpl-token" data-arg="${t}">${t}</button>`).join("")}</div>`], "ホスト名の決め方", "{nn} は2桁の番号（開始ポートが「開始番号」）、{port} はポート番号、{server} はサーバー名になります。")}
+    <div class="gh">プレビュー（${cnt}件）</div><div class="group"><table class="pv">${rows.join("")}</table></div>
+    ${probs.length ? `<div class="gf err-t" role="alert">${probs.map(esc).join("<br>")}</div>` : ""}
+    ${group([`<div class="field"><label for="r-mode">DNS</label><select id="r-mode" data-rule="mode"><option value="cname_edge" ${r.mode === "cname_edge" ? "selected" : ""}>edge への CNAME（推奨）</option><option value="a_ip" ${r.mode === "a_ip" ? "selected" : ""}>IP を直接指定</option></select></div>`,
+      r.mode === "a_ip" ? `<div class="field"><label for="r-ip">IP</label><select id="r-ip" data-rule="ip"><option value="">選択</option>${D.ips.map(i => `<option value="${i.id}" ${r.ip === i.id ? "selected" : ""}>${esc(i.label)}</option>`).join("")}</select></div>` : "",
+      cell({title:"SRV レコード", sub:"ポートの入力なしで接続", val:`<input type="checkbox" class="switch" data-rule="srv" ${r.srv ? "checked" : ""} aria-label="SRV レコード">`}),
+      cell({title:"DNS を先に作成", sub:fixed ? "割り当てた瞬間から接続できます" : "{server} の枠では使えません", val:`<input type="checkbox" class="switch" data-rule="pre" ${r.pre && fixed ? "checked" : ""} ${fixed ? "" : "disabled"} aria-label="DNS を先に作成">`})].filter(Boolean), "DNS", r.mode === "a_ip" ? "IP 直指定の場合、edge を切り替えるとこの枠のレコードもすべて書き換えます。" : `edge.${esc(d.name)} を向くので、edge を切り替えてもこの枠のレコードは変わりません。`)}
+    ${group([`<div class="field"><label for="r-as">使える人</label><select id="r-as" data-rule="assign"><option value="shared" ${r.assign === "shared" ? "selected" : ""}>全員で共有</option><option value="user" ${r.assign === "user" ? "selected" : ""}>特定のユーザー</option></select></div>`,
+      r.assign === "user" ? `<div class="field"><label for="r-u">ユーザー</label><select id="r-u" data-rule="user"><option value="">選択</option>${D.users.filter(u => u.role === "user").map(u => `<option ${r.user === u.n ? "selected" : ""}>${esc(u.n)}</option>`).join("")}</select></div>` : ""].filter(Boolean), "割り当て")}
+    ${r.id ? `<div style="height:22px"></div>${group([`<button class="cell danger" data-act="rule-del" data-arg="${r.id}">この枠を削除</button>`], "", "使用中・ゴミ箱のスロットがある間は削除できません。")}` : ""}
+  </div>`);
+}
+function refreshRuleSheet(focusId, caret){
+  const b0 = $("#scrim .sheet-b"), pos = b0 ? b0.scrollTop : 0;
+  renderRule();
+  const b = $("#scrim .sheet-b"); if (b) b.scrollTop = pos;
+  if (focusId){ const f = document.getElementById(focusId); if (f){ f.focus(); try { if (caret != null) f.setSelectionRange(caret, caret); } catch (e) {} } }
+}
+
+/* ---------------- デプロイ ---------------- */
+function stepsHtml(j){
+  return j.steps.map((st, i) => {
+    let cls = "", icn = "ring", note = "";
+    if (j.status === "failed"){ if (i < j.failAt){ cls = "undone"; icn = "restore"; note = st.skip ? "" : "取り消し"; } else if (i === j.failAt){ cls = "fail"; icn = "xc"; note = "失敗"; } }
+    else if (st.skip){ cls = "undone"; note = st.skipNote || "対象外"; }
+    else if (i < j.done){ cls = "done"; icn = "ok"; note = st.d; }
+    else if (i === j.done && j.status === "run"){ cls = "run"; icn = "spin"; note = "実行中"; }
+    return `<li class="${cls}">${ic(icn)}<span>${esc(st.t)}</span><small>${note}</small></li>`;
+  }).join("");
+}
+function startDeploy({name, gameId, plan, owner, port, via}){
+  const g = game(gameId), r = ruleOfPort(port), pre = !!(r && isFixed(r) && D.dnsPublished[r.id]);
+  const fqdn = r ? `${isFixed(r) ? hostFor(r, port) : name}.${domainOf(r.domain).name}` : "";
+  const id = ++jobSeq;
+  const steps = [
+    {t:"依頼の検証", d:"0.4s"}, {t:`アドレスを確保（${port}）`, d:"0.1s"}, {t:"ゲームパネルのユーザーを確認", d:"0.3s"},
+    {t:"ノードを選んでサーバーを作成", d:"3.2s"}, {t:"edge に転送設定を配布", d:"0.8s"},
+    {t:"DNS：CNAME", d:"0.6s", skip:pre, skipNote:"作成済み"}, {t:"DNS：SRV", d:"0.5s", skip:pre || g.kind === "tcp" || !!(r && !r.srv), skipNote:pre ? "作成済み" : "対象外"},
+    {t:"起動と公開の確認", d:"6.1s"}, {t:"バックアップと期限を設定", d:"0.4s"}, {t:"監視を追加", d:"0.7s"},
+  ];
+  const j = {id, name, owner, fqdn, via, actor:via === "Discord" ? "tanaka" : S.user, steps, done:0, status:"run", failAt:$("#d-fail").checked ? 4 : -1};
+  S.jobs.unshift(j);
+  D.servers.push({id:name, owner, game:gameId, port, st:"installing", ping:null, up:100, plan, cpu:0, ram:0, disk:1, players:"0/20", days:30, backups:[], shares:[], domain:null, auto:true, pub:false, proxy:null, plugins:null, updated:true, dev:false, node:"node-tokyo-1", suspend:null, stopped:false, job:id});
+  if (via === "Discord") D.discord.push({type:"job", job:id, t:now().slice(5)});
+  render(); tick(j);
+}
+function tick(j){
+  const delays = [500, 350, 450, 1400, 700, 500, 450, 1500, 450, 600];
+  at(delays[j.done] || 500, () => {
+    if (!S.jobs.includes(j)) return;
+    if (j.failAt === j.done){
+      j.status = "failed"; D.servers = D.servers.filter(s => s.job !== j.id);
+      audit("サーバーを作成", `${j.owner}/${j.name}`, "失敗（取り消し済み）", j.actor, j.via);
+      return refreshAfterJob(j);
+    }
+    j.done++;
+    while (j.done < j.steps.length && j.steps[j.done].skip) j.done++;
+    if (j.done >= j.steps.length){
+      j.status = "done";
+      const s = D.servers.find(x => x.job === j.id);
+      if (s){ Object.assign(s, {st:"up", ping:38, fresh:3, cpu:12, ram:35, disk:6}); delete s.job; }
+      audit("サーバーを作成", `${j.owner}/${j.name}`, "成功", j.actor, j.via);
+      toast(`${j.name} を公開しました`);
+      return refreshAfterJob(j);
+    }
+    updateJobUI(j); tick(j);
+  });
+}
+function updateJobUI(j){
+  const pct = Math.round(j.done / j.steps.length * 100) + "%", step = j.steps[Math.min(j.done, j.steps.length - 1)].t;
+  document.querySelectorAll(`[data-job="${j.id}"] [data-jbar]`).forEach(b => b.style.width = pct);
+  document.querySelectorAll(`[data-job="${j.id}"] [data-jstep], [data-jstep-row="${j.id}"]`).forEach(t => t.textContent = step);
+  document.querySelectorAll(`[data-jsteps="${j.id}"]`).forEach(l => l.innerHTML = stepsHtml(j));
+  document.querySelectorAll(`[data-djob="${j.id}"]`).forEach(e => e.outerHTML = dcJob(j));
+}
+function refreshAfterJob(j){
+  const a = document.activeElement;
+  if (S.sheet || !$("#menu").hidden || (a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName))){ S.pending = true; updateJobUI(j); return; }
+  render();
+}
+
+/* ---------------- Discord ---------------- */
+function dcJob(j){
+  if (j.status === "done") return `<div class="dc-e ok" data-djob="${j.id}"><h5>✅ ${esc(j.name)} を公開しました</h5><div class="dc-f"><div class="w"><b>接続アドレス（ポートの入力は不要）</b><code>${esc(j.fqdn)}</code></div><div><b>ゲーム</b>StoriaMC</div><div><b>利用期限</b>30日後</div><div class="w"><b>管理画面</b>panel.nuids.jp と gp.nuids.jp に今のユーザー名・パスワードでログインできます</div></div><div class="dc-btns"><span class="bl">パネルで開く</span><span>監視</span><span class="g">再起動</span></div></div>`;
+  if (j.status === "failed") return `<div class="dc-e er" data-djob="${j.id}"><h5>⚠️ ${esc(j.name)} の作成に失敗しました</h5><p>作成したものはすべて取り消しました。管理者に通知済みです（ジョブ #${j.id}）。</p><div class="dc-btns"><span class="g">もう一度</span></div></div>`;
+  return `<div class="dc-e" data-djob="${j.id}"><h5>${esc(j.name)} を作成しています…</h5><p style="color:var(--dm)"><code>${esc(j.fqdn)}</code></p><ul class="dc-steps">${j.steps.map((st, i) => `<li class="${i <= j.done ? "on" : ""}"><span>${st.skip ? "–" : i < j.done ? "✓" : i === j.done ? "●" : "○"}</span>${esc(st.t)}<small>${st.skip ? (st.skipNote || "") : i < j.done ? st.d : i === j.done ? "実行中" : ""}</small></li>`).join("")}</ul></div>`;
+}
+function dcMsg(m){
+  if (m.type === "user") return `<div class="dc-msg"><div class="dc-av" style="background:${COLORS.tanaka}">T</div><div><div class="dc-name">tanaka<small>今日 ${m.t}</small></div><div class="dc-cmd">${m.html}</div></div></div>`;
+  const inner = m.type === "job" ? dcJob(S.jobs.find(j => j.id === m.job) || {id:0, name:"?", steps:[], status:"failed"}) : m.html;
+  return `<div class="dc-msg"><div class="dc-av" style="background:#5865F2">H</div><div style="min-width:0;flex:1"><div class="dc-name">HostBot<span class="dc-app">アプリ</span><small>今日 ${m.t}</small></div>${inner}</div></div>`;
+}
+function renderDiscord(){
+  $("#dc").innerHTML = `<div class="dc"><div class="dc-top"># サーバー管理</div><div class="dc-msgs">${dcMsg({type:"bot", t:"10:02", html:`<div>使えるコマンド：<code>/deploy</code> <code>/status</code> <code>/backup</code> <code>/share</code> <code>/maint</code><br>このチャンネルの操作は tanaka さんの権限で実行されます。</div>`})}${D.discord.map(dcMsg).join("")}</div>
+    <div class="dc-bar"><div class="dc-cmds"><button data-act="dc-deploy">/deploy</button><button data-act="dc-status">/status</button><button data-act="dc-backup">/backup</button><button class="ev" data-act="dc-down">イベント：ダウン→自動復旧</button><button class="ev" data-act="dc-expire">イベント：期限の通知</button></div><div class="dc-in">#サーバー管理 へメッセージを送信</div></div></div>`;
+  window.scrollTo(0, document.body.scrollHeight);
+}
+function dcPush(msg){ D.discord.push(Object.assign({t:now().slice(5)}, msg)); if (S.surface === "discord") renderDiscord(); }
+
+/* ---------------- 描画 ---------------- */
+function render(){
+  const root = document.documentElement;
+  root.dataset.theme = S.theme; root.style.setProperty("--ga", S.glass); applyBg();
+  if (S.tab === "admin" && !isAdmin()){ S.tab = "servers"; S.stack = []; }
+  const panel = S.surface === "panel";
+  $("#app").hidden = !panel; $("#tabbar").hidden = !panel; $("#tsearch").hidden = !panel; $("#dc").hidden = panel;
+  if (!panel){ renderDiscord(); return; }
+  renderChrome();
+  const t = topPage();
+  let html;
+  if (!t) html = ({servers:pServers, monitor:pMonitor, admin:pAdmin, settings:pSettings})[S.tab]();
+  else if (t.page === "server") html = pServer(t.arg);
+  else if (["plugins","network","backups","share","address","behavior"].includes(t.page)) html = pSub(t.page);
+  else if (t.page === "trash") html = pTrash();
+  else if (t.page === "history") html = pHistory();
+  else html = adminPage(t.page, t.arg);
+  $("#main").innerHTML = html;
+  onScroll();
+  if (!me().tos && !S.sheet) showTos();
+}
+function onScroll(){ const n = $("#navbar"); if (n) n.classList.toggle("scrolled", window.scrollY > 30); }
+addEventListener("scroll", onScroll, {passive:true});
+function showTos(){
+  sheet(`<div class="sheet-h"><div class="l"></div><h2 id="sh-title">利用規約</h2><div class="r"></div></div><div class="sheet-b">
+    <p style="margin-top:4px">使い始める前に、利用規約（2026-10-01 版）を確認してください。</p>
+    ${group([cell({title:"各ゲームの規約を守る", sub:"Minecraft の EULA を含みます", subWrap:true}), cell({title:"迷惑をかける使い方をしない", sub:"攻撃・大量接続・不正な配布など", subWrap:true}), cell({title:"違反時は停止することがあります", sub:"理由は必ず通知します", subWrap:true}), cell({title:"期限切れは14日後に削除", sub:"最終バックアップは30日保管", subWrap:true})])}
+    <div style="height:14px"></div>${group([cell({title:"利用規約に同意します", val:'<input type="checkbox" class="switch" id="tos-ok" aria-label="同意する">'})])}
+    <div style="height:16px"></div><button class="btn fill block" data-act="tos-accept" id="tos-btn" disabled>同意して始める</button></div>`, "small");
+}
+
+/* ---------------- 操作 ---------------- */
+const who = () => curServer();
+const ACT = {
+  tab(a){ closeMenu(); S.tab = a; S.stack = []; window.scrollTo(0, 0); render(); },
+  go(a){ go(a); },
+  "go-rule"(a){ closeSheet(); if (S.tab !== "admin" || !S.stack.some(x => x.page === "rules")){ S.tab = "admin"; S.stack = [{page:"rules"}]; } else { S.stack = S.stack.slice(0, S.stack.findIndex(x => x.page === "rules") + 1); } go("rule", a); },
+  "go-domain"(a){ go("domain", a); },
+  "admin-go"(a){ closeSheet(); goTab("admin", a); },
+  "admin-user"(a){ closeSheet(); goTab("admin", "users"); ACT.user(a); },
+  back(){ S.stack.pop(); render(); },
+  "open-server"(a){ closeSheet(); closeMenu(); if (!srv(a)) return toast("サーバーが見つかりません", "warn"); if (!["servers","monitor"].includes(S.tab)) S.tab = "servers"; const i = S.stack.findIndex(x => x.page === "server"); if (i >= 0) S.stack = S.stack.slice(0, i); go("server", a); },
+  "scroll-need"(){ const n = $("#need"); if (n) n.scrollIntoView({behavior:reduce ? "auto" : "smooth", block:"start"}); else toast("対応が必要なサーバーはありません"); },
+  "trash-go"(){ closeSheet(); goTab("servers", "trash"); },
+  "settings-go"(){ closeSheet(); goTab("settings"); },
+  "history-go"(){ closeSheet(); goTab("settings", "history"); },
+  search(){ openSearch(); },
+  close(){ closeSheet(); },
+  dismiss(a){ const j = S.jobs.find(x => x.id === Number(a)); if (j) j.dismissed = true; render(); },
+  job(a){ const j = S.jobs.find(x => x.id === Number(a)); if (!j) return; sheet(`${sheetHead(`ジョブ #${j.id}`, {left:"閉じる"})}<div class="sheet-b"><p style="margin:4px 4px 12px;color:var(--label2)">${esc(j.name)}・<span class="mono">${esc(j.fqdn)}</span></p><div class="group" style="padding:6px 16px"><ul class="steps" data-jsteps="${j.id}">${stepsHtml(j)}</ul></div></div>`, "small"); },
+  mfilter(a){ S.mfilter = a; render(); },
+  afilter(a){ S.afilter = a; render(); },
+  copy(a){ try { navigator.clipboard.writeText(a).catch(() => {}); } catch (e) {} closeMenu(); toast(`コピーしました：${a}`, "copy"); },
+  gp(){ closeMenu(); toast("ゲームパネルを開きます（同じユーザー名・パスワード）", "open"); },
+  "menu-server"(a, el){
+    const s = srv(a); if (!s) return;
+    const own = isOwner(s), locked = s.st === "suspended" && !isAdmin(), running = s.st === "up" || (s.st === "down" && !s.stopped), busy = s.st === "installing";
+    menu([
+      {label:"アドレスをコピー", icon:"copy", act:"copy", arg:addrOf(s)},
+      {label:"再起動", icon:"restart", act:"restart", arg:s.id, disabled:locked || !running || busy},
+      {label:"今すぐバックアップ", icon:"cloud", act:"bk-now", arg:s.id, disabled:locked || busy},
+      {label:"ゲームパネルで開く", icon:"open", act:"gp", arg:s.id}, "-",
+      own && !s.dev ? {label:"開発用コピーを作成", icon:"copy", act:"devcopy", arg:s.id, disabled:locked || busy} : null,
+      own ? {label:s.st === "maint" ? "メンテナンスを終了" : "メンテナンスを開始", icon:"wrench", act:"maint", arg:s.id, disabled:locked || busy} : null,
+      isAdmin() ? {label:s.st === "suspended" ? "利用停止を解除" : "違反を記録", icon:"gavel", act:s.st === "suspended" ? "unsuspend" : "violation", arg:s.id} : null,
+      own ? {label:"削除", icon:"trash", act:"trash", arg:s.id, red:true, disabled:busy} : null,
+    ].filter(Boolean), el);
+  },
+  "menu-backup"(a, el){ menu([{label:"ダウンロード", icon:"cloud", act:"bk-dl", arg:a}, {label:"この時点に復元", icon:"restore", act:"bk-restore", arg:a, red:true}], el); },
+  "menu-trash"(a, el){ menu([{label:"元に戻す", icon:"restore", act:"restore", arg:a}, {label:"完全に削除", icon:"trash", act:"purge", arg:a, red:true}], el); },
+  "menu-slot"(a, el){
+    const port = Number(a), r = ruleOfPort(port), x = slotsOf(r).find(y => y.port === port);
+    menu([
+      x.host ? {label:`${fqdnOf(r, x)} をコピー`, icon:"copy", act:"copy", arg:fqdnOf(r, x)} : null,
+      x.server ? {label:`${x.server.id} を開く`, icon:"server", act:"open-server", arg:x.server.id} : null,
+      x.status === "free" ? {label:"このスロットを停止", icon:"stop", act:"slot-toggle", arg:port} : null,
+      x.status === "disabled" ? {label:"このスロットを再開", icon:"play", act:"slot-toggle", arg:port} : null,
+    ].filter(Boolean), el);
+  },
+  wizard(){ openWizard(); },
+  "wz-game"(a){ S.wiz.game = a; renderWizard(); },
+  "wz-plan"(a){ S.wiz.plan = a; renderWizard(); },
+  "wz-next"(){ if (S.wiz.step === 1 && (!S.wiz.name || nameProblem(S.wiz.name))) return; S.wiz.step++; renderWizard(); },
+  "wz-back"(){ S.wiz.step--; renderWizard(); },
+  "wz-run"(){ const w = S.wiz; if (!w || !w.port || nameProblem(w.name)) return; closeSheet(); startDeploy({name:w.name, gameId:w.game, plan:w.plan, owner:w.owner, port:w.port, via:"Web"}); },
+  power(a){ const s = srv(a || who()?.id); closeMenu();
+    if (s.st === "up" || (s.st === "down" && !s.stopped)) confirmSheet({title:`${s.id} を停止`, body:"プレイヤーは切断されます。停止中は監視を止め、ダウン通知は送りません。", ok:"停止", danger:true, onOk(){ Object.assign(s, {st:"down", stopped:true}); audit("停止", `${s.owner}/${s.id}`); toast(`${s.id} を停止しました`); render(); }});
+    else { Object.assign(s, {st:"up", stopped:false}); audit("起動", `${s.owner}/${s.id}`); toast(`${s.id} を起動しました`); render(); } },
+  restart(a){ const s = srv(a || who()?.id); closeMenu(); audit("再起動", `${s.owner}/${s.id}`); toast(`${s.id} を再起動しています`, "restart"); },
+  maint(a){ const s = srv(a || who()?.id); closeMenu(); if (s.st === "maint"){ s.st = "up"; audit("メンテナンスを終了", `${s.owner}/${s.id}`); toast("メンテナンスを終了しました"); } else { s.st = "maint"; audit("メンテナンスを開始", `${s.owner}/${s.id}`); toast("監視と自動再起動を止めました", "wrench"); } render(); },
+  "bk-now"(a){ const s = srv(a || who()?.id); closeMenu(); s.backups.unshift({at:now(), size:"1.3GB", kind:"手動"}); if (s.backups.length > PLANS[s.plan].bk) s.backups.pop(); audit("バックアップを作成", `${s.owner}/${s.id}`); toast("バックアップを作成しました", "cloud"); render(); },
+  "bk-dl"(){ closeMenu(); toast("ダウンロード用リンクを発行しました（15分有効）", "cloud"); },
+  "bk-restore"(a){ closeMenu(); const s = who(), b = s.backups[Number(a)]; confirmSheet({title:"バックアップから復元", body:`${esc(s.id)} を <b>${esc(b.at)}</b> の状態に戻します。直前に今の状態を自動でバックアップします。`, ok:"復元", danger:true, onOk(){ audit("復元", `${s.owner}/${s.id} ← ${b.at}`); toast("復元しました", "restore"); render(); }}); },
+  devcopy(a){ closeMenu(); const s = srv(a || who()?.id), name = `dev-${s.id}`;
+    if (D.servers.some(x => x.id === name) || D.trash.some(x => x.id === name)) return toast(`${name} は既にあります`, "warn");
+    const fs = freeSlots(s.owner), slot = fs.find(x => !isFixed(x.rule)) || fs[0]; if (!slot) return toast("空いているアドレスがありません", "warn");
+    confirmSheet({title:"開発用コピー", body:`${esc(s.id)} の最新バックアップから <b class="mono">${name}</b> を作ります（ポート ${slot.port}）。監視と通知の対象外で、7日後に自動でゴミ箱へ移動します。`, ok:"作成", onOk(){
+      D.servers.push(Object.assign({}, s, {id:name, port:slot.port, st:"up", ping:25, days:7, dev:true, backups:[], shares:[], domain:null, auto:false, pub:false, proxy:null, players:"0/20", cpu:5, ram:30, fresh:0, plugins:s.plugins ? s.plugins.map(x => ({...x})) : null}));
+      audit("開発用コピーを作成", `${s.owner}/${name}`); toast(`${name} を作成しました`); render(); }}); },
+  extend(){ const s = who(); if (isAdmin()){ s.days += 30; audit("期限を延長", `${s.owner}/${s.id}`); toast("30日延長しました"); } else { audit("期限の延長を申請", `${s.owner}/${s.id}`); toast("延長を申請しました", "clock"); } render(); },
+  "extend-admin"(a){ const s = srv(a); s.days += 30; audit("期限を延長", `${s.owner}/${s.id}`); toast(`${s.id} を30日延長しました`); render(); },
+  "update-core"(){ const s = who(); confirmSheet({title:`${game(s.game).name} を更新`, body:"バックアップを作成してから更新し、再起動します。", ok:"更新", onOk(){ s.updated = true; s.backups.unshift({at:now(), size:"1.3GB", kind:"更新前"}); if (s.backups.length > PLANS[s.plan].bk) s.backups.pop(); audit("本体を更新", `${s.owner}/${s.id}`); toast("更新しました"); render(); }}); },
+  "pl-up"(a){ const s = who(), x = s.plugins[Number(a)]; x.up = false; audit("プラグインを更新", `${s.owner}/${s.id} ${x.n}`); toast(`${x.n} を更新しました`); render(); },
+  "pl-rm"(a){ const s = who(), x = s.plugins[Number(a)]; confirmSheet({title:`${x.n} を削除`, body:"設定ファイルは残ります。次回の再起動で反映されます。", ok:"削除", danger:true, onOk(){ s.plugins.splice(Number(a), 1); audit("プラグインを削除", `${s.owner}/${s.id} ${x.n}`); render(); }}); },
+  "pl-add"(){ const s = who(), v = ($("#pl-q").value || "").trim(); if (!v) return toast("名前を入力してください", "warn"); if (s.plugins.some(x => x.n.toLowerCase() === v.toLowerCase())) return toast(`${v} は導入済みです`, "warn"); s.plugins.push({n:v, up:false}); audit("プラグインを追加", `${s.owner}/${s.id} ${v}`); toast(`${v} を追加しました`); render(); },
+  unproxy(a){ const x = srv(a); x.proxy = null; audit("ネットワークから外す", `${x.owner}/${x.id}`); toast(`${x.id} を外しました`); render(); },
+  share(){ const s = who(), n = ($("#sh-n").value || "").trim().toLowerCase(); if (!n) return toast("Discord 名を入力してください", "warn"); if (n === s.owner || s.shares.some(x => x.user === n)) return toast("既に操作できるユーザーです", "warn"); s.shares.push({user:n, perm:$("#sh-p").value}); audit("共同管理者を追加", `${s.owner}/${s.id} → ${n}`); toast(`${n} を招待しました`); render(); },
+  unshare(a){ const s = who(), x = s.shares.splice(Number(a), 1)[0]; audit("共同管理者を外す", `${s.owner}/${s.id} → ${x.user}`); render(); },
+  "dm-add"(){ const s = who(), v = ($("#dm").value || "").trim().toLowerCase(); if (!/^([a-z0-9-]+\.)+[a-z]{2,}$/.test(v)){ const h = $("#dm-help"); h.className = "err-t"; h.textContent = "play.my-server.jp のような形式で入力してください"; return; } if (D.domains.some(d => v === d.name || v.endsWith("." + d.name))) return toast("管理用のドメインは使えません", "warn"); s.domain = {name:v, state:"確認待ち"}; audit("独自ドメインを追加", v); render(); },
+  "dm-verify"(){ const s = who(); s.domain.state = "有効"; audit("独自ドメインを有効化", s.domain.name); toast("独自ドメインが有効になりました"); render(); },
+  "dm-rm"(){ const s = who(); audit("独自ドメインを外す", s.domain.name); s.domain = null; render(); },
+  trash(a){ closeMenu(); const s = srv(a || who()?.id), deps = D.servers.filter(x => x.proxy === s.id);
+    confirmSheet({title:`${s.id} を削除`, body:`ゴミ箱へ移動し、72時間後に完全に削除します。それまでは元に戻せます。${deps.length ? `<br><br>配下のサーバー（${deps.map(x => esc(x.id)).join("、")}）はネットワークから外れます。` : ""}`, ok:"ゴミ箱へ移動", danger:true, onOk(){
+      deps.forEach(x => x.proxy = null); D.servers = D.servers.filter(x => x !== s);
+      D.trash.unshift({id:s.id, owner:s.owner, game:s.game, port:s.port, plan:s.plan, trashedAt:now(), purgeIn:72, saved:s});
+      audit("ゴミ箱へ移動", `${s.owner}/${s.id}`); S.tab = "servers"; S.stack = [{page:"trash"}]; toast(`${s.id} をゴミ箱へ移動しました`, "trash"); render(); }}); },
+  restore(a){ closeMenu(); const t = D.trash.find(x => x.id === a); if (!t) return; D.trash = D.trash.filter(x => x !== t);
+    D.servers.push(t.saved ? Object.assign(t.saved, {st:"up", stopped:false}) : Object.assign(baseData().servers[0], {id:t.id, owner:t.owner, game:t.game, port:t.port, plan:t.plan, days:5}));
+    audit("ゴミ箱から戻す", `${t.owner}/${t.id}`); toast(`${t.id} を元に戻しました`, "restore"); render(); },
+  purge(a){ closeMenu(); const t = D.trash.find(x => x.id === a); confirmSheet({title:"完全に削除", body:`<b>${esc(t.id)}</b> のデータ・DNS・転送設定・監視を削除し、名前とアドレスを解放します。元に戻せません（最終バックアップは30日保管）。`, ok:"完全に削除", danger:true, requireText:t.id, onOk(){ D.trash = D.trash.filter(x => x !== t); audit("完全に削除", `${t.owner}/${t.id}`); toast(`${t.id} を完全に削除しました`, "trash"); render(); }}); },
+  fix(a){ const f = D.findings.splice(Number(a), 1)[0]; if (f.user){ const u = D.users.find(x => x.n === f.user); if (u) u.ptero.sync = true; } audit("整合性のズレを修正", f.fix); toast(`${f.fix}：完了`); render(); },
+  recheck(){ toast(D.findings.length ? `${D.findings.length}件のズレがあります` : "ズレはありません", D.findings.length ? "warn" : "ok"); },
+  failover(){ const to = D.edge === "edge-1" ? "edge-2" : "edge-1"; confirmSheet({title:`${to} に切り替え`, body:`「使用中の edge に追従」する紐付け（${D.bindings.filter(x => x.follow).map(x => esc(`${x.host}.${domainOf(x.domain).name}`)).join("、")}）を ${to} の IP に書き換えます（TTL 60秒）。接続中のプレイヤーは一度切断されます。`, ok:"切り替え", onOk(){ D.edge = to; audit("edge を切り替え", to); toast(`${to} に切り替えました`, "swap"); render(); }}); },
+  publish(a){ const r = D.rules.find(x => x.id === Number(a)), d = domainOf(r.domain), sl = slotsOf(r).filter(x => x.status !== "excluded");
+    confirmSheet({title:"DNS を作成", body:`${esc(d.name)} に ${sl.length * (r.srv ? 2 : 1)} 件のレコードを作成します（プロキシなし）。<div class="group" style="margin-top:12px;max-height:240px;overflow:auto"><table class="pv">${sl.map(x => `<tr><td>${x.port}</td><td class="mono">${esc(x.host)} → ${r.mode === "a_ip" ? esc(D.ips.find(i => i.id === r.ip)?.addr) : `edge.${esc(d.name)}`}</td></tr>`).join("")}</table></div>`, ok:"作成", onOk(){ D.dnsPublished[r.id] = true; audit("DNS を事前作成", `${r.name}（${sl.length}件）`); toast(`${sl.length}件のアドレスを作成しました`, "globe"); render(); }}); },
+  "slot-toggle"(a){ closeMenu(); const p = Number(a); if (D.disabledSlots.includes(p)){ D.disabledSlots = D.disabledSlots.filter(x => x !== p); toast(`${p} を再開しました`); } else { D.disabledSlots.push(p); toast(`${p} を停止しました`, "stop"); } audit("スロットの停止・再開", String(p)); render(); },
+  "rule-new"(a){ openRule(null, a); },
+  "rule-edit"(a){ openRule(a); },
+  "tpl-token"(a){ const r = S.rule; if (a === "{server}"){ r.tpl = "{server}"; r.pre = false; } else { const base = r.tpl.replace(/\{[^}]*\}/g, "") || "mc"; r.tpl = base + a; } refreshRuleSheet("r-tpl", r.tpl.length); },
+  "rule-save"(){ const r = S.rule; if (ruleProblems(r).length) return;
+    const data = {name:r.name.trim(), domain:r.domain, ps:r.ps, pe:r.pe, tpl:r.tpl, start:r.start, excl:r.excl.filter(x => x >= r.ps && x <= r.pe), mode:r.mode, ip:r.mode === "a_ip" ? r.ip : null, srv:r.srv, pre:r.pre && isFixed(r), assign:r.assign, user:r.assign === "user" ? r.user : null};
+    if (r.id){ const o = D.rules.find(x => x.id === r.id); const changed = ["tpl","ps","pe","start","domain","mode","ip"].some(k => o[k] !== data[k]); Object.assign(o, data); if (changed) D.dnsPublished[o.id] = false; audit("アドレス枠を変更", o.name); closeSheet(); toast(changed && o.pre ? "保存しました。DNS を作り直してください" : "保存しました"); render(); }
+    else { const id = Math.max(0, ...D.rules.map(x => x.id)) + 1; D.rules.push({id, ...data}); audit("アドレス枠を追加", data.name); closeSheet(); S.tab = "admin"; S.stack = [{page:"rules"}, {page:"rule", arg:String(id)}]; toast("アドレス枠を追加しました"); render(); } },
+  "rule-del"(a){ const r = D.rules.find(x => x.id === Number(a)); if (slotsOf(r).some(x => x.status === "assigned" || x.status === "held")) return toast("使用中のスロットがあるため削除できません", "warn"); closeSheet(); confirmSheet({title:"アドレス枠を削除", body:`「${esc(r.name)}」と、事前に作成した DNS レコードを削除します。`, ok:"削除", danger:true, onOk(){ D.rules = D.rules.filter(x => x !== r); delete D.dnsPublished[r.id]; audit("アドレス枠を削除", r.name); S.tab = "admin"; S.stack = [{page:"rules"}]; render(); }}); },
+  "domain-add"(){ sheet(`${sheetHead("ドメインを追加", {right:"追加", rightAct:"domain-ok"})}<div class="sheet-b">${group([`<div class="field"><label for="dn">ドメイン</label><input id="dn" placeholder="例：nuids.jp" autocomplete="off" autocapitalize="off"></div>`, `<div class="field"><label for="dz">ゾーンID</label><input id="dz" placeholder="Cloudflare の概要ページ" autocomplete="off" class="mono"></div>`], "", "追加するとゾーンへの接続を確認し、edge.&lt;ドメイン&gt; を「使用中の edge に追従」で作成します。")}</div>`, "small"); },
+  "domain-ok"(){ const n = ($("#dn").value || "").trim().toLowerCase(), z = ($("#dz").value || "").trim(); if (!/^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(n)) return toast("ドメインの形式が正しくありません", "warn"); if (!/^[0-9a-f]{32}$/i.test(z)) return toast("ゾーンIDは32文字の英数字です", "warn"); if (D.domains.some(d => d.name === n)) return toast("登録済みです", "warn"); const id = Math.max(...D.domains.map(d => d.id)) + 1; D.domains.push({id, name:n, zone:z.slice(0, 4) + "…" + z.slice(-4), edgeHost:"edge", def:false, verified:true}); D.bindings.push({id:Date.now(), domain:id, host:"edge", follow:true, ip:null}); audit("ドメインを追加", n); closeSheet(); toast("接続を確認して追加しました", "globe"); render(); },
+  "ip-add"(){ sheet(`${sheetHead("IP を追加", {right:"追加", rightAct:"ip-ok"})}<div class="sheet-b">${group([`<div class="field"><label for="il">名前</label><input id="il" placeholder="例：Linode 予備"></div>`, `<div class="field"><label for="ia">IP</label><input id="ia" placeholder="203.0.113.30" inputmode="decimal" class="mono"></div>`])}</div>`, "small"); },
+  "ip-ok"(){ const l = ($("#il").value || "").trim(), a = ($("#ia").value || "").trim(); if (!l || !/^(\d{1,3})(\.\d{1,3}){3}$/.test(a) || a.split(".").some(x => Number(x) > 255)) return toast("名前と IPv4 アドレスを入力してください", "warn"); if (D.ips.some(i => i.addr === a)) return toast("登録済みです", "warn"); D.ips.push({id:Math.max(...D.ips.map(i => i.id)) + 1, label:l, addr:a, edge:null}); audit("IP を追加", a); closeSheet(); render(); },
+  "bind-add"(a){ sheet(`${sheetHead("紐付けを追加", {right:"追加", rightAct:"bind-ok"})}<div class="sheet-b">${group([`<div class="field"><label for="bh">ホスト名</label><input id="bh" placeholder="例：panel（@ はドメイン自体）" autocomplete="off" autocapitalize="off" class="mono"></div>`, `<div class="field"><label for="bd">ドメイン</label><select id="bd">${D.domains.map(d => `<option value="${d.id}" ${String(d.id) === a ? "selected" : ""}>${esc(d.name)}</option>`).join("")}</select></div>`, `<div class="field"><label for="bi">向き先</label><select id="bi"><option value="follow">使用中の edge に追従</option>${D.ips.map(i => `<option value="${i.id}">${esc(i.label)}</option>`).join("")}</select></div>`], "", "A レコード（プロキシなし）を作成します。")}</div>`, "small"); },
+  "bind-ok"(){ const h = ($("#bh").value || "").trim().toLowerCase(), d = Number($("#bd").value), t = $("#bi").value; if (h !== "@" && !LABEL.test(h)) return toast("ホスト名の形式が正しくありません", "warn"); if (D.bindings.some(x => x.domain === d && x.host === h)) return toast("同じホスト名の紐付けがあります", "warn"); if (D.rules.some(r => r.domain === d && isFixed(r) && slotsOf(r).some(s => s.host === h && s.status !== "excluded"))) return toast("アドレス枠で使われているホスト名です", "warn"); D.bindings.push({id:Date.now(), domain:d, host:h, follow:t === "follow", ip:t === "follow" ? null : Number(t)}); audit("IP の紐付けを追加", `${h}.${domainOf(d).name}`); closeSheet(); toast("紐付けを追加しました", "pin"); render(); },
+  "bind-rm"(a){ const b = D.bindings.find(x => x.id === Number(a)), d = domainOf(b.domain); if (b.host === d.edgeHost && D.rules.some(r => r.domain === d.id && r.mode === "cname_edge")) return toast(`edge.${d.name} はアドレス枠が使っているため削除できません`, "warn"); confirmSheet({title:"紐付けを削除", body:`${esc(b.host === "@" ? d.name : `${b.host}.${d.name}`)} の A レコードを削除します。`, ok:"削除", danger:true, onOk(){ D.bindings = D.bindings.filter(x => x !== b); audit("IP の紐付けを削除", `${b.host}.${d.name}`); render(); }}); },
+  user(a){ const u = D.users[Number(a)];
+    sheet(`${sheetHead(u.n, {left:"閉じる"})}<div class="sheet-b">${group([cell({title:"ロール", val:u.role === "admin" ? "管理者" : "利用者"}), cell({title:"Discord", val:esc(u.discord)}), cell({title:"ゲームパネル", val:`ID ${u.ptero.id ?? "—"}・${u.ptero.sync ? "同期済み" : "要同期"}`}), cell({title:"状態", val:esc(u.state)})])}
+      <div style="height:18px"></div>${group([`<button class="cell action" data-act="u-reset" data-arg="${a}">再設定リンクを送る</button>`, `<button class="cell action" data-act="u-sync" data-arg="${a}">ゲームパネルと再同期</button>`, u.n !== "admin" ? `<button class="cell action" data-act="u-root" data-arg="${a}">${u.ptero.root ? "パネル管理者を解除" : "パネル管理者にする"}</button>` : ""].filter(Boolean))}
+      ${u.n !== "admin" ? `<div style="height:18px"></div>${group([`<button class="cell danger" data-act="u-stop" data-arg="${a}">${u.state === "有効" ? "アカウントを停止" : "停止を解除"}</button>`])}` : ""}</div>`, "small"); },
+  "u-reset"(a){ const u = D.users[Number(a)]; audit("再設定リンクを送信", u.n); closeSheet(); toast(`${u.n} に送りました`); },
+  "u-sync"(a){ const u = D.users[Number(a)]; u.ptero.sync = true; D.findings = D.findings.filter(f => f.user !== u.n); audit("ゲームパネルと再同期", u.n); closeSheet(); toast("同期しました"); render(); },
+  "u-root"(a){ const u = D.users[Number(a)]; u.ptero.root = !u.ptero.root; audit(u.ptero.root ? "パネル管理者を付与" : "パネル管理者を解除", u.n); closeSheet(); toast("変更しました"); render(); },
+  "u-stop"(a){ const u = D.users[Number(a)]; closeSheet(); confirmSheet({title:u.state === "有効" ? `${u.n} を停止` : "停止を解除", body:u.state === "有効" ? "所有するサーバーをすべて停止し、ログインできなくします。本人に理由を通知してください。" : "アカウントを有効に戻します。", ok:u.state === "有効" ? "停止" : "解除", danger:u.state === "有効", onOk(){ u.state = u.state === "有効" ? "停止中" : "有効"; audit(u.state === "停止中" ? "アカウントを停止" : "停止を解除", u.n); render(); }}); },
+  invite(){ sheet(`${sheetHead("ユーザーを招待", {right:"招待", rightAct:"invite-ok"})}<div class="sheet-b">${group([`<div class="field"><label for="iv">Discord 名</label><input id="iv" placeholder="例：yamada" autocomplete="off" autocapitalize="off"></div>`, `<div class="field"><label for="ir">ロール</label><select id="ir"><option value="user">利用者</option><option value="admin">管理者</option></select></div>`], "", "Discord ロールを持たない人を個別に追加する場合に使います。")}</div>`, "small"); },
+  "invite-ok"(){ const n = ($("#iv").value || "").trim().toLowerCase(); if (!/^[a-z0-9][a-z0-9_.-]{2,31}$/.test(n)) return toast("3〜32文字の英小文字・数字・_ . - で入力してください", "warn"); if (D.users.some(u => u.n === n)) return toast("既にいます", "warn"); D.users.push({n, role:$("#ir").value, discord:n, roleLabel:"個別招待", max:1, ptero:{id:null, sync:false, root:false}, state:"招待中", tos:false}); audit("ユーザーを招待", n); closeSheet(); toast(`${n} に招待を送りました`); render(); },
+  "announce-new"(){ const c = n => new Set(D.servers.filter(s => s.node === n).map(s => s.owner)).size;
+    sheet(`${sheetHead("お知らせ", {right:"投稿", rightAct:"announce-ok"})}<div class="sheet-b">${group([`<div class="field col"><label for="at">タイトル</label><input id="at" placeholder="例：10/10 2:00 から全体メンテナンス"></div>`, `<div class="field col"><label for="ab">本文</label><textarea id="ab" placeholder="影響と時間"></textarea></div>`])}
+      <div style="height:14px"></div>${group([`<div class="field"><label for="as">種類</label><select id="as"><option value="info">お知らせ</option><option value="warning">メンテナンス・障害</option></select></div>`, `<div class="field"><label for="aa">対象</label><select id="aa"><option value="all">全員</option><option value="node-tokyo-1">node-tokyo-1 の利用者（${c("node-tokyo-1")}人）</option><option value="node-tokyo-2">node-tokyo-2 の利用者（${c("node-tokyo-2")}人）</option></select></div>`, cell({title:"Discord にも投稿", sub:"#お知らせ と対象者への DM", val:'<input type="checkbox" class="switch" id="ad" checked aria-label="Discord にも投稿">'})])}</div>`); },
+  "announce-ok"(){ const t = ($("#at").value || "").trim(), b = ($("#ab").value || "").trim(); if (!t || !b) return toast("タイトルと本文を入力してください", "warn"); const sev = $("#as").value, aud = $("#aa").value, dc = $("#ad").checked; D.announcements.unshift({id:Date.now(), sev, title:t, body:b, aud, at:"9/27"}); audit("お知らせを投稿", t); if (dc) dcPush({type:"bot", html:`<div class="dc-e ${sev === "warning" ? "wa" : ""}"><h5>📢 ${esc(t)}</h5><p>${esc(b)}</p></div>`}); closeSheet(); toast(dc ? "投稿して Discord にも送りました" : "投稿しました", "bell"); render(); },
+  "an-del"(a){ D.announcements = D.announcements.filter(x => x.id !== Number(a)); audit("お知らせを取り下げ", "—"); render(); },
+  violation(a){ closeMenu(); sheet(`${sheetHead("違反を記録", {right:"記録", rightAct:"violation-ok"})}<div class="sheet-b">${group([`<div class="field"><label for="vs">対象</label><select id="vs">${D.servers.map(x => `<option value="${esc(x.id)}" ${x.id === a ? "selected" : ""}>${esc(x.owner)}/${esc(x.id)}</option>`).join("")}</select></div>`, `<div class="field"><label for="va">対応</label><select id="va"><option>警告</option><option>サーバー停止</option></select></div>`, `<div class="field col"><label for="vr">理由（所有者に通知されます）</label><textarea id="vr"></textarea></div>`])}</div>`, "small"); },
+  "violation-ok"(){ const id = $("#vs").value, act = $("#va").value, r = ($("#vr").value || "").trim(); if (!r) return toast("理由を入力してください", "warn"); const s = srv(id); D.violations.unshift({id:Date.now(), user:s.owner, server:id, reason:r, action:act, at:"9/27", resolved:act === "警告"}); if (act === "サーバー停止") Object.assign(s, {st:"suspended", suspend:r}); audit(act === "警告" ? "警告を記録" : "違反によりサーバーを停止", `${s.owner}/${id}`); closeSheet(); toast(act === "警告" ? "記録して所有者に通知しました" : `${id} を停止しました`, "gavel"); render(); },
+  unsuspend(a){ closeMenu(); const s = srv(a); if (!s) return; confirmSheet({title:"利用停止を解除", body:`${esc(s.id)} を起動し、監視を再開します。`, ok:"解除", onOk(){ Object.assign(s, {st:"up", suspend:null}); D.violations.forEach(v => { if (v.server === s.id) v.resolved = true; }); audit("停止を解除", `${s.owner}/${s.id}`); render(); }}); },
+  rotate(a){ sheet(`${sheetHead(a, {left:"閉じる"})}<div class="sheet-b">${group([cell({title:"1. 発行元で新しいキーを作る", sub:"権限は同じ範囲に絞る", subWrap:true}), cell({title:"2. pterodeploy-setup で入力", sub:"接続を確認してから保存されます", subWrap:true}), cell({title:"3. 古いキーを無効にする", sub:"動作を確認した後で", subWrap:true})], "キーの入れ替え")}</div>`, "small"); },
+  pw(){ closeSheet(); sheet(`${sheetHead("パスワードを変更", {right:"変更", rightAct:"pw-ok"})}<div class="sheet-b">${group([`<div class="field"><label for="p1">新しい</label><input id="p1" type="password" autocomplete="new-password" placeholder="12文字以上"></div>`, `<div class="field"><label for="p2">確認</label><input id="p2" type="password" autocomplete="new-password"></div>`], "", "パネルとゲームパネルの両方に同時に反映します。")}</div>`, "small"); },
+  "pw-ok"(){ const a = $("#p1").value, b = $("#p2").value; if (a.length < 12) return toast("12文字以上にしてください", "warn"); if (a !== b) return toast("一致しません", "warn"); audit("パスワードを変更", S.user); closeSheet(); toast("両方のパスワードを変更しました"); render(); },
+  "tos-view"(){ showTos(); $("#tos-ok").checked = true; $("#tos-btn").disabled = false; $("#tos-btn").textContent = "閉じる"; },
+  "tos-accept"(){ const first = !me().tos; me().tos = true; if (first) audit("利用規約に同意", "2026-10-01 版"); closeSheet(); render(); },
+  "confirm-ok"(){ const fn = S.onConfirm; S.onConfirm = null; closeSheet(); if (fn) fn(); },
+  "dc-deploy"(){ const fs = freeSlots("tanaka"), slot = fs.find(x => isFixed(x.rule)) || fs[0]; if (!slot) return dcPush({type:"bot", html:`<div class="dc-e er"><h5>空いているアドレスがありません</h5></div>`}); let n = "storia", i = 2; while (nameProblem(n)) n = `storia-${i++}`; dcPush({type:"user", html:`<b>/deploy</b> name: ${n}  game: storiamc  plan: standard`}); startDeploy({name:n, gameId:"storiamc", plan:"standard", owner:"tanaka", port:slot.port, via:"Discord"}); },
+  "dc-status"(){ dcPush({type:"user", html:"<b>/status</b>"}); const own = D.servers.filter(s => (s.owner === "tanaka" || s.shares.some(x => x.user === "tanaka")) && !s.dev); dcPush({type:"bot", html:`<div class="dc-e"><h5>tanaka さんのサーバー</h5>${own.map(s => `<div style="display:flex;gap:8px"><span>${({up:"🟢",down:s.stopped ? "⏹️" : "🔴",maint:"🔧",suspended:"⛔",installing:"🕒"})[s.st]}</span><span>${esc(s.id)}</span><code style="color:var(--dm);margin-left:auto">${esc(addrOf(s))}</code></div>`).join("")}</div>`}); },
+  "dc-backup"(){ dcPush({type:"user", html:"<b>/backup</b> server: survival"}); const s = srv("survival"); if (!s) return dcPush({type:"bot", html:`<div class="dc-e er"><h5>survival が見つかりません</h5></div>`}); s.backups.unshift({at:now(), size:"1.3GB", kind:"手動"}); if (s.backups.length > PLANS[s.plan].bk) s.backups.pop(); audit("バックアップを作成", "tanaka/survival", "成功", "tanaka", "Discord"); dcPush({type:"bot", html:`<div class="dc-e ok"><h5>💾 survival のバックアップを作成しました</h5><div class="dc-f"><div><b>サイズ</b>1.3GB</div><div><b>保存数</b>${s.backups.length} / ${PLANS[s.plan].bk}</div></div></div>`}); },
+  "dc-down"(){ const s = srv("survival"); if (!s || s.st !== "up") return toast("survival が稼働中のときに試せます", "warn"); Object.assign(s, {st:"down", recovered:false}); audit("ダウンを検知", "tanaka/survival", "自動再起動へ", "system"); dcPush({type:"bot", html:`<div class="dc-e er"><h5>🔴 survival が応答しません</h5><p>自動で再起動します（直近1時間で1回目・上限3回）。</p></div>`}); at(2400, () => { if (s.st !== "down" || s.stopped) return; Object.assign(s, {st:"up", recovered:true}); audit("自動再起動", "tanaka/survival", "成功", "system"); dcPush({type:"bot", html:`<div class="dc-e ok"><h5>🟢 survival が復旧しました</h5><div class="dc-f"><div><b>停止時間</b>1分48秒</div><div><b>対応</b>自動再起動</div><div class="w"><b>直前のログ</b><code>java.lang.OutOfMemoryError: Java heap space</code></div></div></div>`}); if (S.surface === "panel" && !S.sheet) render(); }); },
+  "dc-expire"(){ dcPush({type:"bot", html:`<div class="dc-e wa"><h5>⏰ lobby の利用期限まであと3日です</h5><p>延長しない場合は期限日に停止し、14日後にゴミ箱へ移動します。</p><div class="dc-btns"><span class="g">延長を申請</span></div></div>`}); },
+  "demo-reset"(){ closeSheet(); closeMenu(); resetState(); render(); toast("初期状態に戻しました", "restore"); },
+  "bg-open"(){ openBgSheet(); },
+  "bg-pick"(a){ S.bg = a === "default" ? {kind:"default"} : {kind:"preset", id:a}; applyBg(); saveDisplay(); openBgSheet(); render(); S.pending = false; },
+  "bg-upload"(){ const f = $("#bg-file"); if (f){ f.value = ""; f.click(); } },
+  "bg-reset"(){ S.bg = {kind:"default"}; S.dim = .25; S.blur = 0; applyBg(); saveDisplay(); openBgSheet(); toast("既定の背景に戻しました", "restore"); },
+  "bg-default"(){ if (S.bg.kind === "upload" && S.bg.data.length > 2_000_000) return toast("大きすぎる写真は全員の既定にできません", "warn"); D.defaultBg = {...S.bg}; audit("既定の背景を変更", bgName(S.bg)); toast("全員の既定にしました"); openBgSheet(); },
+  withdraw(){
+    const u = me();
+    if (u.role === "admin" && D.users.filter(x => x.role === "admin" && !x.deleting).length <= 1) return toast("最後の管理者は退会できません。先に別の管理者を任命してください", "warn");
+    const own = D.servers.filter(s => s.owner === u.n);
+    confirmSheet({title:"退会する", danger:true, ok:"退会を申請", requireText:u.n,
+      body:`<b>7日後</b>に、次のものをすべて削除します。7日以内なら取り消せます。<ul style="margin:10px 0 0;padding-left:1.2em;line-height:1.6"><li>サーバー ${own.length}台とバックアップ（すぐに停止します）</li><li>ゲームパネルのアカウント</li><li>DNS・監視・独自ドメインの設定</li><li>表示の設定・背景の写真・通知の設定</li><li>共同管理者として参加しているサーバーへの権限</li></ul><p style="font-size:14px;color:var(--label2);margin:10px 0 0">操作ログは、あなたの名前を消した形で1年間残ります。</p>`,
+      onOk(){ u.deleting = "10/6"; own.forEach(s => { if (s.st === "up" || s.st === "down") Object.assign(s, {st:"down", stopped:true}); }); D.servers.forEach(s => s.shares = s.shares.filter(x => x.user !== u.n)); audit("退会を申請", "削除予定 10/6"); render(); toast("退会を受け付けました。10/6 に削除します", "clock"); }});
+  },
+  "withdraw-cancel"(){ const u = me(); u.deleting = null; audit("退会を取り消し", "—"); render(); toast("退会を取り消しました。サーバーは停止したままです", "restore"); },
+  "sys-check"(){ toast(sysLevel() === "ok" ? "すべて正常です" : "注意が必要な項目があります", sysLevel() === "ok" ? "ok" : "warn"); },
+  "sys-toggle-bot"(){ D.botDown = !D.botDown; render(); },
+  "demo-tos"(){ me().tos = false; S.surface = "panel"; $("#d-surface").value = "panel"; closeSheet(); render(); },
+};
+
+/* ---------------- イベント ---------------- */
+document.addEventListener("click", e => {
+  if (!$("#menu").hidden && !e.target.closest("#menu") && !e.target.closest('[data-act^="menu-"]')) closeMenu();
+  const el = e.target.closest("[data-act]");
+  if (!el || el.disabled) return;
+  const fn = ACT[el.dataset.act];
+  if (fn){ e.preventDefault(); if (el.closest("#menu")) closeMenu(); fn(el.dataset.arg ?? "", el); }
+});
+document.addEventListener("input", e => {
+  const t = e.target;
+  if (t.id === "q") return renderSearch(t.value);
+  if (t.id === "cf-t"){ $('[data-act="confirm-ok"]').disabled = t.value !== S.requireText; return; }
+  if (t.dataset.set === "dim"){ S.dim = Number(t.value); applyBg(); $("#bg-dim-v").textContent = `${Math.round(S.dim * 100)}%`; refreshBgPreview(); saveDisplay(); return; }
+  if (t.dataset.set === "blur"){ S.blur = Number(t.value); applyBg(); $("#bg-blur-v").textContent = `${S.blur}px`; refreshBgPreview(); saveDisplay(); return; }
+  if (t.dataset.set === "glass"){ S.glass = Number(t.value); saveDisplay(); document.documentElement.style.setProperty("--ga", S.glass); const v = $("#gl-v"); if (v) v.textContent = S.glass >= .9 ? "不透明" : S.glass <= .55 ? "透明" : "標準"; return; }
+  if (t.dataset.wz === "name" && S.wiz){
+    const v = t.value.toLowerCase().replace(/\s/g, ""); if (v !== t.value) t.value = v;
+    S.wiz.name = v; const prob = v ? nameProblem(v) : "";
+    const h = $("#wz-h"); h.className = prob ? "err-t" : ""; h.textContent = prob || "ゲームパネルでの表示名にもなります。";
+    $("#wz-next").disabled = !v || !!prob;
+    const sel = $("#wz-port"); if (sel) [...sel.options].forEach(o => { const r = ruleOfPort(Number(o.value)); if (r && !isFixed(r)) o.textContent = `${v || "名前"}.${domainOf(r.domain).name}（${o.value}）`; });
+    const ad = $("#wz-addr"); if (ad) ad.textContent = wizAddr(S.wiz);
+    return;
+  }
+  if (t.dataset.rule && S.rule && t.type !== "checkbox" && t.tagName !== "SELECT"){
+    const k = t.dataset.rule, r = S.rule;
+    if (k === "excl"){ r.exclText = t.value; r.excl = t.value.split(/[,\s、]+/).filter(Boolean).map(Number).filter(n => Number.isInteger(n) && n > 0); }
+    else if (["ps","pe","start"].includes(k)){ r[k] = t.value === "" ? NaN : Number(t.value); if (k === "start") r.startTouched = true; if (k === "ps" && !r.id && !r.startTouched && Number.isInteger(r.ps)) r.start = r.ps % 100; }
+    else if (k === "tpl") r.tpl = t.value.toLowerCase().replace(/\s/g, "");
+    else r[k] = t.value;
+    refreshRuleSheet(t.id, t.type === "number" ? null : t.selectionStart);
+  }
+});
+document.addEventListener("change", e => {
+  const t = e.target;
+  if (t.id === "d-surface"){ S.surface = t.value; closeSheet(); closeMenu(); render(); return; }
+  if (t.id === "d-user"){ S.user = t.value; S.stack = []; S.mfilter = "all"; closeSheet(); closeMenu(); render(); return; }
+  if (t.id === "tos-ok"){ $("#tos-btn").disabled = !t.checked; return; }
+  if (t.id === "bg-file"){ loadBgFile(t.files && t.files[0]); return; }
+  if (t.dataset.set === "theme"){ S.theme = t.value; saveDisplay(); render(); return; }
+  if (t.dataset.set === "glass" || t.dataset.set === "dim" || t.dataset.set === "blur"){ saveDisplay(); return; }
+  if (t.dataset.domainDef){ D.domains.forEach(d => d.def = d.id === Number(t.dataset.domainDef)); audit("既定のドメインを変更", domainOf(t.dataset.domainDef).name); render(); return; }
+  if (t.dataset.wz && S.wiz && t.dataset.wz !== "name"){
+    if (t.dataset.wz === "port") S.wiz.port = Number(t.value);
+    else { S.wiz[t.dataset.wz] = t.value; if (t.dataset.wz === "owner") S.wiz.port = freeSlots(t.value)[0]?.port ?? null; }
+    renderWizard(); return;
+  }
+  if (t.dataset.rule && S.rule && (t.type === "checkbox" || t.tagName === "SELECT")){
+    const k = t.dataset.rule, r = S.rule;
+    if (t.type === "checkbox") r[k] = t.checked;
+    else if (k === "domain" || k === "ip") r[k] = t.value === "" ? null : Number(t.value);
+    else r[k] = t.value || null;
+    if (k === "mode" && r.mode === "cname_edge") r.ip = null;
+    if (k === "assign" && r.assign === "shared") r.user = null;
+    refreshRuleSheet(); return;
+  }
+  const s = curServer();
+  if (!s || !t.dataset.bind) return;
+  if (t.dataset.bind === "auto"){ s.auto = t.checked; audit(`自動再起動を${s.auto ? "オン" : "オフ"}`, `${s.owner}/${s.id}`); toast(`自動再起動を${s.auto ? "オン" : "オフ"}にしました`); }
+  if (t.dataset.bind === "pub"){ s.pub = t.checked; audit(`状態ページを${s.pub ? "公開" : "非公開"}`, `${s.owner}/${s.id}`); toast(s.pub ? "状態ページに公開しました" : "公開をやめました"); }
+  if (t.dataset.bind === "proxy"){ s.proxy = t.value || null; audit(s.proxy ? "ネットワークに参加" : "ネットワークから外す", `${s.owner}/${s.id}`); toast(s.proxy ? `${s.proxy} 経由のみにしました` : "直接接続に戻しました"); }
+  render();
+});
+document.addEventListener("keydown", e => {
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "");
+  if (e.key === "Escape"){ if (!$("#menu").hidden) return closeMenu(); if (S.sheet && me().tos) return closeSheet(); if (S.stack.length && !S.sheet && !typing) return ACT.back(); }
+  if (!typing && !S.sheet && S.surface === "panel" && (e.key === "/" || (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)))){ e.preventDefault(); openSearch(); }
+  if (e.key === "Enter" && e.target.id === "wz-name" && !$("#wz-next").disabled){ e.preventDefault(); ACT["wz-next"](); }
+  if (e.key === "Enter" && e.target.id === "q"){ const f = $("#qr [data-act]"); if (f) f.click(); }
+});
+$("#scrim").addEventListener("click", e => { if (e.target.id === "scrim" && me().tos) closeSheet(); });
+addEventListener("resize", closeMenu);
+resetState();
+render();
+</script>
+</body>
+</html>

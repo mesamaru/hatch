@@ -1,0 +1,43 @@
+# ゲームごとの設定。/etc/pterodeploy/games.yml にコピーして、パネルの nest / egg の ID に合わせてください。
+# kind: mc（Minecraft 系）/ mod（Mod 系）/ proxy（Velocity）/ other（その他）
+# protocol: tcp / udp（udp は HAProxy では中継できないため、edge の nftables で転送します）
+# monitor: gamedig（Minecraft 系）/ tcp（ポートへの接続）/ push（パネル上の状態をワーカーが Kuma に送る。UDP のゲーム用）
+storiamc:
+  label: StoriaMC
+  kind: mc
+  nest: 1
+  egg: 15
+  protocol: tcp
+  monitor: gamedig
+  proxy_protocol: true          # edge から PROXY プロトコルで接続する
+  plugin_loader: folia           # プラグインの検索条件
+  environment:                   # egg の既定値を上書きする変数
+    MINECRAFT_VERSION: latest
+paper:
+  label: Paper
+  kind: mc
+  nest: 1
+  egg: 3
+  proxy_protocol: true
+  plugin_loader: paper
+velocity:
+  label: Velocity
+  kind: proxy
+  nest: 1
+  egg: 16
+  proxy_protocol: true
+forge:
+  label: Forge
+  kind: mod
+  nest: 1
+  egg: 4
+  proxy_protocol: false
+  plugin_loader: forge
+palworld:
+  label: Palworld
+  kind: other
+  protocol: udp
+  monitor: push
+  nest: 5
+  egg: 20
+  proxy_protocol: false

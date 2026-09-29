@@ -1,0 +1,42 @@
+/* デザインの値。docs/UI.md 2章。ライト・ダークの色、角の丸み、文字、ガラスの効果。 */
+:root{
+  --bg:#F2F2F7; --bg2:#FFFFFF; --fill:rgba(120,120,128,.12); --fill2:rgba(120,120,128,.2);
+  --label:#000000; --label2:rgba(60,60,67,.6); --label3:rgba(60,60,67,.3); --sep:rgba(60,60,67,.18);
+  --blue:#007AFF; --green:#34C759; --red:#FF3B30; --orange:#FF9500; --indigo:#5856D6; --teal:#30B0C7; --gray:#8E8E93;
+  --glass:rgba(250,250,252,var(--ga)); --glass-line:rgba(0,0,0,.14); --glass-hi:rgba(255,255,255,.7);
+  --ga:.72; --blur:24px; --r-group:22px; --r-card:18px;
+  --shadow:0 8px 32px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.06);
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro JP","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
+  --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+  box-sizing:border-box;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#000000; --bg2:#1C1C1E; --fill:rgba(120,120,128,.24); --fill2:rgba(120,120,128,.36);
+  --label:#FFFFFF; --label2:rgba(235,235,245,.6); --label3:rgba(235,235,245,.3); --sep:rgba(84,84,88,.6);
+  --blue:#0A84FF; --green:#30D158; --red:#FF453A; --orange:#FF9F0A; --indigo:#5E5CE6; --teal:#40C8E0;
+  --glass:rgba(30,30,32,var(--ga)); --glass-line:rgba(255,255,255,.16); --glass-hi:rgba(255,255,255,.08); --shadow:0 8px 32px rgba(0,0,0,.5);
+}}
+:root[data-theme="dark"]{
+  --bg:#000000; --bg2:#1C1C1E; --fill:rgba(120,120,128,.24); --fill2:rgba(120,120,128,.36);
+  --label:#FFFFFF; --label2:rgba(235,235,245,.6); --label3:rgba(235,235,245,.3); --sep:rgba(84,84,88,.6);
+  --blue:#0A84FF; --green:#30D158; --red:#FF453A; --orange:#FF9F0A; --indigo:#5E5CE6; --teal:#40C8E0;
+  --glass:rgba(30,30,32,var(--ga)); --glass-line:rgba(255,255,255,.16); --glass-hi:rgba(255,255,255,.08); --shadow:0 8px 32px rgba(0,0,0,.5);
+}
+@media (prefers-reduced-transparency:reduce){:root{--ga:.97!important}}
+html{height:100%;-webkit-tap-highlight-color:transparent}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--label);font-family:var(--font);font-size:17px;line-height:1.35;letter-spacing:-.01em;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit;letter-spacing:inherit}
+button{cursor:pointer}
+code,.mono{font-family:var(--mono);font-size:.88em;letter-spacing:0}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--blue) 60%,transparent);outline-offset:2px;border-radius:10px}
+.glass{background:var(--glass);-webkit-backdrop-filter:blur(var(--blur)) saturate(180%);backdrop-filter:blur(var(--blur)) saturate(180%);border:.5px solid var(--glass-line);box-shadow:inset 0 1px 0 var(--glass-hi),var(--shadow)}
+/* ---- 背景（設定の背景。既定は表示しない） ---- */
+#bg{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;background:var(--bg)}
+#bg .img{position:absolute;inset:-40px;background:var(--bgimg,none) center/cover no-repeat;filter:blur(var(--bgblur,0px))}
+#bg .dim{position:absolute;inset:0;background:var(--bg);opacity:var(--dim,0)}
+.has-bg body{background:transparent}
+.has-bg .large,.has-bg .subtitle,.has-bg .gh,.has-bg .gf,.has-bg .navbar:not(.scrolled) .back{text-shadow:0 0 14px var(--bg),0 0 3px var(--bg),0 0 1px var(--bg)}
+.has-bg .gh,.has-bg .gf,.has-bg .subtitle{color:color-mix(in srgb,var(--label) 75%,transparent)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}

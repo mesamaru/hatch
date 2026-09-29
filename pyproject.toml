@@ -1,0 +1,26 @@
+# ツールの設定だけを置く（パッケージの配布には使わない）
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = ["web", "edge/agent.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "ASYNC", "RUF"]
+# 日本語の文言に全角記号を使うため
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI の書き方（引数の既定値に Depends などを置く）を許可する
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Header", "fastapi.Body", "fastapi.Path"]
+
+[tool.ruff.lint.per-file-ignores]
+# 生成する設定ファイルの行は長くなる
+"pterodeploy/edge/render.py" = ["E501"]
+# 他のテストのフィクスチャを取り込んで使う（引数名が同じになる）
+"tests/api/test_lifecycle.py" = ["F811"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+filterwarnings = ["ignore::DeprecationWarning:httpx.*"]

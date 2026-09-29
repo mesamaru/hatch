@@ -1,0 +1,23 @@
+[Unit]
+Description=pterodeploy API / Web パネル
+After=network-online.target postgresql.service
+Wants=network-online.target
+PartOf=pterodeploy.target
+
+[Service]
+Type=simple
+User=pterodeploy
+Group=pterodeploy
+EnvironmentFile=/etc/pterodeploy/pterodeploy.env
+WorkingDirectory=/opt/pterodeploy/current
+ExecStart=/opt/pterodeploy/current/.venv/bin/uvicorn pterodeploy.main:app --app-dir /opt/pterodeploy/current --host ${PD_HOST} --port ${PD_PORT} --proxy-headers --no-server-header
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/pterodeploy/shared /var/lib/pterodeploy
+
+[Install]
+WantedBy=pterodeploy.target

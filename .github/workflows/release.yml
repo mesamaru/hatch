@@ -1,0 +1,17 @@
+name: release
+# v0.2.0 のようなタグで安定版、v0.2.0-beta.1 のように - を含むタグでベータ版を公開します
+on:
+  push: { tags: ["v*"] }
+permissions: { contents: write }
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 配布ファイルを作成
+        run: scripts/package.sh "${GITHUB_REF_NAME#v}"
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true

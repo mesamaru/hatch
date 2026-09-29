@@ -1,0 +1,6 @@
+[Unit]
+Description=pterodeploy（全サービス）
+Wants=pterodeploy-api.service
+
+[Install]
+WantedBy=multi-user.target

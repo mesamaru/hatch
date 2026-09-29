@@ -1,0 +1,27 @@
+[Unit]
+Description=pterodeploy ワーカー（ジョブの実行）
+After=network-online.target postgresql.service
+Wants=network-online.target
+PartOf=pterodeploy.target
+
+[Service]
+Type=simple
+User=pterodeploy
+Group=pterodeploy
+EnvironmentFile=/etc/pterodeploy/pterodeploy.env
+Environment=PD_GAMES_FILE=/etc/pterodeploy/games.yml
+WorkingDirectory=/opt/pterodeploy/current
+ExecStart=/opt/pterodeploy/current/.venv/bin/python -m pterodeploy.worker
+# 実行中のジョブを最後まで終わらせるための猶予（途中で止まっても次の起動で再開される）
+TimeoutStopSec=120
+KillSignal=SIGTERM
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/pterodeploy/shared /var/lib/pterodeploy
+
+[Install]
+WantedBy=pterodeploy.target
