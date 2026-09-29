@@ -7,7 +7,6 @@ PD_REPO="${PD_REPO:-mesamaru/hatch}"
 PD_BRANCH="${PD_BRANCH:-main}"
 RAW="https://raw.githubusercontent.com/${PD_REPO}/${PD_BRANCH}"
 [[ $EUID -eq 0 ]] || { echo "root で実行してください"; exit 1; }
-[[ "$PD_REPO" != mesamaru/* ]] || { echo "PD_REPO を設定してください"; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
 
 apt-get update -qq

@@ -145,15 +145,15 @@
     <section id="install">
       <h2><span class="num">3</span>オーケストレーターのインストール</h2>
       <p class="lead">Proxmox VE ホストのシェルで実行します。Debian 13 のテンプレートは自動で取得されます。</p>
-      <pre><button class="copy" data-copy>コピー</button><code>bash -c "$(curl -fsSL https://raw.githubusercontent.com/&lt;あなたのユーザー名&gt;/hatch/main/ct/hatch.sh)"</code></pre>
+      <pre><button class="copy" data-copy>コピー</button><code>bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/hatch.sh)"</code></pre>
       <p>完了したら、コンテナに入って初期設定をします。入力した値はその場で接続確認されます。</p>
-      <pre><button class="copy" data-copy>コピー</button><code>pct enter &lt;コンテナID&gt;
+      <pre><button class="copy" data-copy>コピー</button><code>pct enter &lt;コンテナ ID&gt;
 hatch-setup</code></pre>
       <h3>非対話でインストールする場合</h3>
       <pre><button class="copy" data-copy>コピー</button><code>PD_YES=1 var_cpu=2 var_ram=2048 var_disk=10 \
   var_net=192.168.1.50/24 var_gateway=192.168.1.1 \
   var_ts_authkey=tskey-auth-xxxx \
-  bash -c "$(curl -fsSL https://raw.githubusercontent.com/&lt;あなたのユーザー名&gt;/hatch/main/ct/hatch.sh)"</code></pre>
+  bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/hatch.sh)"</code></pre>
       <table>
         <tr><th>変数</th><th>既定値</th><th>内容</th></tr>
         <tr><td class="mono">var_hostname</td><td class="mono">hatch</td><td>ホスト名</td></tr>
@@ -168,10 +168,10 @@ hatch-setup</code></pre>
     <section id="edge">
       <h2><span class="num">4</span>edge サーバーのセットアップ</h2>
       <p class="lead">プレイヤーが接続する入口です。Linode などの Debian / Ubuntu サーバーで root 実行します。</p>
-      <pre><button class="copy" data-copy>コピー</button><code>PD_REPO=&lt;あなたのユーザー名&gt;/hatch \
-  bash -c "$(curl -fsSL https://raw.githubusercontent.com/&lt;あなたのユーザー名&gt;/hatch/main/edge/install-edge.sh)"</code></pre>
+      <pre><button class="copy" data-copy>コピー</button><code>bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/edge/install-edge.sh)"</code></pre>
       <p>edge エージェントはオーケストレーターから HAProxy 設定を取りに行き、検証してから適用します。
       オーケストレーターが止まっていても最後に取得した設定で動き続けます。</p>
+      <div class="note">自分のアカウントに fork して使う場合は、両方のコマンドの前に <code class="mono">PD_REPO=あなたのユーザー名/hatch</code> を付けてください。</div>
       <div class="note">Linode のファイアウォールでは、アドレス枠のポート範囲（TCP・UDP）と 80/443 だけを開放してください。</div>
     </section>
 

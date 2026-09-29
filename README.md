@@ -17,13 +17,12 @@ Discord と Web パネルから、Pterodactyl のゲームサーバーを **一�
 - Uptime Kuma 2.x
 - Discord アプリ（Bot と OAuth）
 
-## 最初にやること（リポジトリを公開したら）
+## 最初にやること（自分のアカウントで fork した場合）
 
-スクリプト内の `mesamaru` を自分の GitHub ユーザー名に置き換えて push します。
+インストーラーは既定で公式リポジトリ（`mesamaru/hatch`）から取得します。自分のアカウントに fork して使う場合は、
+`PD_REPO=あなたのユーザー名/hatch` を環境変数で指定してください（下のインストールコマンドの前に付けます）。
 
 ```bash
-grep -rl mesamaru . | xargs sed -i 's/mesamaru/あなたのユーザー名/g'
-git commit -am "リポジトリ名を設定" && git push
 git tag v0.1.0 && git push --tags     # 最初のリリース（GitHub Actions が配布ファイルを作ります）
 ```
 

@@ -37,7 +37,6 @@ fi
 
 # ---- 事前チェック --------------------------------------------------------------
 [[ $EUID -eq 0 ]] || die "root で実行してください。"
-[[ "$PD_REPO" != mesamaru/* ]] || die "PD_REPO が未設定です。README の手順でリポジトリ名を置き換えてください。"
 PVE_MAJOR="$(pveversion | sed -n 's#^pve-manager/\([0-9]*\).*#\1#p')"
 [[ "${PVE_MAJOR:-0}" -ge 8 ]] || die "Proxmox VE 8 以降が必要です（検出: $(pveversion)）。"
 [[ "$(dpkg --print-architecture)" == "amd64" ]] || die "amd64 のみ対応しています。"
