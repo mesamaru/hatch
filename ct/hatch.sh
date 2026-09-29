@@ -144,8 +144,10 @@ CONF
 msg_ok "コンテナ ${CTID} を作成しました"
 
 msg_info "コンテナを起動しています"
-pct start "$CTID"
-for _ in $(seq 1 60); do
+if ! pct start "$CTID" 2>&1 | tee /tmp/pct_start.log; then
+  die "コンテナの起動に失敗しました。詳細は上記を参照してください（pct logs $CTID でも確認可能）。"
+fi
+for _ in $(seq 1 120); do
   pct exec "$CTID" -- getent hosts deb.debian.org >/dev/null 2>&1 && break
   sleep 1
 done
