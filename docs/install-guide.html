@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hatch インストール詳細ガイド</title>
+<style>
+  :root{
+    --bg:#F2F2F7; --bg2:#FFFFFF; --label:#000; --label2:rgba(60,60,67,.6); --sep:rgba(60,60,67,.18);
+    --blue:#007AFF; --green:#34C759; --orange:#FF9500; --red:#FF3B30; --indigo:#5856D6;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+    --mono:"SF Mono",ui-monospace,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#000; --bg2:#1C1C1E; --label:#fff; --label2:rgba(235,235,245,.6); --sep:rgba(84,84,88,.6);
+      --blue:#0A84FF; --green:#30D158; --orange:#FF9F0A; --red:#FF453A; --indigo:#5E5CE6; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--label);font-family:var(--font);line-height:1.7;font-size:16px}
+  a{color:var(--blue)}
+  code,.mono{font-family:var(--mono);font-size:.92em}
+  header{padding:48px 20px 28px;text-align:center}
+  header h1{font-size:32px;margin:0 0 8px}
+  header p{color:var(--label2);margin:0;max-width:720px;margin-inline:auto}
+  .wrap{max-width:960px;margin:0 auto;padding:0 20px 80px}
+  main section{background:var(--bg2);border-radius:20px;padding:26px 28px;margin-bottom:20px}
+  main h2{font-size:24px;margin:0 0 12px;display:flex;align-items:center;gap:10px}
+  main h2 .num{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--blue);color:#fff;font-size:16px;flex:0 0 32px;font-weight:700}
+  main h3{font-size:18px;margin:24px 0 10px;color:var(--label)}
+  main h4{font-size:15px;margin:16px 0 8px;color:var(--label);font-weight:600}
+  main p{margin:8px 0}
+  .lead{color:var(--label2);margin-top:0;font-size:15px}
+  .step-list{list-style:none;margin:16px 0;padding:0;counter-reset:step}
+  .step-list li{counter-increment:step;margin-bottom:20px;padding-left:40px;position:relative}
+  .step-list li::before{content:counter(step);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;background:var(--indigo);color:#fff;display:grid;place-items:center;font-weight:700;font-size:14px}
+  .step-list li b{display:block;font-size:15px;margin-bottom:6px}
+  pre{background:#11131a;color:#e8e8ec;border-radius:12px;padding:14px 16px;overflow-x:auto;position:relative;font-size:13.5px;margin:10px 0}
+  pre code{font-family:var(--mono);display:block}
+  .copy{position:absolute;top:8px;right:8px;font-size:12px;border:0;border-radius:8px;padding:5px 10px;background:rgba(255,255,255,.12);color:#fff;cursor:pointer;font-family:var(--font)}
+  .copy:hover{background:rgba(255,255,255,.22)}
+  .note{border-left:4px solid var(--blue);background:rgba(0,122,255,.08);border-radius:0 10px 10px 0;padding:10px 14px;font-size:14.5px;margin:12px 0}
+  .note.warn{border-color:var(--orange);background:rgba(255,149,0,.1)}
+  .note.ok{border-color:var(--green);background:rgba(52,199,89,.1)}
+  .pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:10px;background:rgba(0,122,255,.12);color:var(--blue)}
+  .pill.warn{background:rgba(255,149,0,.15);color:var(--orange)}
+  .pill.ok{background:rgba(52,199,89,.15);color:var(--green)}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin:12px 0}
+  th,td{text-align:left;padding:10px;border-bottom:1px solid var(--sep);vertical-align:top}
+  th{color:var(--label2);font-weight:600;background:rgba(0,0,0,.02)}
+  .input-table{list-style:none;margin:12px 0;padding:0}
+  .input-table li{display:grid;grid-template-columns:140px 1fr;gap:12px;padding:10px 0;border-bottom:1px solid var(--sep)}
+  .input-table li:last-child{border-bottom:0}
+  .input-table li b{color:var(--label2);font-weight:600;font-family:var(--mono);font-size:13px}
+  .alert{border-radius:12px;padding:12px 14px;margin:12px 0;font-size:14px}
+  .alert-danger{background:rgba(255,59,48,.1);border-left:4px solid var(--red)}
+  .alert-warning{background:rgba(255,159,10,.1);border-left:4px solid var(--orange)}
+  .alert-success{background:rgba(52,199,89,.1);border-left:4px solid var(--green)}
+  .flow-chart{background:rgba(0,122,255,.08);border-radius:12px;padding:16px;margin:12px 0;font-family:var(--mono);font-size:13px;line-height:1.8;color:var(--label);border:1px solid var(--blue)}
+  footer{text-align:center;color:var(--label2);font-size:13px;padding:20px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Hatch インストール詳細ガイド</h1>
+  <p>Proxmox でのスクリプト実行から、オーケストレーターが正式に動作するまでの完全なステップバイステップガイドです。<br>
+  各手順で入力する値、確認すべき出力、トラブルシューティングをまとめています。</p>
+</header>
+<div class="wrap">
+  <main>
+
+    <!-- 事前確認 -->
+    <section>
+      <h2><span class="num">0</span>事前確認</h2>
+      <p class="lead">インストール前に、以下の環境が整っていることを確認してください。</p>
+      <ul class="step-list">
+        <li>
+          <b>Proxmox VE 8 以降が動作していること</b>
+          <p>Proxmox ホストで <code>pveversion</code> を実行して確認。出力例：<code>pve-manager/8.2.2/...</code></p>
+        </li>
+        <li>
+          <b>root ユーザーでアクセス可能なこと</b>
+          <p>インストーラーは root 権限が必要です。</p>
+        </li>
+        <li>
+          <b>ネットワークが接続されていること</b>
+          <p>Debian テンプレートをダウンロードし、インターネットにアクセスする必要があります。</p>
+        </li>
+        <li>
+          <b>ストレージが十分にあること</b>
+          <p>最小 10GB のディスク空き容量が必要。デフォルトではコンテナに 10GB を割り当てます。</p>
+        </li>
+        <li>
+          <b>Tailscale の認証キーを用意すること（オプション）</b>
+          <p>Tailscale に自動接続したい場合のみ。後からでも設定可能。</p>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ステップ 1 -->
+    <section>
+      <h2><span class="num">1</span>Proxmox ホストでコンテナ作成スクリプト実行</h2>
+      <p class="lead">Proxmox VE ホストのシェルで以下を実行します。対話形式で設定値を入力していきます。</p>
+
+      <h3>コマンド実行</h3>
+      <pre><button class="copy" data-copy>コピー</button><code>bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/hatch.sh)"</code></pre>
+
+      <h3>期待される出力</h3>
+      <pre><code>   hatch ─ Pterodactyl 自動デプロイ基盤のインストール
+
+ … テンプレートを確認しています
+ ✓ テンプレート: debian-13-standard_13.1_amd64.tar.zst
+ … コンテナ XXX を作成しています
+ ✓ コンテナ XXX を作成しました
+ … コンテナを起動しています
+ ✓ ネットワークに接続しました
+ … インストールしています（数分かかります）
+ ✓ インストールが完了しました
+
+✓Hatch の準備ができました。
+
+   パネル  http://192.168.1.50:8080
+   初期設定 pct enter 100 → hatch-setup
+   更新    pct enter 100 → update
+   Tailscale を後から接続する場合: pct enter 100 → tailscale up</code></pre>
+
+      <div class="note ok">このメッセージに表示されたコンテナ ID（この例では <b>100</b>）をメモしておいてください。次のステップで使います。</div>
+
+      <h3>対話形式での設定</h3>
+      <p>スクリプト実行時に、以下の画面が表示されます（非対話実行の場合はスキップ）：</p>
+      <pre><code>設定方法を選んでください
+  1) 標準設定（CPU 2 / メモリ 2048MB / ディスク 10GB / DHCP）
+  2) 詳細設定</code></pre>
+
+      <h4>標準設定の場合</h4>
+      <p><code>1</code> を選択すれば完了。デフォルト値でコンテナが作成されます。</p>
+
+      <h4>詳細設定の場合</h4>
+      <p><code>2</code> を選択すると、以下の項目を対話形式で入力できます：</p>
+      <ul class="input-table">
+        <li><b>コンテナID</b><span>一意の番号（例：100）。通常は自動で割り当てられた値で OK</span></li>
+        <li><b>ホスト名</b><span>コンテナの識別名。デフォルト：<code>hatch</code></span></li>
+        <li><b>CPUコア数</b><span>割り当てるコア数。デフォルト：<code>2</code></span></li>
+        <li><b>メモリ (MB)</b><span>割り当てるメモリ。デフォルト：<code>2048</code>（2GB）</span></li>
+        <li><b>ディスク (GB)</b><span>割り当てるディスク。デフォルト：<code>10</code>（最小推奨）</span></li>
+        <li><b>コンテナのストレージ</b><span>保存先ストレージ。通常は最初の選択肢で OK</span></li>
+        <li><b>ネットワークブリッジ</b><span>ブリッジ名。デフォルト：<code>vmbr0</code></span></li>
+        <li><b>IPアドレス</b><span><code>dhcp</code> または <code>192.168.1.50/24</code> の形式</span></li>
+        <li><b>ゲートウェイ</b><span>固定 IP を選択した場合のみ必須。例：<code>192.168.1.1</code></span></li>
+        <li><b>VLAN タグ</b><span>不要な場合は空欄。VLAN を使う場合は番号を入力</span></li>
+        <li><b>Tailscale 認証キー</b><span>Tailscale に自動接続する場合のみ入力。後からでも OK</span></li>
+      </ul>
+
+      <div class="note warn">
+        固定 IP を選択した場合は、ゲートウェイの入力が必須です。
+      </div>
+    </section>
+
+    <!-- ステップ 2 -->
+    <section>
+      <h2><span class="num">2</span>コンテナにアクセス</h2>
+      <p class="lead">コンテナ作成後、シェルにアクセスして初期設定を進めます。</p>
+
+      <h3>コンテナシェルへのアクセス</h3>
+      <p>ステップ 1 で表示されたコンテナ ID を使用します（この例では 100）：</p>
+      <pre><button class="copy" data-copy>コピー</button><code>pct enter 100</code></pre>
+
+      <p>実行すると、コンテナ内の root シェルにアクセスできます（プロンプトが <code>root@hatch:~#</code> に変わります）。</p>
+
+      <div class="note ok">コンソール自動ログイン設定により、パスワード入力は不要です。</div>
+
+      <h3>コンテナ内での確認</h3>
+      <p>コンテナ内で以下のコマンドを実行して、インストール状況を確認できます：</p>
+      <pre><code>root@hatch:~# ls -la /opt/hatch/
+root@hatch:~# systemctl status hatch.target
+root@hatch:~# journalctl -u hatch-api -n 20</code></pre>
+
+      <h3>もし入れない場合</h3>
+      <p>SSH でアクセスしたい場合は、コンテナ内で root パスワードを設定：</p>
+      <pre><code>root@hatch:~# passwd root</code></pre>
+      <p>その後、Proxmox ホストで <code>pct exec 100 -- hostname -I</code> でコンテナの IP を確認し、SSH でアクセス可能になります。</p>
+    </section>
+
+    <!-- ステップ 3 -->
+    <section>
+      <h2><span class="num">3</span>hatch-setup で初期設定</h2>
+      <p class="lead">コンテナ内で <code>hatch-setup</code> コマンドを実行し、外部サービスと連携する設定をします。<br>
+      入力値は <strong>その場で接続確認</strong> されるため、誤った設定では先に進めません。</p>
+
+      <h3>コマンド実行</h3>
+      <pre><button class="copy" data-copy>コピー</button><code>hatch-setup</code></pre>
+
+      <h3>設定項目と入力値</h3>
+      <p>以下の順で対話形式で設定値を入力します。各項目で接続確認が行われます。</p>
+
+      <h4>① ホスト名・タイムゾーン</h4>
+      <pre><code>Hatch ホスト名（Tailscale 内での識別名、デフォルト: hatch）: </code></pre>
+      <p>デフォルト値（<code>hatch</code>）で OK。Tailscale 内から <code>http://hatch:8080</code> でアクセスできます。</p>
+      <pre><code>タイムゾーン（デフォルト: Asia/Tokyo）: </code></pre>
+      <p>日本の場合は <code>Asia/Tokyo</code> で OK。</p>
+
+      <h4>② Tailscale 内での URL</h4>
+      <pre><code>Tailscale 内から見たこのコンテナの URL（例 http://hatch:8080）: </code></pre>
+      <p>ホスト名が <code>hatch</code> の場合は <code>http://hatch:8080</code> を入力。<br>
+      ポート 8080 は固定。ホスト名は①で入力した名前に合わせてください。</p>
+
+      <h4>③ Pterodactyl パネル</h4>
+      <pre><code>Pterodactyl パネルのホスト名または URL（例 panel.example.com）: </code></pre>
+      <p>パネルが https://panel.example.com で動作している場合、<code>panel.example.com</code> を入力。<br>
+      または完全な URL <code>https://panel.example.com</code> でも OK。</p>
+      <pre><code>Pterodactyl Application API キー: </code></pre>
+      <p>パネルの Admin Panel → API Management → Applications → Application Tokens から作成。<br>
+      以下の権限が必要：<code>user:read, user:update, node:read, allocation:read, allocation:create, server:read, server:create, nest:read, egg:read</code></p>
+      <pre><code>Pterodactyl root 管理者の Client API キー: </code></pre>
+      <p>root 管理者アカウントの Account → API Tokens から作成。</p>
+
+      <div class="note warn">API キーは秘密情報です。ログファイルやバージョン管理に出さないよう注意してください。</div>
+
+      <h4>④ Cloudflare</h4>
+      <pre><code>Cloudflare API トークン（Zone:Read・DNS:Edit の権限が必要）: </code></pre>
+      <p>Cloudflare の API Tokens → Create Token から、<strong>Template: Edit zone DNS</strong> で作成。<br>
+      権限：<code>Zone:Read</code>、<code>DNS:Edit</code></p>
+      <pre><code>Cloudflare ゾーン ID（例 abcdef1234567890）: </code></pre>
+      <p>Cloudflare の Zone Details ページ右下に表示されます。ここでは一度確認するだけ。<br>
+      画面の「管理 → ドメイン」から後で登録します。</p>
+
+      <h4>⑤ Uptime Kuma</h4>
+      <pre><code>Uptime Kuma のホスト名または URL（例 http://kuma.example.com:3001）: </code></pre>
+      <p>Uptime Kuma が http://192.168.1.60:3001 で動作している場合、<code>http://192.168.1.60:3001</code> を入力。<br>
+      Tailscale に参加している場合は <code>http://kuma:3001</code> でも OK。</p>
+      <pre><code>Uptime Kuma ユーザー名: </code></pre>
+      <pre><code>Uptime Kuma パスワード: </code></pre>
+      <p>ユーザーが存在しなければ自動作成されます。</p>
+      <pre><code>Uptime Kuma メトリクス API キー: </code></pre>
+      <p>Uptime Kuma の設定 → API Keys から作成。</p>
+
+      <h4>⑥ Discord</h4>
+      <pre><code>Discord Bot トークン: </code></pre>
+      <pre><code>Discord クライアント ID: </code></pre>
+      <pre><code>Discord クライアント シークレット: </code></pre>
+      <p>Discord Developer Portal → Applications → [Your App] から取得。</p>
+      <pre><code>Discord サーバー（ギルド）ID: </code></pre>
+      <p>Discord で右クリック → ID コピーで取得。</p>
+      <pre><code>Discord お知らせ channel ID: </code></pre>
+      <pre><code>Discord 運営通知 channel ID: </code></pre>
+      <p>それぞれのチャンネルで右クリック → ID コピーで取得。</p>
+
+      <h4>⑦ Object Storage（バックアップ用 S3）</h4>
+      <pre><code>S3 エンドポイント（例 https://us-west-1.linodeobjects.com）: </code></pre>
+      <pre><code>S3 バケット名: </code></pre>
+      <pre><code>S3 アクセスキー: </code></pre>
+      <pre><code>S3 シークレットキー: </code></pre>
+      <p>Linode Object Storage の場合、Linode の Account → Object Storage から確認。</p>
+
+      <h4>⑧ Edge エージェント</h4>
+      <pre><code>Edge エージェントの認証トークン（自動生成、そのまま入力）: </code></pre>
+      <p>自動生成される値がそのまま表示されます。確認して <code>y</code> で確定。</p>
+
+      <h3>設定完了後</h3>
+      <p><code>hatch-setup</code> が全ての接続を検証し、以下を実行します：</p>
+      <ul style="margin:10px 0">
+        <li>設定ファイル <code>/etc/hatch/hatch.env</code> を作成</li>
+        <li>API サーバーを起動</li>
+        <li>PostgreSQL データベースを初期化</li>
+        <li>Uptime Kuma に自己監視を登録</li>
+      </ul>
+      <p>完了すると <code>✓ セットアップが完了しました</code> と表示されます。</p>
+
+      <div class="alert alert-success">コンテナから抜ける場合は <code>exit</code> を入力します。</div>
+    </section>
+
+    <!-- ステップ 4 -->
+    <section>
+      <h2><span class="num">4</span>Web パネルへのアクセス確認</h2>
+      <p class="lead">API が正常に起動したことを確認します。</p>
+
+      <h3>ステップ 1 で表示された URL にアクセス</h3>
+      <p>例：<code>http://192.168.1.50:8080</code><br>
+      ブラウザで開くと、Hatch パネルが表示されます。</p>
+
+      <p><span class="pill ok">注意</span> Tailscale 外からは、IP アドレスと 8080 ポートでアクセスしてください。<br>
+      ホスト名（<code>http://hatch:8080</code>）でアクセスできるのは Tailscale に参加したマシンだけです。</p>
+
+      <h3>もし表示されない場合</h3>
+      <p>コンテナ内で以下を確認：</p>
+      <pre><code>root@hatch:~# journalctl -u hatch-api -n 50
+root@hatch:~# systemctl status hatch.target
+root@hatch:~# ss -tlnp | grep 8080</code></pre>
+
+      <div class="alert alert-warning">
+        ポート 8080 が別のプロセスで使われていないか、ファイアウォールで遮断されていないか確認してください。
+      </div>
+    </section>
+
+    <!-- ステップ 5 -->
+    <section>
+      <h2><span class="num">5</span>Web パネルの公開設定</h2>
+      <p class="lead">利用者がアクセスできるように、Web パネルをインターネットに公開します。2つ方法があります。</p>
+
+      <h3>方法 A：Cloudflare Tunnel（推奨）</h3>
+      <p>コンテナ内で <code>cloudflared</code> をセットアップ。受信ポート不要で最も簡単。</p>
+      <pre><code>root@hatch:~# apt-get install cloudflared
+root@hatch:~# cloudflared tunnel login</code></pre>
+      <p>その後、Cloudflare ダッシュボードで Tunnel を作成し、<code>https://&lt;パネルのドメイン&gt;</code> → <code>localhost:8080</code> にルーティング設定。</p>
+
+      <h3>方法 B：edge サーバーの nginx 中継</h3>
+      <p>edge サーバーの nginx から Tailscale 経由で Hatch に接続。<br>
+      詳細は <a href="../README.md">README の「edge サーバーのセットアップ」</a> を参照。</p>
+
+      <div class="note">どちらの方法でも、<code>https://&lt;パネルのドメイン&gt;/</code> で アクセス可能にしてください。</div>
+    </section>
+
+    <!-- ステップ 6 -->
+    <section>
+      <h2><span class="num">6</span>画面からの初期設定</h2>
+      <p class="lead">Web パネルにアクセスし、Discord でログインして初期設定を進めます。</p>
+
+      <h3>ログイン</h3>
+      <p><code>https://&lt;パネルのドメイン&gt;/</code> を開き、「Discord でログイン」ボタンをクリック。<br>
+      初回ログインのユーザーは自動作成されます。管理者は別途設定が必要です。</p>
+
+      <h3>ドメイン登録（管理画面）</h3>
+      <p>管理 → ドメイン → 追加</p>
+      <ul class="input-table">
+        <li><b>ドメイン</b><span>例：<code>nuids.jp</code></span></li>
+        <li><b>Cloudflare ゾーン ID</b><span><code>hatch-setup</code> で入力した値</span></li>
+      </ul>
+      <p>登録すると、<code>edge.nuids.jp</code> が自動で作成されます。</p>
+
+      <h3>IP と紐付け（管理画面）</h3>
+      <p>管理 → IP と紐付け → 追加</p>
+      <p>edge サーバーの IP アドレスを登録。複数台の edge サーバーがある場合は、それぞれ登録。</p>
+
+      <h3>アドレス枠作成（管理画面）</h3>
+      <p>管理 → アドレス枠 → 追加</p>
+      <ul class="input-table">
+        <li><b>ポート範囲</b><span>例：<code>25560-25569</code></span></li>
+        <li><b>ホスト名パターン</b><span>例：<code>mc{nn}trt</code>（<code>{nn}</code> は自動で 01 から 99 に置換）</span></li>
+        <li><b>対象外ポート</b><span>例：<code>25560</code>（予約済みなど。複数指定可）</span></li>
+      </ul>
+      <p>保存後、「DNS を作成」ボタンで DNS レコードが自動作成されます。<br>
+      完成後は <code>mc01trt.nuids.jp</code> のようなアドレスが利用者に提供されます。</p>
+
+      <h3>Discord ロール連携（管理画面）</h3>
+      <p>管理 → Discord ロール連携 → 追加</p>
+      <p>Discord のロール ID と、そのロールが持つ権限（サーバー作成可能台数など）を対応付け。</p>
+
+      <h3>利用規約登録（管理画面）</h3>
+      <p>管理 → 利用規約 → 編集</p>
+      <p>利用者に表示する利用規約を登録。登録後は全利用者が同意を求められます。</p>
+    </section>
+
+    <!-- ステップ 7 -->
+    <section>
+      <h2><span class="num">7</span>動作確認（必須）</h2>
+      <p class="lead">全ての機能が正常に動作していることを確認してから本番運用を開始してください。</p>
+
+      <h3>テストのチェックリスト</h3>
+      <div style="background:var(--bg2);border-radius:12px;padding:16px;margin:12px 0">
+        <ul style="margin:0;padding:0;list-style:none">
+          <li style="padding:8px 0;display:flex;gap:10px;align-items:flex-start">
+            <input type="checkbox" id="test1" style="margin-top:4px">
+            <label for="test1" style="flex:1">自分のアカウント（Discord）でログインでき、ダッシュボードが表示される</label>
+          </li>
+          <li style="padding:8px 0;display:flex;gap:10px;align-items:flex-start">
+            <input type="checkbox" id="test2" style="margin-top:4px">
+            <label for="test2" style="flex:1">管理画面にアクセスでき、ドメイン・IP・アドレス枠の設定が保存される</label>
+          </li>
+          <li style="padding:8px 0;display:flex;gap:10px;align-items:flex-start">
+            <input type="checkbox" id="test3" style="margin-top:4px">
+            <label for="test3" style="flex:1">作成したアドレス（例：mc01trt.nuids.jp）が、Cloudflare DNS に登録されている</label>
+          </li>
+          <li style="padding:8px 0;display:flex;gap:10px;align-items:flex-start">
+            <input type="checkbox" id="test4" style="margin-top:4px">
+            <label for="test4" style="flex:1">Uptime Kuma の監視画面に、Hatch が「オンライン」で表示されている</label>
+          </li>
+          <li style="padding:8px 0;display:flex;gap:10px;align-items:flex-start">
+            <input type="checkbox" id="test5" style="margin-top:4px">
+            <label for="test5" style="flex:1">Pterodactyl パネルとの連携が正常（API 呼び出しが成功）</label>
+          </li>
+        </ul>
+      </div>
+
+      <h3>すべてのチェックが付いたら...</h3>
+      <p><span class="pill ok">準備完了</span> 本番運用を開始できます。</p>
+    </section>
+
+    <!-- ステップ 8 -->
+    <section>
+      <h2><span class="num">8</span>トラブルシューティング</h2>
+      <p class="lead">うまくいかない場合の確認方法をまとめています。</p>
+
+      <h3>コンテナに入れない</h3>
+      <div class="note warn">
+        <b>症状：</b> <code>pct enter 100</code> が動作しない<br>
+        <b>確認：</b> Proxmox で <code>pct list</code> を実行し、コンテナが起動しているか確認。ステータスが <code>running</code> でなければ <code>pct start 100</code> で起動。
+      </div>
+
+      <h3>API が起動しない</h3>
+      <div class="note warn">
+        <b>症状：</b> ブラウザで <code>http://IP:8080</code> に接続できない<br>
+        <b>確認：</b>
+        <pre style="margin:8px 0"><code>root@hatch:~# systemctl status hatch-api
+root@hatch:~# journalctl -u hatch-api -n 100 | tail -30</code></pre>
+        エラーが見つかれば、メッセージに従って対応。多くの場合は <code>hatch-setup</code> の設定値の誤りです。
+      </div>
+
+      <h3>Pterodactyl パネルに接続できない</h3>
+      <div class="note warn">
+        <b>症状：</b> 管理画面でパネルの設定確認に失敗<br>
+        <b>確認：</b>
+        <pre style="margin:8px 0"><code>root@hatch:~# curl -s https://panel.example.com/api/client -H "Authorization: Bearer API_KEY" | jq</code></pre>
+        API キーが正しいか、権限が不足していないか確認。
+      </div>
+
+      <h3>Cloudflare DNS が作られない</h3>
+      <div class="note warn">
+        <b>症状：</b> アドレス枠を作成しても DNS に登録されない<br>
+        <b>確認：</b> Cloudflare API トークンの権限を確認。<code>Zone:Read</code> と <code>DNS:Edit</code> が両方あるか。
+        <pre style="margin:8px 0"><code>root@hatch:~# journalctl -u hatch-api | grep -i cloudflare</code></pre>
+      </div>
+
+      <h3>Discord ログインが失敗</h3>
+      <div class="note warn">
+        <b>症状：</b> 「Discord でログイン」をクリックしてもエラーになる<br>
+        <b>確認：</b> Discord Developer Portal で OAuth2 の「リダイレクト URI」が正しく設定されているか。<br>
+        入力値：<code>https://&lt;パネルのドメイン&gt;/api/auth/callback</code>
+      </div>
+
+      <h3>Uptime Kuma に接続できない</h3>
+      <div class="note warn">
+        <b>症状：</b> <code>hatch-setup</code> で Kuma の接続確認に失敗<br>
+        <b>確認：</b> Kuma が起動しているか、URL が正しいか。IP アドレス確認：
+        <pre style="margin:8px 0"><code>root@hatch:~# curl http://192.168.1.60:3001/</code></pre>
+      </div>
+
+      <h3>それでも解決しない場合</h3>
+      <p>コンテナ内の詳細ログを確認：</p>
+      <pre><code>root@hatch:~# journalctl -u hatch.target -n 200
+root@hatch:~# cat /etc/hatch/hatch.env  # ※ 秘密情報が含まれているため取り扱い注意</code></pre>
+      <p>GitHub Issues で報告する場合は、上記ログの <strong>秘密情報（API キーなど）を削除</strong> した部分をご共有ください。</p>
+    </section>
+
+    <!-- まとめ -->
+    <section>
+      <h2><span class="num">✓</span>セットアップ完了</h2>
+      <p class="lead">これで Hatch の基本的なセットアップが完了しました。</p>
+
+      <h3>次のステップ</h3>
+      <ul style="margin:12px 0;padding-left:20px">
+        <li><strong>テスト環境の整備：</strong> 本番前に、同じ Proxmox にテスト用のコンテナ（<code>PD_INSTANCE=stg</code>）を作成し、一通りの機能をテスト。</li>
+        <li><strong>バックアップ戦略：</strong> PostgreSQL データベースと Object Storage の定期バックアップを設定。</li>
+        <li><strong>監視設定：</strong> Uptime Kuma で重要な機能の監視を追加し、アラートが Discord に通知されるか確認。</li>
+        <li><strong>ドキュメント整備：</strong> 利用者向けの利用規約・プライバシーポリシーを完成させる。</li>
+      </ul>
+
+      <p style="margin-top:20px">詳細な設定・仕様は <a href="../docs/ENVIRONMENT.md">docs/ENVIRONMENT.md</a>、<a href="../docs/SPEC.md">docs/SPEC.md</a>、<a href="../README.md">README</a> を参照。</p>
+    </section>
+
+  </main>
+</div>
+<footer>Hatch インストール詳細ガイド</footer>
+<script>
+"use strict";
+document.querySelectorAll(".copy").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const code = btn.parentElement.querySelector("code").innerText;
+    navigator.clipboard.writeText(code).then(() => {
+      const old = btn.textContent;
+      btn.textContent = "コピーしました";
+      setTimeout(() => { btn.textContent = old; }, 1500);
+    });
+  });
+});
+</script>
+</body>
+</html>

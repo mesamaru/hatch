@@ -26,7 +26,61 @@ Discord と Web パネルから、Pterodactyl のゲームサーバーを **一�
 git tag v0.1.0 && git push --tags     # 最初のリリース（GitHub Actions が配布ファイルを作ります）
 ```
 
-## インストール
+## セットアップの流れ（スクリプト実行から動作確認まで）
+
+詳細は [docs/install-guide.html](docs/install-guide.html) を参照してください。
+
+### 1. Proxmox ホストでコンテナ作成
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/hatch.sh)"
+```
+
+対話形式でコンテナのスペック（CPU・メモリ・ディスク・ネットワーク）を入力します。完了後、コンテナ ID とアクセス URL が表示されます。
+
+### 2. コンテナ内で初期設定
+
+```bash
+pct enter <コンテナID>
+hatch-setup
+```
+
+以下を対話形式で設定します（入力値はその場で検証されます）：
+
+- **基本情報**：ホスト名・タイムゾーン
+- **Tailscale URL**：`http://hatch:8080` など（Tailscale 内からのアクセス）
+- **Pterodactyl パネル**：API キー・ホスト名
+- **Cloudflare**：API トークン・ゾーン ID
+- **Uptime Kuma**：URL・認証情報・メトリクスキー
+- **Discord**：Bot トークン・クライアント ID・シークレット
+- **Object Storage**：エンドポイント・バケット・アクセスキー
+- **Edge エージェント**：トークン（自動生成）
+
+### 3. Web パネルの公開設定
+
+Cloudflare Tunnel または edge の nginx 経由で Web パネルを公開します。
+
+### 4. 画面からの初期設定
+
+`https://<パネルのドメイン>/` を開き、Discord でログインして：
+
+1. **管理 → ドメイン**：ゲームサーバーのドメインを登録
+2. **管理 → IP と紐付け**：edge サーバーの IP を確認
+3. **管理 → アドレス枠**：ポート範囲とホスト名パターンを作成
+4. **管理 → Discord ロール連携**：ロールと権限の対応を設定
+5. **管理 → 利用規約**：利用規約を登録
+
+### 5. 動作確認
+
+- テスト用アカウントでログイン
+- サーバーを1台作成
+- アドレスに接続確認
+- 監視画面に反映確認
+- バックアップ・復元・退会を一通りテスト
+
+## インストール（従来のセクション）
+
+**詳細は上記「セットアップの流れ」または [docs/install-guide.html](docs/install-guide.html) を参照してください。**
 
 Proxmox VE ホストのシェルで実行します。
 
