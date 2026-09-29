@@ -140,3 +140,12 @@ if [[ ! -f "$PD_ETC/games.yml" ]]; then
   say "ゲームの定義（games.yml）の見本を置いています。パネルの nest・egg の ID に合わせて編集してください"
   install -m 640 -o root -g hatch "$PD_HOME/current/deploy/games.example.yml" "$PD_ETC/games.yml"
 fi
+
+say "コンソール自動ログインを設定しています"
+mkdir -p /etc/systemd/system/serial-getty@ttyS0.service.d
+cat > /etc/systemd/system/serial-getty@ttyS0.service.d/autologin.conf << 'CONF'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --keep-baud 115200,38400,9600 %I $TERM
+CONF
+systemctl daemon-reload
