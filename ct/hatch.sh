@@ -10,6 +10,9 @@
 # =============================================================================
 set -Eeuo pipefail
 
+# ホストのロケールが UTF-8 でない場合、whiptail が日本語を文字化けさせるため固定する
+export LANG=C.UTF-8 LC_ALL=C.UTF-8
+
 PD_REPO="${PD_REPO:-mesamaru/hatch}"
 PD_BRANCH="${PD_BRANCH:-main}"
 PD_CHANNEL="${PD_CHANNEL:-stable}"
