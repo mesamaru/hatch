@@ -261,3 +261,24 @@ async def test_supporter_sees_and_operates_only_assigned_servers(with_rule):
         assert (await sup.get("/api/servers/storia")).status_code == 404
     finally:
         await sup.aclose()
+
+
+async def test_catalog_and_admin_users(env):
+    r = (await env["tanaka"].get("/api/catalog")).json()
+    assert r["games"] == [{"id": "paper", "label": "paper", "kind": "mc"}]
+    assert [p["id"] for p in r["plans"]] == ["light", "standard"]
+    assert r["plans"][0]["memory_mb"] == 2048
+    assert (await env["tanaka"].get("/api/admin/users")).status_code == 403
+    users = (await env["admin"].get("/api/admin/users")).json()["items"]
+    assert [u["username"] for u in users] == ["admin", "suzuki", "tanaka"]
+    assert "email" not in users[0]
+
+
+async def test_trashed_server_shows_purge_time(with_rule):
+    env = with_rule
+    await create(env)
+    assert (await env["tanaka"].delete("/api/servers/storia")).status_code == 202
+    await env["engine"].run_once()
+    items = (await env["tanaka"].get("/api/servers", params={"status": "trashed"})).json()["items"]
+    assert [s["name"] for s in items] == ["storia"]
+    assert items[0]["trashed_at"] and items[0]["purge_after"] > items[0]["trashed_at"]

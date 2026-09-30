@@ -20,8 +20,8 @@ class ApiError extends Error {
   }
 }
 
-async function request(method, path, body) {
-  const headers = {};
+async function request(method, path, body, extra = {}) {
+  const headers = { ...extra };
   if (body !== undefined) headers["Content-Type"] = "application/json";
   if (method !== "GET" && csrfToken) headers["X-CSRF-Token"] = csrfToken;
   const res = await fetch(`/api${path}`, {
@@ -46,7 +46,7 @@ async function request(method, path, body) {
 
 export const api = {
   get: (path) => request("GET", path),
-  post: (path, body) => request("POST", path, body ?? {}),
+  post: (path, body, headers) => request("POST", path, body ?? {}, headers),
   put: (path, body) => request("PUT", path, body ?? {}),
   patch: (path, body) => request("PATCH", path, body ?? {}),
   del: (path) => request("DELETE", path),

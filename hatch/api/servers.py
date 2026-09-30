@@ -58,6 +58,32 @@ async def create_server(
     }
 
 
+@router.get("/api/catalog")
+async def catalog(p: Principal = Depends(require_user), games: dict[str, Game] = Depends(get_games)) -> dict:
+    """作成画面の選択肢（ゲームとプラン）。"""
+    async with db.transaction() as conn:
+        cur = await conn.execute(
+            """SELECT id, name, memory_mb, cpu_percent, disk_mb, backup_limit, period_days
+               FROM plans WHERE is_active ORDER BY memory_mb, id"""
+        )
+        plans = [dict(r) for r in await cur.fetchall()]
+    return {
+        "games": [{"id": g.id, "label": g.label, "kind": g.kind} for g in games.values()],
+        "plans": plans,
+    }
+
+
+@router.get("/api/admin/users")
+async def list_users(p: Principal = Depends(require_admin)) -> dict:
+    """ユーザーの一覧（作成時の所有者や、専用枠の相手を選ぶため）。"""
+    async with db.transaction() as conn:
+        cur = await conn.execute(
+            """SELECT id::text AS id, username, role, status, max_servers FROM users
+               WHERE status IN ('active','invited','suspended','deleting') ORDER BY username"""
+        )
+        return {"items": [dict(r) for r in await cur.fetchall()]}
+
+
 @router.get("/api/jobs/{job_id}")
 async def get_job(job_id: int, p: Principal = Depends(require_user)) -> dict:
     async with db.transaction() as conn:
@@ -133,6 +159,8 @@ def server_out(p: Principal, row) -> dict:
         "expires_at": _iso(row["expires_at"]),
         "maintenance_until": _iso(row["maintenance_until"]),
         "suspend_reason": row["suspend_reason"],
+        "trashed_at": _iso(row["trashed_at"]),
+        "purge_after": _iso(row["purge_after"]),
         "my_permission": _my_permission(p, row),
         "job": row["job"],
     }

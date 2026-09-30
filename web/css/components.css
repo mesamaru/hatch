@@ -173,7 +173,7 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 .totp-steps a{color:var(--blue)}
 .totp-key{display:flex;align-items:center;gap:8px;margin-top:8px}
 .totp-key code{flex:1;min-width:0;padding:8px 10px;border-radius:10px;background:var(--fill);font-size:15px;letter-spacing:.04em;overflow-wrap:anywhere}
-.sheet-b .field input{text-align:right;font-family:var(--mono);letter-spacing:.15em}
+.sheet-b .field input#totp-in{text-align:right;font-family:var(--mono);letter-spacing:.15em}
 .sheet-b .btn.block{margin-top:4px}
 
 /* ---- 初期設定（ウィザード） ---- */

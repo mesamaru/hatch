@@ -13,6 +13,7 @@ import socket
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 import psycopg
 import pytest
@@ -43,12 +44,13 @@ def _free_port() -> int:
 
 
 @pytest.fixture
-def server(db_url):
+def server(db_url, tmp_path):
     """DATABASE_URL を db_url に向けたまま、実際に uvicorn を起動する。"""
     port = _free_port()
     proc = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "hatch.main:app", "--host", "127.0.0.1", "--port", str(port)],
-        env=os.environ.copy(),
+        [sys.executable, "-m", "tests.e2e.fake_server", str(port)],  # 外部サービスはフェイク
+        cwd=Path(__file__).resolve().parents[2],
+        env={**os.environ, "PD_DATA_DIR": str(tmp_path)},  # 初期設定コードなどの書き込み先（テストごとに分ける）
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )

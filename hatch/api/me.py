@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from .. import db
 from ..auth.session import Principal, require_session
+from ..config import get_settings
 from ..errors import AppError
 from ..repo import audit
 from ..repo import servers as servers_repo
@@ -44,6 +45,7 @@ async def me(p: Principal = Depends(require_session)) -> dict:
         "csrf_token": p.csrf_token,
         "needs_tos": needs_tos,
         "tos_version": version,
+        "panel_url": get_settings().panel_public_url,  # 画面の「パネル」ボタンの行き先（ゲームパネル）
         "needs_totp": p.needs_totp,
         "totp_enabled": p.totp_enabled,
         "limits": {"max_servers": None if p.role == "admin" else p.max_servers, "used": used},

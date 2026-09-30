@@ -27,6 +27,7 @@
   "auto_restart": true, "public_status": false,
   "expires_at": "2026-10-29T00:00:00Z", "maintenance_until": null,
   "suspend_reason": null,
+  "trashed_at": null, "purge_after": null,   // ゴミ箱に入った時刻・完全に削除される時刻
   "my_permission": "owner",        // admin|owner|view|console|files|full|support（割り当てられたサポーター）
   "monitor": {"state": "up", "ping_ms": 38, "uptime_24h": 99.9} ,  // state: up|down|paused|pending|unknown
   "job": null                      // 実行中のジョブがあれば Job
@@ -61,7 +62,7 @@
 | POST | /auth/totp/setup | だれでも。`{"otpauth_url","secret"}` を返す。コードを確かめる（verify）までは有効にならない。既に有効なら `409 totp_already` |
 | POST | /auth/totp/verify | `{"code":"123456"}` → 有効にする（初回）か、ログイン後の確認。セッションの `totp_ok=true`。5回続けて間違えるとログアウト |
 | POST | /auth/totp/disable | `{"code"}`（今のコードが必要）→ 無効にして鍵を消す。`204` |
-| GET | /me | `{"user", "csrf_token", "needs_tos": bool, "needs_totp": bool, "totp_enabled": bool, "limits": {"max_servers", "used"}}` |
+| GET | /me | `{"user", "csrf_token", "panel_url", "needs_tos": bool, "needs_totp": bool, "totp_enabled": bool, "limits": {"max_servers", "used"}}`。`panel_url` は利用者に見せるゲームパネルの URL（`PANEL_PUBLIC_URL`、無ければ `PANEL_URL`） |
 | POST | /me/tos | `{"version"}` 同意を記録 |
 | PUT | /me/password | `{"password"}`（12〜128文字）。**同期処理**：パネル側のパスワードを直接更新し、成功したら `204`。平文はジョブに保存しない |
 | GET / PUT | /me/notifications | `{"down","expiry","disk"}` |
@@ -77,8 +78,9 @@
 
 | メソッド | パス | 権限 | 説明 |
 |---|---|---|---|
+| GET | /catalog | ログイン | 作成画面の選択肢 `{"games":[{"id","label","kind"}],"plans":[{"id","name","memory_mb","cpu_percent","disk_mb","backup_limit","period_days"}]}`（ゲームは games.yml、プランは有効なものだけ） |
 | GET | /servers | ログイン | 見えるサーバーの一覧。`?owner=`（admin のみ）、`?status=` |
-| POST | /servers | ログイン | 作成。`{"name","game","plan","slot_port","owner_id"?}`（owner_id は admin のみ）→ `202 {job, server}` |
+| POST | /servers | ログイン | 作成。`{"name","game","plan","slot_port","owner_id"?}`（owner_id は admin のみ）→ `202 {job, server}`。`Idempotency-Key` ヘッダーを付けると、同じキーの再送では同じジョブを返す |
 | GET | /servers/{id} | server.view | 詳細 |
 | PATCH | /servers/{id} | server.settings | `{"auto_restart"?, "public_status"?}` |
 | GET | /servers/{id}/resources | server.view | `{"cpu_percent","memory_bytes","memory_limit","disk_bytes","disk_limit","players":{"online","max"}}`（パネルから直接取得、5秒でタイムアウト） |
@@ -139,7 +141,7 @@
 | POST | /admin/slot-rules/{id}/publish | DNS を事前作成 → ジョブ（`?dry_run=1` でレコード一覧） |
 | POST | /admin/slot-rules/{id}/unpublish | → ジョブ |
 | PATCH | /admin/slots/{port} | `{"status":"free|disabled"}`（assigned・held は変更不可） |
-| GET | /admin/users | |
+| GET | /admin/users | `{"items":[{"id","username","role","status","max_servers"}]}`（作成時の所有者や専用枠の相手を選ぶため。メールは返さない） |
 | POST | /admin/users/invite | `{"discord_username","role"}` |
 | GET / PATCH | /admin/users/{id} | `{"role"?, "max_servers"?}` |
 | POST | /admin/users/{id}/sync, /password-reset, /suspend, /unsuspend, /panel-admin | suspend は `{"reason"}` 必須 |

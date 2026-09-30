@@ -4,7 +4,8 @@ import { ic } from "./icons.js";
 export const esc = (v) =>
   String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-export function cell({ icon, color, title, sub, val, act, arg, chev, cls = "", subWrap } = {}) {
+// more: { act, arg, label } を渡すと、行の右端に「…」（その他の操作）のボタンを付ける
+export function cell({ icon, color, title, sub, val, act, arg, chev, cls = "", subWrap, more } = {}) {
   const tag = act ? "button" : "div";
   const attrs = act ? ` type="button" data-act="${act}" data-arg="${esc(arg ?? "")}"` : "";
   const inner =
@@ -12,7 +13,9 @@ export function cell({ icon, color, title, sub, val, act, arg, chev, cls = "", s
     `<div class="tx"><div class="t">${title}</div>${sub ? `<div class="s ${subWrap ? "wrap" : ""}">${sub}</div>` : ""}</div>` +
     `${val !== undefined && val !== "" ? `<span class="val">${val}</span>` : ""}` +
     `${chev ?? !!act ? ic("chev", "chev") : ""}`;
-  return `<${tag} class="cell ${cls} ${icon ? "has-ico" : ""}"${attrs}>${inner}</${tag}>`;
+  const c = `<${tag} class="cell ${cls} ${icon && !more ? "has-ico" : ""}"${attrs}>${inner}</${tag}>`;
+  if (!more) return c;
+  return `<div class="cellwrap ${icon ? "has-ico" : ""}">${c}<button class="more" type="button" data-act="${more.act}" data-arg="${esc(more.arg ?? "")}" aria-label="${esc(more.label || "その他の操作")}" aria-haspopup="menu">${ic("more")}</button></div>`;
 }
 
 export function group(items, head = "", foot = "") {

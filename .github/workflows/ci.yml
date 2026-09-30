@@ -23,6 +23,8 @@ jobs:
         with: { python-version: "3.13" }
       - name: 依存パッケージ
         run: pip install -r requirements-dev.txt
+      - name: 画面のテスト用のブラウザ（Playwright の Chromium）
+        run: python -m playwright install --with-deps chromium
       - name: DB 移行（2回実行して冪等性も確認）
         run: python -m hatch.migrate && python -m hatch.migrate
       - name: API の起動確認（外部サービスの設定なし＝初期設定モード）

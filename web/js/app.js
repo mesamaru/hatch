@@ -1,14 +1,18 @@
 // 画面の骨組み。docs/TASKS.md T15。
 // ナビゲーション（タブ・サイドバー・ナビゲーションバー）、ログイン・二段階認証・利用規約の同意、
-// 表示設定（テーマ・背景）を組み立てる。各画面の中身は T16 で実装する。
+// 表示設定（テーマ・背景）を組み立てる。各画面の中身は pages/*.js（T16）。
 import { api, setCsrfToken } from "./api.js";
 import { navigate, onLocationChange, parseLocation } from "./router.js";
 import { ic } from "./components/icons.js";
-import { esc, cell, group } from "./components/cell.js";
+import { esc, cell, group, banner } from "./components/cell.js";
 import { toast } from "./components/toast.js";
-import { sheetHead, openSheet, closeSheet, isSheetOpen } from "./components/sheet.js";
+import { sheetHead, openSheet, closeSheet, isSheetOpen, onSheetClosed } from "./components/sheet.js";
 import { openPicker, pickerButton } from "./components/picker.js";
 import { renderSetup, setupStatus } from "./setup.js";
+import { ctx, isBusyUi, navbar, pageShell } from "./ctx.js";
+import { SERVER_ACTIONS, SERVER_PAGES, serverTitle } from "./pages/servers.js";
+import { ADMIN_ACTIONS, ADMIN_PAGES, adminTitle } from "./pages/admin-address.js";
+import { JOB_ACTIONS } from "./pages/jobs.js";
 
 const TABS = [
   { id: "servers", label: "サーバー", icon: "server" },
@@ -112,14 +116,8 @@ matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyDis
 function isAdmin() {
   return !!ME && ME.user.role === "admin";
 }
-function navbar(title, { back, right = "" } = {}) {
-  return `<div class="navbar" id="navbar"><div class="l">${
-    back ? `<button type="button" class="back" data-act="back">${ic("back")}<span>${esc(back)}</span></button>` : ""
-  }</div><div class="ttl">${esc(title)}</div><div class="r">${right}</div></div>`;
-}
 function pageTitle(entry) {
-  if (entry.page === "server") return entry.arg;
-  return TITLES[entry.page] || "";
+  return serverTitle(entry) || adminTitle(entry) || TITLES[entry.page] || "";
 }
 function backLabel() {
   if (ROUTE.stack.length > 1) return pageTitle(ROUTE.stack[ROUTE.stack.length - 2]);
@@ -152,17 +150,81 @@ function onScroll() {
 }
 addEventListener("scroll", onScroll, { passive: true });
 
-function renderMain() {
-  const top = ROUTE.stack[ROUTE.stack.length - 1];
-  let html;
-  if (!top) {
-    html = ROUTE.tab === "settings" ? pSettings() : `${navbar(TAB_TITLES[ROUTE.tab])}<div class="page"><h1 class="large">${esc(TAB_TITLES[ROUTE.tab])}</h1></div>`;
-  } else {
-    html = `${navbar(pageTitle(top), { back: backLabel() })}<div class="page"><h1 class="large">${esc(pageTitle(top))}</h1></div>`;
-  }
-  document.getElementById("main").innerHTML = html;
-  onScroll();
+// 画面の中身。文字列か { html, after }（描いた後に呼ぶ関数）を返す。データの取得を待つので async
+function laterPage(title, text) {
+  return pageShell(title, group([cell({ icon: "clock", color: "var(--gray)", title: "この画面は準備中です", sub: text, subWrap: true })]), {
+    back: ROUTE.stack.length > 0,
+  });
 }
+async function pageFor(top) {
+  if (ROUTE.tab === "servers") {
+    if (!top) return SERVER_PAGES.root();
+    if (SERVER_PAGES[top.page]) return SERVER_PAGES[top.page](top.arg);
+    return laterPage(pageTitle(top), "今後のバージョンで使えるようになります。");
+  }
+  if (ROUTE.tab === "admin") {
+    if (!top) return ADMIN_PAGES.root();
+    if (ADMIN_PAGES[top.page]) return ADMIN_PAGES[top.page](top.arg);
+    return ADMIN_PAGES.later(top.page);
+  }
+  if (ROUTE.tab === "monitor") return laterPage("監視", "サーバーごとの稼働状況は、今後この画面にまとめて表示します。今はサーバーの画面で状態を確認できます。");
+  if (ROUTE.tab === "settings" && !top) return pSettings();
+  return laterPage(pageTitle(top) || "設定", "今後のバージョンで使えるようになります。");
+}
+function errorPage(e) {
+  const top = ROUTE.stack[ROUTE.stack.length - 1];
+  if (e.status === 404) {
+    return pageShell("見つかりません", `<p>削除されたか、表示する権限がありません。</p>`, { back: !!top });
+  }
+  const title = top ? pageTitle(top) : TAB_TITLES[ROUTE.tab];
+  return `${navbar(title, { back: top ? backLabel() : "" })}<div class="page"><h1 class="large">${esc(title)}</h1>
+    ${banner("e", "読み込めませんでした", esc(e.message || String(e)), '<button type="button" class="btn sm fill" data-act="reload">もう一度読み込む</button>')}</div>`;
+}
+
+let renderSeq = 0;
+let pendingRefresh = false;
+async function renderMain({ keepScroll = false } = {}) {
+  const seq = ++renderSeq;
+  const main = document.getElementById("main");
+  const top = ROUTE.stack[ROUTE.stack.length - 1];
+  const y = window.scrollY;
+  // 読み込みが遅いときだけ「読み込んでいます」を出す（速いときに画面がちらつかないように）
+  const slow = setTimeout(() => {
+    if (seq !== renderSeq || keepScroll) return;
+    const title = top ? pageTitle(top) : TAB_TITLES[ROUTE.tab];
+    main.innerHTML = `${navbar(title, { back: top ? backLabel() : "" })}<div class="page"><h1 class="large">${esc(title)}</h1><p class="loading" role="status">読み込んでいます…</p></div>`;
+  }, 250);
+  let out;
+  try {
+    out = await pageFor(top);
+  } catch (e) {
+    if (e.status === 401) return location.reload();
+    out = errorPage(e);
+  }
+  clearTimeout(slow);
+  if (seq !== renderSeq) return; // もっと新しい描画が始まっている
+  const { html, after } = typeof out === "string" ? { html: out } : out;
+  main.innerHTML = html;
+  if (keepScroll) window.scrollTo(0, y);
+  onScroll();
+  if (after) after();
+}
+/** データを取り直して描き直す。入力中・シートやメニューの表示中は、閉じた後に行う。 */
+function refresh() {
+  if (!ME) return;
+  if (isBusyUi()) {
+    pendingRefresh = true;
+    return;
+  }
+  pendingRefresh = false;
+  renderMain({ keepScroll: true });
+}
+onSheetClosed(() => {
+  if (pendingRefresh) setTimeout(refresh, 0);
+});
+document.addEventListener("focusout", () => {
+  if (pendingRefresh) setTimeout(() => pendingRefresh && refresh(), 300);
+});
 function render() {
   if (ROUTE.tab === "admin" && !isAdmin()) {
     ROUTE = { tab: "servers", stack: [] };
@@ -335,6 +397,24 @@ function showTosSheet() {
 }
 
 /* ---------------- 起動 ---------------- */
+// 画面のモジュールから使う入口（web/js/ctx.js）
+Object.defineProperty(ctx, "me", { get: () => ME, set: (v) => (ME = v) });
+Object.defineProperty(ctx, "route", { get: () => ROUTE });
+ctx.go = (page, arg) => {
+  ROUTE.stack.push(arg === undefined ? { page } : { page, arg: String(arg) });
+  navigate(ROUTE.tab, ROUTE.stack);
+  window.scrollTo(0, 0);
+  renderMain();
+};
+ctx.goTab = (tab, stack = []) => {
+  ROUTE = { tab, stack };
+  navigate(tab, stack);
+  window.scrollTo(0, 0);
+  render();
+};
+ctx.refresh = refresh;
+ctx.backLabel = backLabel;
+
 function startApp() {
   document.getElementById("app").hidden = false;
   applyDisplay();
@@ -375,9 +455,9 @@ const ACT = {
     render();
   },
   go(a) {
-    ROUTE.stack.push({ page: a });
-    navigate(ROUTE.tab, ROUTE.stack);
-    window.scrollTo(0, 0);
+    ctx.go(a);
+  },
+  reload() {
     renderMain();
   },
   back() {
@@ -436,6 +516,9 @@ const ACT = {
     }
     location.href = "/";
   },
+  ...SERVER_ACTIONS,
+  ...ADMIN_ACTIONS,
+  ...JOB_ACTIONS,
 };
 
 document.addEventListener("click", (e) => {

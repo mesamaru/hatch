@@ -66,6 +66,7 @@ async def node_loads(conn: AsyncConnection) -> list[dict[str, Any]]:
 VIEW_SQL = """
 SELECT s.id::text AS id, s.name, s.game, s.plan_id AS plan, s.status, s.fqdn, s.node_id AS node, s.is_dev_copy,
        s.auto_restart, s.public_status, s.expires_at, s.maintenance_until, s.suspend_reason,
+       s.trashed_at, s.purge_after,
        s.panel_uuid::text AS panel_uuid,
        s.owner_id::text AS owner_id, u.username AS owner_name,
        sl.port, sl.host AS slot_host, d.name AS slot_domain, d.edge_host, sl.rule_id,

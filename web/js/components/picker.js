@@ -1,13 +1,15 @@
-// 選択肢のメニュー（ブラウザ標準の select の代わり）。docs/UI.md「メニュー」と同じ見た目（#menu）を使う。
+// 選択肢のメニュー（ブラウザ標準の select の代わり）と、「…」から開く操作のメニュー。
+// どちらも docs/UI.md「メニュー」と同じ見た目（#menu）を使う。
 //
-//   pickerButton({ id: "f-guild", value, options: [{ value, label, sub }], placeholder })  … 行の右側に置くボタン
-//   openPicker(button, options, value, (v) => { ... })                                    … 押されたら開く
+//   pickerButton({ value, options: [{ value, label, sub }], placeholder, attrs })  … 行の右側に置くボタン
+//   openPicker(button, options, value, (v) => { ... })                              … 押されたら開く
+//   openMenu(button, [{ label, icon, red, disabled, run }, "-", ...])               … 操作のメニュー
 //
 // キーボード：↑↓で移動、Enter・Space で決定、Esc・Tab で閉じる。
 import { esc } from "./cell.js";
 import { ic } from "./icons.js";
 
-let current = null; // { anchor, onPick }
+let current = null; // { anchor, onIndex }
 
 export function pickerButton({ id = "", value = "", options = [], placeholder = "選んでください", attrs = "" }) {
   const opt = options.find((o) => o.value === value);
@@ -28,10 +30,12 @@ export function closePicker({ focus = false } = {}) {
   m.classList.remove("picklist");
   if (current) {
     current.anchor.setAttribute("aria-expanded", "false");
-    if (focus) current.anchor.focus();
+    if (focus && current.anchor.isConnected) current.anchor.focus();
   }
   current = null;
 }
+export const closeMenu = closePicker;
+export const isMenuOpen = () => !!current;
 
 function place(m, anchor) {
   const r = anchor.getBoundingClientRect();
@@ -40,6 +44,7 @@ function place(m, anchor) {
   const gap = 6;
   const pad = 12;
   m.style.maxHeight = "";
+  m.style.width = "";
   const w = Math.min(Math.max(m.offsetWidth, 240), vw - pad * 2);
   m.style.width = `${w}px`;
   // 右端をボタンにそろえ、画面からはみ出さないようにする
@@ -59,22 +64,15 @@ function place(m, anchor) {
   m.style.left = `${left}px`;
 }
 
-export function openPicker(anchor, options, value, onPick) {
+function openList(anchor, { html, role, picklist, onIndex }) {
   const m = menuEl();
   if (current && current.anchor === anchor) return closePicker({ focus: true });
   closePicker();
-  m.classList.add("picklist");
-  m.setAttribute("role", "listbox");
-  m.innerHTML = options
-    .map(
-      (o, i) =>
-        `<button type="button" role="option" data-i="${i}" aria-selected="${o.value === value}" ${o.disabled ? "disabled" : ""}>
-          <span class="ol"><span class="ot">${esc(o.label)}</span>${o.sub ? `<span class="os">${esc(o.sub)}</span>` : ""}</span>
-          ${o.value === value ? ic("check") : ""}</button>`,
-    )
-    .join("");
+  m.classList.toggle("picklist", picklist);
+  m.setAttribute("role", role);
+  m.innerHTML = html;
   m.hidden = false;
-  current = { anchor, onPick, options };
+  current = { anchor, onIndex };
   anchor.setAttribute("aria-expanded", "true");
   place(m, anchor);
   const sel = m.querySelector('[aria-selected="true"]') || m.querySelector("button:not([disabled])");
@@ -84,12 +82,43 @@ export function openPicker(anchor, options, value, onPick) {
   }
 }
 
+export function openPicker(anchor, options, value, onPick) {
+  openList(anchor, {
+    role: "listbox",
+    picklist: true,
+    html: options
+      .map(
+        (o, i) =>
+          `<button type="button" role="option" data-i="${i}" aria-selected="${o.value === value}" ${o.disabled ? "disabled" : ""}>
+          <span class="ol"><span class="ot">${esc(o.label)}</span>${o.sub ? `<span class="os">${esc(o.sub)}</span>` : ""}</span>
+          ${o.value === value ? ic("check") : ""}</button>`
+      )
+      .join(""),
+    onIndex: (i) => onPick(options[i].value),
+  });
+}
+
+export function openMenu(anchor, items) {
+  const list = items.filter(Boolean);
+  openList(anchor, {
+    role: "menu",
+    picklist: false,
+    html: list
+      .map((x, i) =>
+        x === "-"
+          ? "<hr>"
+          : `<button type="button" role="menuitem" data-i="${i}" class="${x.red ? "red" : ""}" ${x.disabled ? "disabled" : ""}>${esc(x.label)}${x.icon ? ic(x.icon) : ""}</button>`
+      )
+      .join(""),
+    onIndex: (i) => list[i].run(),
+  });
+}
+
 function pick(btn) {
   if (!current || !btn || btn.disabled) return;
-  const { onPick, options } = current;
-  const opt = options[Number(btn.dataset.i)];
+  const { onIndex } = current;
   closePicker({ focus: true });
-  onPick(opt.value);
+  onIndex(Number(btn.dataset.i));
 }
 
 function move(delta) {
@@ -103,8 +132,11 @@ function move(delta) {
 
 document.addEventListener("click", (e) => {
   if (!current) return;
-  const btn = e.target.closest("#menu.picklist button");
-  if (btn) return pick(btn);
+  const btn = e.target.closest("#menu button[data-i]");
+  if (btn) {
+    e.stopImmediatePropagation(); // メニューの項目は画面の data-act と関係なく、ここで処理する
+    return pick(btn);
+  }
   if (!e.target.closest("#menu") && !current.anchor.contains(e.target)) closePicker();
 });
 document.addEventListener("keydown", (e) => {
@@ -118,7 +150,7 @@ document.addEventListener("keydown", (e) => {
     move(e.key === "ArrowDown" ? 1 : -1);
   } else if (e.key === "Tab") {
     closePicker();
-  } else if ((e.key === "Enter" || e.key === " ") && e.target.closest("#menu.picklist")) {
+  } else if ((e.key === "Enter" || e.key === " ") && e.target.closest("#menu")) {
     e.preventDefault();
     pick(e.target.closest("button"));
   }
