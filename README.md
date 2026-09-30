@@ -151,6 +151,8 @@ edge エージェントはオーケストレーターから HAProxy 設定を取
 
 `docs/ENVIRONMENT.md` にまとめています（Proxmox・Pterodactyl・Tailscale・Linode・Cloudflare・Uptime Kuma・Object Storage・Discord・GitHub）。
 
+**Discord Bot セットアップが初めての場合は、[docs/discord-setup.md](docs/discord-setup.md) で詳細な手順を確認してください。**
+
 ## 開発に参加する（AI を含む）
 
 `AGENTS.md` → `docs/SPEC.md` → `docs/IMPLEMENTATION.md` → `docs/API.md` → `docs/EXTERNAL.md` → `docs/UI.md` の順に読み、`docs/TASKS.md` のチケットを1つずつ実装します。
