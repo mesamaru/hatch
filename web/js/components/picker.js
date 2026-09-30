@@ -111,7 +111,7 @@ document.addEventListener("keydown", (e) => {
   if (!current) return;
   if (e.key === "Escape") {
     e.preventDefault();
-    e.stopPropagation();
+    e.stopImmediatePropagation(); // シートの Esc（閉じる）より先に、メニューだけを閉じる
     closePicker({ focus: true });
   } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
     e.preventDefault();

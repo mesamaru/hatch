@@ -163,25 +163,61 @@ async def test_expired_session(env):
     assert r.status_code == 401 and r.json()["error"]["code"] == "unauthenticated"
 
 
-async def test_admin_needs_totp(env):
+async def test_totp_is_optional_and_required_once_enabled(env):
+    # 管理者でも、二段階認証を設定しなくても使える
     await login(env, ident(roles=(ADMIN_ROLE,)))
     cl = env["client"]
     me = (await cl.get("/api/me")).json()
-    assert me["needs_totp"] is True and me["limits"]["max_servers"] is None
-    r = await cl.get("/api/admin/_probe")
-    assert r.status_code == 403 and r.json()["error"]["code"] == "totp_required"
+    assert me["needs_totp"] is False and me["totp_enabled"] is False and me["limits"]["max_servers"] is None
+    assert (await cl.get("/api/admin/_probe")).json() == {"ok": True}
+
+    # 本人が設定から有効にする
     h = {"X-CSRF-Token": me["csrf_token"]}
     secret = (await cl.post("/api/auth/totp/setup", headers=h)).json()["secret"]
+    assert (await cl.get("/api/me")).json()["totp_enabled"] is False  # コードを確かめるまでは有効にならない
     r = await cl.post("/api/auth/totp/verify", json={"code": "000000"}, headers=h)
     assert r.status_code == 400 and r.json()["error"]["code"] == "totp_invalid"
     code = crypto.totp_now(secret)
     assert (await cl.post("/api/auth/totp/verify", json={"code": code}, headers=h)).status_code == 204
-    assert (await cl.get("/api/admin/_probe")).json() == {"ok": True}
+    assert (await cl.get("/api/me")).json()["totp_enabled"] is True
     # 同じコードの再利用はできない
     assert (await cl.post("/api/auth/totp/verify", json={"code": code}, headers=h)).status_code == 400
-    # 設定済みなら作り直せない
+    # 有効なら作り直せない
     assert (await cl.post("/api/auth/totp/setup", headers=h)).status_code == 409
     assert q(env["url"], "SELECT secret_enc <> %s FROM user_totp", (secret,)) == [(True,)]  # 暗号化して保存
+
+    # 次のログインからは、コードを入力するまで使えない
+    cl.cookies.clear()
+    await login(env, ident(roles=(ADMIN_ROLE,)))
+    me = (await cl.get("/api/me")).json()
+    h = {"X-CSRF-Token": me["csrf_token"]}
+    assert me["needs_totp"] is True
+    for path in ("/api/admin/_probe", "/api/servers"):
+        r = await cl.get(path)
+        assert r.status_code == 403 and r.json()["error"]["code"] == "totp_required", path
+    q(env["url"], "UPDATE user_totp SET last_counter = 0 RETURNING 1")  # 同じ時間帯のコードをもう一度使うため
+    assert (await cl.post("/api/auth/totp/verify", json={"code": code}, headers=h)).status_code == 204
+    assert (await cl.get("/api/admin/_probe")).status_code == 200
+
+    # 無効にするには今のコードが必要
+    r = await cl.post("/api/auth/totp/disable", json={"code": "000000"}, headers=h)
+    assert r.status_code == 400
+    q(env["url"], "UPDATE user_totp SET last_counter = 0 RETURNING 1")
+    assert (await cl.post("/api/auth/totp/disable", json={"code": code}, headers=h)).status_code == 204
+    assert q(env["url"], "SELECT totp_enabled FROM users") == [(False,)]
+    assert q(env["url"], "SELECT count(*) FROM user_totp") == [(0,)]
+    actions = [r[0] for r in q(env["url"], "SELECT action FROM audit_log ORDER BY id")]
+    assert "二段階認証を有効化" in actions and "二段階認証を無効化" in actions
+
+
+async def test_user_can_enable_totp(env):
+    await login(env, ident())
+    cl = env["client"]
+    h = {"X-CSRF-Token": (await cl.get("/api/me")).json()["csrf_token"]}
+    secret = (await cl.post("/api/auth/totp/setup", headers=h)).json()["secret"]
+    code = crypto.totp_now(secret)
+    assert (await cl.post("/api/auth/totp/verify", json={"code": code}, headers=h)).status_code == 204
+    assert q(env["url"], "SELECT role, totp_enabled FROM users") == [("user", True)]
 
 
 async def test_totp_failures_revoke_session(env):

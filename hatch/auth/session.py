@@ -2,7 +2,9 @@
 
 @router.post("/x")
 async def x(p: Principal = Depends(require_user)): ...      # ログイン必須（変更系は CSRF も確認）
-async def y(p: Principal = Depends(require_admin)): ...     # 管理者＋二段階認証済み
+async def y(p: Principal = Depends(require_admin)): ...     # 管理者
+
+二段階認証は任意（本人が設定で有効にする）。有効にした人は、コードを入力するまで require_user 以降を通さない。
 """
 
 from __future__ import annotations
@@ -46,7 +48,8 @@ class Principal:
 
     @property
     def needs_totp(self) -> bool:
-        return self.role == "admin" and not self.totp_ok
+        """二段階認証を有効にしていて、このセッションでまだコードを入力していない。"""
+        return self.totp_enabled and not self.totp_ok
 
 
 def cookie_secure() -> bool:
@@ -121,6 +124,8 @@ async def require_session(request: Request) -> Principal:
 
 async def require_user(request: Request) -> Principal:
     p = await require_session(request)
+    if p.needs_totp:
+        raise AppError("totp_required", "二段階認証のコードを入力してください。", 403)
     if p.status == "suspended":
         raise AppError("account_suspended", "このアカウントは利用停止中です。", 403)
     return p
@@ -130,6 +135,4 @@ async def require_admin(request: Request) -> Principal:
     p = await require_user(request)
     if p.role != "admin":
         raise AppError("forbidden", "管理者だけが使えます。", 403)
-    if not p.totp_ok:
-        raise AppError("totp_required", "二段階認証を行ってください。", 403)
     return p

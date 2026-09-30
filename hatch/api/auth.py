@@ -21,6 +21,7 @@ from ..auth.session import (
     cookie_secure,
     new_session_token,
     require_session,
+    require_user,
     set_session_cookie,
 )
 from ..config import get_settings
@@ -189,19 +190,12 @@ async def logout(p: Principal = Depends(require_session)) -> Response:
     return r
 
 
-# ---- 管理者の二段階認証 ----
-def _admin_only(p: Principal) -> None:
-    if p.role != "admin":
-        raise AppError("forbidden", "二段階認証は管理者のアカウントで使います。", 403)
-
-
+# ---- 二段階認証（任意。本人が設定から有効・無効にする） ----
 @router.post("/totp/setup")
 async def totp_setup(p: Principal = Depends(require_session)) -> dict:
-    _admin_only(p)
+    """鍵を作る。コードを確かめる（/totp/verify）までは有効にならない。"""
     if p.totp_enabled:
-        raise AppError(
-            "totp_already", "二段階認証は設定済みです。変更するには別の管理者に解除を依頼してください。", 409
-        )
+        raise AppError("totp_already", "二段階認証は既に有効です。設定し直すには、いったん無効にしてください。", 409)
     secret = crypto.new_totp_secret()
     async with db.transaction() as conn:
         await conn.execute(
@@ -217,9 +211,8 @@ class TotpCode(BaseModel):
     code: str = Field(min_length=6, max_length=8)
 
 
-@router.post("/totp/verify", status_code=204)
-async def totp_verify(body: TotpCode, p: Principal = Depends(require_session)) -> Response:
-    _admin_only(p)
+async def _match_code(p: Principal, code: str) -> int:
+    """コードを確かめ、使ったカウンターを返す。続けて間違えるとログアウトさせる。"""
     async with db.transaction() as conn:
         cur = await conn.execute(
             "SELECT secret_enc, last_counter FROM user_totp WHERE user_id = %s FOR UPDATE", (p.user_id,)
@@ -227,9 +220,7 @@ async def totp_verify(body: TotpCode, p: Principal = Depends(require_session)) -
         row = await cur.fetchone()
         if row is None:
             raise AppError("totp_not_set", "先に二段階認証を設定してください。", 409)
-        counter = crypto.totp_match(
-            crypto.decrypt(row["secret_enc"], "totp"), body.code, after_counter=row["last_counter"]
-        )
+        counter = crypto.totp_match(crypto.decrypt(row["secret_enc"], "totp"), code, after_counter=row["last_counter"])
         if counter is None:
             cur = await conn.execute(
                 "UPDATE sessions SET totp_failures = totp_failures + 1 WHERE id = %s RETURNING totp_failures",
@@ -245,9 +236,30 @@ async def totp_verify(body: TotpCode, p: Principal = Depends(require_session)) -
                 "unauthenticated", "続けて間違えたため、ログアウトしました。もう一度ログインしてください。", 401
             )
         raise AppError("totp_invalid", "コードが正しくありません。認証アプリの最新のコードを入力してください。", 400)
+    return counter
+
+
+@router.post("/totp/verify", status_code=204)
+async def totp_verify(body: TotpCode, p: Principal = Depends(require_session)) -> Response:
+    """有効にする（初回）か、ログイン後にコードを入力する。"""
+    counter = await _match_code(p, body.code)
     async with db.transaction() as conn:
         await conn.execute("UPDATE user_totp SET last_counter = %s WHERE user_id = %s", (counter, p.user_id))
         await conn.execute("UPDATE users SET totp_enabled = true WHERE id = %s", (p.user_id,))
         await conn.execute("UPDATE sessions SET totp_ok = true, totp_failures = 0 WHERE id = %s", (p.sid_hash,))
-        await audit.add(conn, action="二段階認証", via="web", actor_id=p.user_id)
+        action = "二段階認証" if p.totp_enabled else "二段階認証を有効化"
+        await audit.add(conn, action=action, via="web", actor_id=p.user_id)
+    return Response(status_code=204)
+
+
+@router.post("/totp/disable", status_code=204)
+async def totp_disable(body: TotpCode, p: Principal = Depends(require_user)) -> Response:
+    """無効にする。今のコードの入力が必要（セッションを盗まれただけでは外せないように）。"""
+    if not p.totp_enabled:
+        raise AppError("totp_not_set", "二段階認証は有効になっていません。", 409)
+    await _match_code(p, body.code)
+    async with db.transaction() as conn:
+        await conn.execute("DELETE FROM user_totp WHERE user_id = %s", (p.user_id,))
+        await conn.execute("UPDATE users SET totp_enabled = false WHERE id = %s", (p.user_id,))
+        await audit.add(conn, action="二段階認証を無効化", via="web", actor_id=p.user_id)
     return Response(status_code=204)

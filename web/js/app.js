@@ -7,6 +7,7 @@ import { ic } from "./components/icons.js";
 import { esc, cell, group } from "./components/cell.js";
 import { toast } from "./components/toast.js";
 import { sheetHead, openSheet, closeSheet, isSheetOpen } from "./components/sheet.js";
+import { openPicker, pickerButton } from "./components/picker.js";
 import { renderSetup, setupStatus } from "./setup.js";
 
 const TABS = [
@@ -53,6 +54,11 @@ const LOGIN_ERRORS = {
   discord: "Discord との通信に失敗しました。時間をおいて試してください。",
 };
 const ROLE_LABELS = { admin: "管理者", supporter: "サポーター", user: "利用者" };
+const THEMES = [
+  { value: "", label: "自動", sub: "端末の設定に合わせます" },
+  { value: "light", label: "ライト" },
+  { value: "dark", label: "ダーク" },
+];
 const DISPLAY_KEY = "hatch-display";
 const BG_PRESETS = [
   { id: "none", name: "なし", light: "none", dark: "none" },
@@ -176,10 +182,15 @@ function pSettings() {
     ${group([cell({ icon: "server", color: "var(--gray)", title: `<b style="font-weight:600">${esc(u.username)}</b>`, sub: ROLE_LABELS[u.role] || "利用者" })])}
     ${group(
       [
-        `<div class="field"><label for="th">テーマ</label><select id="th" data-set="theme"><option value="" ${DISPLAY.theme === "" ? "selected" : ""}>自動</option><option value="light" ${DISPLAY.theme === "light" ? "selected" : ""}>ライト</option><option value="dark" ${DISPLAY.theme === "dark" ? "selected" : ""}>ダーク</option></select></div>`,
+        `<div class="field"><label>テーマ</label>${pickerButton({ options: THEMES, value: DISPLAY.theme, attrs: 'data-act="theme-pick" aria-label="テーマ"' })}</div>`,
         cell({ icon: "sparkle", color: "var(--indigo)", title: "背景", val: esc(bgName(DISPLAY.bg)), act: "bg-open" }),
       ],
       "表示"
+    )}
+    ${group(
+      [cell({ icon: "key", color: "var(--orange)", title: "二段階認証", val: ME.totp_enabled ? "オン" : "オフ", act: "totp-open" })],
+      "セキュリティ",
+      "オンにすると、ログインのときに認証アプリのコードも入力します。任意です。"
     )}
     <div style="height:22px"></div>
     ${group([cell({ title: "ログアウト", act: "logout", cls: "action center" })])}
@@ -218,36 +229,84 @@ function renderAuthScreen(errorCode) {
   });
 }
 
-/* ---------------- 二段階認証（管理者） ---------------- */
-async function runTotpFlow() {
+/* ---------------- 二段階認証（任意） ---------------- */
+// ログインの後、二段階認証を有効にしている人だけにコードを求める
+function runTotpFlow() {
   document.getElementById("app").hidden = true;
   document.getElementById("tabbar").hidden = true;
   document.getElementById("tsearch").hidden = true;
-  let setup = null;
-  if (!ME.totp_enabled) {
-    try {
-      setup = await api.post("/auth/totp/setup");
-    } catch (e) {
-      toast(e.message, "warn");
-    }
-  }
   document.getElementById("auth").innerHTML = `<div class="authscreen"><div class="authcard glass">
     <h1>二段階認証</h1>
-    <p>${setup ? "認証アプリに次のキーを登録してください。" : "認証アプリに表示されているコードを入力してください。"}</p>
-    ${setup ? `<p class="mono" style="word-break:break-all">${esc(setup.secret)}</p>` : ""}
-    <input id="totp-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" maxlength="8">
+    <p>認証アプリに表示されている6桁のコードを入力してください。</p>
+    <input id="totp-code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" maxlength="8" aria-label="認証コード">
     <div id="totp-err" class="err-t" style="min-height:20px;font-size:14px"></div>
     <button type="button" class="btn fill block" id="totp-btn">確認</button>
+    <p class="totp-help">認証アプリを使えなくなった場合は、管理者に二段階認証の解除を依頼してください。<button type="button" class="linkbtn" id="totp-logout">ログアウト</button></p>
   </div></div>`;
-  document.getElementById("totp-btn").addEventListener("click", async () => {
-    const code = document.getElementById("totp-code").value.trim();
+  const input = document.getElementById("totp-code");
+  const submit = async () => {
     try {
-      await api.post("/auth/totp/verify", { code });
+      await api.post("/auth/totp/verify", { code: input.value.trim() });
       await boot();
     } catch (e) {
       document.getElementById("totp-err").textContent = e.message;
+      if (e.status === 401) setTimeout(() => (location.href = "/"), 1500);
     }
-  });
+  };
+  document.getElementById("totp-btn").addEventListener("click", submit);
+  input.addEventListener("keydown", (e) => e.key === "Enter" && submit());
+  document.getElementById("totp-logout").addEventListener("click", () => ACT.logout());
+  input.focus();
+}
+
+function totpCodeField() {
+  return `<div class="group"><div class="field"><label for="totp-in">コード</label><input id="totp-in" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" maxlength="8"></div></div>
+    <div id="totp-sheet-err" class="err-t" role="alert" style="min-height:20px;font-size:14px;margin:6px 4px"></div>`;
+}
+
+async function openTotpSheet() {
+  if (ME.totp_enabled) {
+    openSheet(`${sheetHead("二段階認証", { left: "閉じる" })}<div class="sheet-b">
+      <p class="sheet-lead">二段階認証はオンです。オフにするには、認証アプリに表示されている今のコードを入力してください。</p>
+      ${totpCodeField()}
+      <button type="button" class="btn red block" data-act="totp-disable">二段階認証をオフにする</button>
+    </div>`);
+  } else {
+    let setup;
+    try {
+      setup = await api.post("/auth/totp/setup");
+    } catch (e) {
+      return toast(e.message, "warn");
+    }
+    const key = setup.secret.replace(/(.{4})/g, "$1 ").trim();
+    openSheet(`${sheetHead("二段階認証をオンにする", { left: "キャンセル" })}<div class="sheet-b">
+      <ol class="totp-steps">
+        <li>スマートフォンに認証アプリ（Google Authenticator・Microsoft Authenticator など）を入れます。</li>
+        <li>認証アプリで「セットアップキーを入力」を選び、次のキーを登録します。スマートフォンでこの画面を見ている場合は <a href="${esc(setup.otpauth_url)}">認証アプリで開く</a> でも登録できます。
+          <div class="totp-key"><code>${esc(key)}</code><button type="button" class="btn sm" data-act="totp-copy" data-arg="${esc(setup.secret)}">コピー</button></div></li>
+        <li>認証アプリに表示された6桁のコードを入力します。</li>
+      </ol>
+      ${totpCodeField()}
+      <button type="button" class="btn fill block" data-act="totp-enable">オンにする</button>
+    </div>`);
+  }
+  setTimeout(() => document.getElementById("totp-in")?.focus(), 40);
+}
+
+async function submitTotp(path, on) {
+  const input = document.getElementById("totp-in");
+  const err = document.getElementById("totp-sheet-err");
+  try {
+    await api.post(path, { code: input.value.trim() });
+  } catch (e) {
+    err.textContent = e.message;
+    if (e.status === 401) setTimeout(() => (location.href = "/"), 1500);
+    return;
+  }
+  ME.totp_enabled = on;
+  closeSheet();
+  toast(on ? "二段階認証をオンにしました" : "二段階認証をオフにしました");
+  renderMain();
 }
 
 /* ---------------- 利用規約 ---------------- */
@@ -336,6 +395,32 @@ const ACT = {
   "bg-open"() {
     openBgSheet();
   },
+  "theme-pick"(_a, el) {
+    openPicker(el, THEMES, DISPLAY.theme, (v) => {
+      DISPLAY.theme = v;
+      saveDisplay();
+      applyDisplay();
+      renderMain();
+      document.querySelector('[data-act="theme-pick"]')?.focus();
+    });
+  },
+  "totp-open"() {
+    openTotpSheet();
+  },
+  "totp-enable"() {
+    submitTotp("/auth/totp/verify", true);
+  },
+  "totp-disable"() {
+    submitTotp("/auth/totp/disable", false);
+  },
+  async "totp-copy"(a, el) {
+    try {
+      await navigator.clipboard.writeText(a);
+      el.textContent = "コピーしました";
+    } catch {
+      el.textContent = "コピーできません";
+    }
+  },
   "bg-pick"(a) {
     DISPLAY.bg = { kind: a === "none" ? "none" : "preset", id: a };
     saveDisplay();
@@ -362,18 +447,13 @@ document.addEventListener("click", (e) => {
     fn(el.dataset.arg ?? "", el);
   }
 });
-document.addEventListener("change", (e) => {
-  const t = e.target;
-  if (t.dataset.set === "theme") {
-    DISPLAY.theme = t.value;
-    saveDisplay();
-    applyDisplay();
-    renderMain();
-  }
-});
 document.addEventListener("keydown", (e) => {
   const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement?.tagName || "");
   if (e.key === "Escape" && isSheetOpen() && !document.getElementById("tos-btn")) return closeSheet();
+  if (e.key === "Enter" && e.target.id === "totp-in") {
+    e.preventDefault();
+    return document.querySelector('[data-act="totp-enable"],[data-act="totp-disable"]')?.click();
+  }
   if (!typing && !isSheetOpen() && (e.key === "/" || (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)))) {
     e.preventDefault();
     ACT.search();

@@ -6,7 +6,7 @@
 
 - ベース：`/api`。JSON のみ。文字コードは UTF-8。
 - 認証：Cookie `pd_session`（HttpOnly・Secure・SameSite=Lax、30日）。変更系（POST・PUT・PATCH・DELETE）は `X-CSRF-Token` ヘッダーが必須（値は `GET /api/me` が返す）。
-- 管理者は二段階認証（TOTP）を通過したセッションでなければ `/api/admin/*` を使えない（`403 totp_required`）。
+- 二段階認証（TOTP）は任意。本人が設定で有効にした場合だけ、ログイン後にコードを入力するまで `/api/me`・ログアウト・二段階認証の API 以外は使えない（`403 totp_required`）。
 - 時刻は ISO 8601（UTC）。一覧はカーソル方式：`?limit=50&cursor=<前回の next_cursor>`、応答は `{"items": [...], "next_cursor": "…"|null}`。
 - 外部サービスを伴う操作は **ジョブ** を作って `202 {"job": Job}` を返す。画面は `GET /api/jobs/{id}` を1秒ごと（完了まで）に取得して進捗を表示する。
 - エラー：`{"error": {"code": "...", "message": "日本語の説明", "detail": {...}}}`。コード一覧は末尾。
@@ -58,9 +58,10 @@
 | GET | /auth/login | Discord の認可画面へリダイレクト（`state` を Cookie に保存） |
 | GET | /auth/callback | Discord から戻る。成功なら `/` へ、失敗なら `/?login_error=<code>` へ移動する。code：`state`（やり直し）、`not_member`（Discord サーバーに未参加）、`no_role`（対象のロールが無く、招待もされていない。Discord サーバーのオーナーはロールが無くても管理者になる）、`not_allowed`（利用禁止・削除済み）、`email`（メールアドレスが未確認）、`email_taken`（同じメールの別アカウントがある）、`suspended`（利用停止中）、`discord`（Discord との通信に失敗） |
 | POST | /auth/logout | セッション削除 |
-| POST | /auth/totp/setup | 管理者のみ。`{"otpauth_url","secret"}` を返す（未登録時のみ） |
-| POST | /auth/totp/verify | `{"code":"123456"}` → セッションの `totp_ok=true` |
-| GET | /me | `{"user", "csrf_token", "needs_tos": bool, "needs_totp": bool, "limits": {"max_servers", "used"}}` |
+| POST | /auth/totp/setup | だれでも。`{"otpauth_url","secret"}` を返す。コードを確かめる（verify）までは有効にならない。既に有効なら `409 totp_already` |
+| POST | /auth/totp/verify | `{"code":"123456"}` → 有効にする（初回）か、ログイン後の確認。セッションの `totp_ok=true`。5回続けて間違えるとログアウト |
+| POST | /auth/totp/disable | `{"code"}`（今のコードが必要）→ 無効にして鍵を消す。`204` |
+| GET | /me | `{"user", "csrf_token", "needs_tos": bool, "needs_totp": bool, "totp_enabled": bool, "limits": {"max_servers", "used"}}` |
 | POST | /me/tos | `{"version"}` 同意を記録 |
 | PUT | /me/password | `{"password"}`（12〜128文字）。**同期処理**：パネル側のパスワードを直接更新し、成功したら `204`。平文はジョブに保存しない |
 | GET / PUT | /me/notifications | `{"down","expiry","disk"}` |
@@ -124,7 +125,7 @@
 | GET | /jobs | `?server_id=` 直近20件 |
 | GET | /search | `?q=` サーバー（名前・アドレス・ポート）、admin はユーザー・アドレス・管理画面も。最大30件 |
 
-## 管理（admin のみ・二段階認証必須）
+## 管理（admin のみ）
 
 | メソッド | パス | 説明 |
 |---|---|---|
@@ -185,7 +186,7 @@
 | unauthenticated | 401 | ログインしていない |
 | csrf_failed | 403 | CSRF トークンが違う |
 | forbidden | 403 | 権限がない |
-| totp_required | 403 | 管理者の二段階認証が必要 |
+| totp_required | 403 | 二段階認証を有効にしている人が、まだコードを入力していない |
 | tos_required | 403 | 利用規約への同意が必要（作成・変更系） |
 | not_found | 404 | |
 | user_not_found | 404 | 共有相手などのユーザーが見つからない |

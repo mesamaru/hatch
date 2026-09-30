@@ -274,7 +274,7 @@ function pRoles() {
     ? `<div class="note">ロールごとの人数を表示するには、Developer Portal の <b>Bot → Server Members Intent</b> をオンにしてから <b>一覧を更新</b> を押してください。</div>`
     : "";
   return `<p class="lead">Discord のロールごとに、Hatch での権限を選びます。どのロールも持っていない人はログインできません（Discord サーバーのオーナーは例外で、常に管理者になります）。</p>
-    <div class="tiers">${TIERS.map((t) => `<div class="tier"><span class="tier-n ${t.value}">${t.label}</span><span class="tier-d">${esc(t.sub)}${t.value === "admin" ? "。最初のログインで二段階認証を登録します" : t.value === "supporter" ? "（起動・停止・再起動）。自分のサーバーも作れます" : ""}</span></div>`).join("")}</div>
+    <div class="tiers">${TIERS.map((t) => `<div class="tier"><span class="tier-n ${t.value}">${t.label}</span><span class="tier-d">${esc(t.sub)}${t.value === "supporter" ? "（起動・停止・再起動）。自分のサーバーも作れます" : ""}</span></div>`).join("")}</div>
     ${guide("ロールがまだ無い場合", [
       "Discord のサーバー名 → <b>サーバー設定 → ロール → ロールを作成</b> で、管理者用（例 <code>運営</code>）・サポーター用（例 <code>サポーター</code>）・利用者用（例 <code>メンバー</code>）のロールを作ります。",
       "<b>自分に管理者用のロールを付けます</b>（メンバー一覧で自分を右クリック → ロール）。",
@@ -313,7 +313,7 @@ function pSave() {
       ${line("サポーター", true, names("supporter") || "なし")}
       ${line("利用者", true, names("user") || "なし（管理者とサポーターだけが使えます）")}
     </div>
-    <div class="note">最初のログインのあと、管理者には二段階認証の登録を求められます。Google Authenticator などの認証アプリを用意してください。</div>`;
+    <div class="note">二段階認証（認証アプリのコード）は任意です。ログインした後、「設定 → 二段階認証」からいつでもオンにできます。</div>`;
 }
 
 function pDone(message) {

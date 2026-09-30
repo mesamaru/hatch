@@ -15,7 +15,7 @@
 /* ---- 全体のレイアウト ---- */
 .app{display:grid;grid-template-columns:300px 1fr;min-height:100vh;min-height:100dvh}
 .side{position:sticky;top:0;height:100vh;height:100dvh;padding:12px;display:flex;flex-direction:column}
-.side-in{flex:1;border-radius:26px;padding:14px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.side-in{flex:1;border-radius:26px;padding:14px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;overflow-x:hidden}
 .side h1{font-size:22px;font-weight:700;margin:4px 10px 10px}
 .sbtn{display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border:0;border-radius:12px;background:none;text-align:left;font-size:16px;width:100%;flex:0 0 auto}
 .sbtn:hover{background:var(--fill)}
@@ -164,6 +164,17 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 .authcard h1{font-size:26px;margin:8px 0 6px}
 .authcard p{color:var(--label2);font-size:15px;margin:0 0 20px;line-height:1.5}
 .authcard input{width:100%;text-align:center;font-size:22px;letter-spacing:.3em;padding:12px 0;border-radius:14px;background:var(--fill);border:0;margin-bottom:14px}
+.authcard p.totp-help{font-size:13px;margin:16px 0 0}
+.linkbtn{border:0;background:none;padding:0 0 0 6px;color:var(--blue);font-size:inherit}
+/* 二段階認証のシート */
+.sheet-lead{color:var(--label2);font-size:15px;line-height:1.55;margin:4px 4px 14px}
+.totp-steps{margin:4px 0 14px;padding-left:22px;font-size:15px;line-height:1.6}
+.totp-steps li{margin:6px 0}
+.totp-steps a{color:var(--blue)}
+.totp-key{display:flex;align-items:center;gap:8px;margin-top:8px}
+.totp-key code{flex:1;min-width:0;padding:8px 10px;border-radius:10px;background:var(--fill);font-size:15px;letter-spacing:.04em;overflow-wrap:anywhere}
+.sheet-b .field input{text-align:right;font-family:var(--mono);letter-spacing:.15em}
+.sheet-b .btn.block{margin-top:4px}
 
 /* ---- 初期設定（ウィザード） ---- */
 .authcard.setup{width:min(640px,100%);text-align:left;padding:24px 20px}
