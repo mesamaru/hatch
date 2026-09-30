@@ -153,7 +153,7 @@ api.add_monitor(
 
 ### 3.3 自己監視の通知
 
-自己監視の監視（`pd:<instance>:self-*`、`push-*`）には、Kuma の **Discord 通知**（`NotificationType.DISCORD`、管理者用チャンネルの Webhook URL）を付ける。オーケストレーターが止まっていても Kuma から直接届くようにするため。Webhook URL は `hatch-setup` で入力し、Kuma にだけ保存する（オーケストレーターの設定ファイルには残さない）。
+自己監視の監視（`pd:<instance>:self-*`、`push-*`）には、Kuma の **Discord 通知**（`NotificationType.DISCORD`、管理者用チャンネルの Webhook URL）を付ける。オーケストレーターが止まっていても Kuma から直接届くようにするため。Webhook URL は初期設定画面で入力し、Kuma にだけ保存する（オーケストレーターの設定ファイルには残さない）。
 
 ### 3.4 Webhook の受信
 

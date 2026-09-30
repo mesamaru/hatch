@@ -308,11 +308,14 @@ UDP には接続数の制限をかけられないので、1 IP あたりのパ�
 
 ### 8.1 設定ファイル（`/etc/hatch/hatch.env`）
 
+systemd は `/etc/hatch/hatch.env` の後に `/var/lib/hatch/setup.env`（初期設定画面で保存した値）を読むので、同じキーは後者が優先される。
+説明に「画面 ○」とあるキーは初期設定画面で入力する。それ以外はインストーラーが自動で作る（`PD_INSTANCE` の変更だけは `hatch.env` を直接編集する）。
+
 | キー | 必須 | 例 | 説明 |
 |---|---|---|---|
 | PD_HOST / PD_PORT | ○ | 0.0.0.0 / 8080 | 待ち受け |
-| PD_PUBLIC_URL | ○ | https://panel.nuids.jp | OAuth の戻り先に使う |
-| PD_INTERNAL_URL | ○ | http://hatch:8080 | Tailscale 内から見たオーケストレーターの URL（Kuma の Webhook 先） |
+| PD_PUBLIC_URL | ○ | https://panel.nuids.jp | OAuth の戻り先に使う（画面 ○） |
+| PD_INTERNAL_URL | ○ | http://hatch:8080 | Tailscale 内から見たオーケストレーターの URL（Kuma の Webhook 先）（画面 ○） |
 | PD_INSTANCE | ○ | prod | 環境の名前（英小文字・数字、8文字まで）。本番は prod、テスト環境は stg。DNS のコメントと監視名に入れ、同じゾーンや Kuma を共有しても互いに干渉しない |
 | PD_DATA_DIR | ○ | /var/lib/hatch | アップロードした画像などの保存先 |
 | PD_HEALTH_TOKEN | ○ | 48桁の16進 | `/api/health/full` の認証（Kuma の HTTP 監視のヘッダーに設定） |
@@ -320,12 +323,12 @@ UDP には接続数の制限をかけられないので、1 IP あたりのパ�
 | PD_SECRET_KEY | ○ | 64桁の16進 | Cookie 署名・TOTP 秘密の暗号化 |
 | DATABASE_URL | ○ | postgresql://… | |
 | PANEL_KIND | ○ | pterodactyl | 将来 pelican |
-| PANEL_URL / PANEL_APP_KEY / PANEL_CLIENT_KEY | ○ | | |
-| PANEL_PUBLIC_URL | | https://gp.nuids.jp | 利用者に見せるゲームパネルの URL |
-| CF_API_TOKEN | ○ | | 登録する全ゾーンの DNS 編集権限 |
-| KUMA_URL / KUMA_USERNAME / KUMA_PASSWORD / KUMA_METRICS_KEY / KUMA_WEBHOOK_SECRET | ○ | | |
-| DISCORD_BOT_TOKEN / DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET / DISCORD_GUILD_ID | ○ | | |
-| DISCORD_CHANNEL_ANNOUNCE / DISCORD_CHANNEL_OPS | | チャンネルID | |
+| PANEL_URL / PANEL_APP_KEY / PANEL_CLIENT_KEY | ○ | | 画面 ○ |
+| PANEL_PUBLIC_URL | | https://gp.nuids.jp | 利用者に見せるゲームパネルの URL（画面 ○） |
+| CF_API_TOKEN | ○ | | 登録する全ゾーンの DNS 編集権限（画面 ○） |
+| KUMA_URL / KUMA_USERNAME / KUMA_PASSWORD / KUMA_METRICS_KEY / KUMA_WEBHOOK_SECRET | ○ | | `KUMA_WEBHOOK_SECRET` 以外は画面 ○ |
+| DISCORD_BOT_TOKEN / DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET / DISCORD_GUILD_ID | ○ | | 画面 ○ |
+| DISCORD_CHANNEL_ANNOUNCE / DISCORD_CHANNEL_OPS | | チャンネルID | 画面 ○ |
 | EDGE_AGENT_TOKEN | ○ | | edge エージェントの認証 |
 | HAPROXY_PER_IP_CONN / HAPROXY_PER_IP_RATE / HAPROXY_MAX_CONN | | 20 / 30 / 500 | |
 | STATUS_PUBLIC_URL | | https://status.nuids.jp | 状態ページ |
@@ -346,6 +349,18 @@ UDP には接続数の制限をかけられないので、1 IP あたりのパ�
 | account_deletion_days | 7 | 退会の申請から削除までの日数 |
 | default_background | {"kind":"preset","id":"aurora"} | 全員の既定の背景 |
 | default_bg_dim | 0.35 | 既定の「見やすさ」 |
+| setup_completed_at | null | 初期設定画面で保存した日時。null の間は初期設定画面を出す（`0002_setup_state.sql`。既に管理者のロールがある環境は移行時に埋める） |
+
+### 8.3 初期設定（画面のウィザード）
+
+実装は `hatch/setup.py`（状態とファイル）、`hatch/api/setup.py`（API）、`hatch/adapters/setup_checks.py`（接続確認）、`web/js/setup.js`（画面）。
+
+- 設定は2段に分ける。`CoreSettings`（DB・秘密鍵など、インストーラーが作る）が無ければ API は起動しない。`Settings`（外部サービスを含む全部）が揃っていなければ、API は **初期設定モード** で起動する（`/api/setup/*` と `/api/health` だけが使える。他の API は `503 setup_required`）。worker・scheduler は設定が揃うまで何もせずに待つ。
+- 初期設定が必要な状態：`Settings` の検証に失敗する、または `app_settings.setup_completed_at` が null。
+- 初期設定コード：`PD_DATA_DIR/setup-code`（権限 600、12文字、読み間違えやすい文字を除く）。インストーラー（`hatch-setup --code`）か API が作る。完了すると消す。比較は定数時間。
+- 保存：画面で入力できるキー（8.1 の「画面 ○」）だけを `PD_DATA_DIR/setup.env` に書く（一時ファイル → 入れ替え、権限 600）。値は空白・引用符・`$`・`#`・`;`・バックスラッシュを含まないものだけ受け付ける（systemd の EnvironmentFile にそのまま書くため）。空欄は「今の値のまま」。
+- 再起動：API は hatch ユーザーで動くので自分では再起動できない。保存後に `PD_DATA_DIR/restart-request` を書き、`hatch-reload.path`（root の systemd）が検知して `systemctl restart hatch.target` を実行する。画面は `/api/setup/status` の `restarting` が false になるまで待つ。
+- 完了時に、選んだ Discord ロールを `discord_role_rules` に登録（管理者のロールは `grants_role='admin'`）し、`setup_completed_at` を埋め、操作ログに「初期設定を保存」（キー名だけ。値は書かない）を残す。
 
 ---
 
@@ -358,7 +373,7 @@ UDP には接続数の制限をかけられないので、1 IP あたりのパ�
 - `/api/health/full`：`Authorization: Bearer <PD_HEALTH_TOKEN>`。判定：
   - error（503）：DB に接続できない／worker・scheduler の報告が90秒以上ない／ディスクの空きが5%未満かつ2GB未満
   - degraded（200）：bot の報告が90秒以上ない／プロセスのバージョンが API と違う／待ちジョブが120秒以上待っている／24時間以内に `failed` のジョブがある／edge の報告が180秒以上ない／ディスクの空きが15%未満かつ10GB未満
-- `hatch-setup` の最後に MonitorAdapter で次の監視を作る（名前は固定、既にあれば更新）：`pd:<instance>:self-http`（HTTP、`/api/health`）、`pd:<instance>:self-full`（HTTP キーワード、`"status":"ok"`、ヘッダーにトークン）、`pd:<instance>:push-worker`・`push-scheduler`・`push-bot`（Push、間隔60秒）。通知先は Kuma に登録した Discord の Webhook（名前 `hatch-self`）。**オーケストレーター宛ての Webhook は付けない**。
+- 初期設定の保存後（再起動した API の起動時）に MonitorAdapter で次の監視を作る（名前は固定、既にあれば更新）：`pd:<instance>:self-http`（HTTP、`/api/health`）、`pd:<instance>:self-full`（HTTP キーワード、`"status":"ok"`、ヘッダーにトークン）、`pd:<instance>:push-worker`・`push-scheduler`・`push-bot`（Push、間隔60秒）。通知先は Kuma に登録した Discord の Webhook（名前 `hatch-self`）。**オーケストレーター宛ての Webhook は付けない**。
 
 ## 8B. アップロード（背景画像）
 

@@ -146,9 +146,11 @@
       <h2><span class="num">3</span>オーケストレーターのインストール</h2>
       <p class="lead">Proxmox VE ホストのシェルで実行します。Debian 13 のテンプレートは自動で取得されます。</p>
       <pre><button class="copy" data-copy>コピー</button><code>bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/hatch.sh)"</code></pre>
-      <p>完了したら、コンテナに入って初期設定をします。入力した値はその場で接続確認されます。</p>
-      <pre><button class="copy" data-copy>コピー</button><code>pct enter &lt;コンテナ ID&gt;
-hatch-setup</code></pre>
+      <p>完了すると、パネルの URL と<b>初期設定コード</b>が表示されます。続きはブラウザで行います（コンテナの中で設定を打ち込む必要はありません）。</p>
+      <pre><code>   1. パネルを開く      http://192.168.1.50:8080
+   2. 初期設定コード    K7QM-3RXA-WP9D</code></pre>
+      <p>URL を開くと初期設定画面になります。コードを入力し、画面の案内に沿ってゲームパネル・Cloudflare・Uptime Kuma・Discord を設定してください。
+      各キーの取り方は画面に表示されます（事前に集める場合は <code>docs/SETUP.md</code>）。コードを見失ったら <code class="mono">pct enter &lt;コンテナ ID&gt;</code> → <code class="mono">hatch-setup</code> で再表示できます。</p>
       <h3>非対話でインストールする場合</h3>
       <pre><button class="copy" data-copy>コピー</button><code>PD_YES=1 var_cpu=2 var_ram=2048 var_disk=10 \
   var_net=192.168.1.50/24 var_gateway=192.168.1.1 \
@@ -162,7 +164,7 @@ hatch-setup</code></pre>
         <tr><td class="mono">var_ts_authkey</td><td>なし</td><td>Tailscale 認証キー</td></tr>
         <tr><td class="mono">PD_CHANNEL</td><td class="mono">stable</td><td><span class="mono">beta</span> でベータ版を使う</td></tr>
       </table>
-      <div class="note warn">テスト環境を作る場合は、同じ Proxmox にもう1つ LXC を作り、<code>hatch-setup</code> の中で <code>PD_INSTANCE=stg</code> を指定してください。本番とレコード・監視が混ざりません。</div>
+      <div class="note warn">テスト環境を作る場合は、同じ Proxmox にもう1つ LXC を作り、コンテナ内の <code>/etc/hatch/hatch.env</code> の <code>PD_INSTANCE</code> を <code>stg</code> に変えて <code>systemctl restart hatch.target</code> を実行してください。本番とレコード・監視が混ざりません。</div>
     </section>
 
     <section id="edge">
@@ -187,12 +189,12 @@ hatch-setup</code></pre>
 
     <section id="firstrun">
       <h2><span class="num">6</span>画面からの初期設定</h2>
-      <p class="lead">ここまで終わったら、ブラウザで <code class="mono">https://&lt;パネルのドメイン&gt;/</code> を開き、Discord でログインします。</p>
+      <p class="lead">初期設定画面で保存したら、ブラウザで <code class="mono">https://&lt;パネルのドメイン&gt;/</code> を開き、Discord でログインします（Discord のロールと管理者は初期設定画面で登録済みです）。</p>
       <ol class="steps">
         <li><b>管理 → ドメイン</b>で使用するドメインを登録（Cloudflare のゾーン ID を入力すると <code class="mono">edge.&lt;ドメイン&gt;</code> が自動で作られます）</li>
         <li><b>管理 → IP と紐付け</b>で edge サーバーの IP を確認</li>
         <li><b>管理 → アドレス枠</b>で、例えば「25560–25569 / <code class="mono">mc{nn}trt</code> / 対象外 25560」を作成し、「DNS を作成」を押す</li>
-        <li><b>管理 → Discord ロール連携</b>でロールと権限・上限台数の対応を登録</li>
+        <li>必要に応じて<b>管理 → ロール連携</b>でロールと上限台数を追加・変更</li>
         <li><b>管理 → 利用規約</b>を登録（同意していない利用者には同意シートが出ます）</li>
       </ol>
       <p>これで利用者は作成画面で <code class="mono">mc01trt.nuids.jp</code> のようなアドレスを選ぶだけになります。</p>
@@ -222,10 +224,10 @@ update --rollback      # 1つ前に戻す（--restore-db で DB も戻す）</co
       <h2><span class="num">?</span>困ったとき</h2>
       <table>
         <tr><th>症状</th><th>確認するところ</th></tr>
-        <tr><td>コンテナ内で API が起動しない</td><td><code class="mono">journalctl -u hatch-api -n 80</code>、<code class="mono">hatch-setup</code> を再実行して設定漏れを確認</td></tr>
+        <tr><td>コンテナ内で API が起動しない</td><td><code class="mono">journalctl -u hatch-api -n 80</code>。設定が足りない場合は初期設定画面が表示されます（開き方は <code class="mono">hatch-setup</code>）</td></tr>
         <tr><td>edge に反映されない</td><td>edge サーバーで <code class="mono">journalctl -u hatch-edge -f</code>、オーケストレーターとの Tailscale 疎通</td></tr>
         <tr><td>DNS が作られない</td><td>Cloudflare トークンの権限（Zone:Read・DNS:Edit）とゾーン ID の一致</td></tr>
-        <tr><td>ログインできない</td><td>Discord アプリの OAuth コールバック URL と Server Members Intent</td></tr>
+        <tr><td>ログインできない</td><td>Discord アプリの Redirects に初期設定画面で表示された URL を登録したか、自分に管理者のロールが付いているか。直らなければ <code class="mono">hatch-setup --reset</code> で初期設定をやり直す</td></tr>
       </table>
       <p>詳しい仕様は <a href="../docs/SPEC.md">docs/SPEC.md</a>、環境の詳細は <a href="../docs/ENVIRONMENT.md">docs/ENVIRONMENT.md</a>、
       作業ルールは <a href="../AGENTS.md">AGENTS.md</a> を参照してください。リポジトリ：

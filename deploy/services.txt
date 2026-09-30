@@ -2,5 +2,6 @@
 hatch-api.service
 hatch-worker.service
 hatch-scheduler.service
+hatch-reload.path
 # フェーズ2で追加予定:
 # hatch-bot.service

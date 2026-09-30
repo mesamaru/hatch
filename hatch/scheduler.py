@@ -18,6 +18,7 @@ from .config import ConfigError, get_settings
 from .jobs import lifecycle as _lifecycle  # noqa: F401 - purge の登録
 from .jobs.engine import enqueue
 from .logging import setup_logging
+from .setup import idle_until_stopped
 
 log = logging.getLogger("hatch.scheduler")
 TICK_SECONDS = 60
@@ -52,8 +53,9 @@ async def main() -> int:
     try:
         get_settings()
     except ConfigError as e:
-        log.error(str(e))
-        return 2
+        log.warning("%s\n設定が揃うまで待機します。", e)
+        await idle_until_stopped()
+        return 0
     await db.open_pool(max_size=3)
     stop = asyncio.Event()
     loop = asyncio.get_running_loop()

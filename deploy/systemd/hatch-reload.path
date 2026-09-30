@@ -1,0 +1,10 @@
+[Unit]
+Description=Hatch 設定の保存を検知して再起動
+
+[Path]
+# 初期設定画面で保存すると API がこのファイルを書く（API は hatch ユーザーなので自分では再起動できない）
+PathModified=/var/lib/hatch/restart-request
+Unit=hatch-reload.service
+
+[Install]
+WantedBy=multi-user.target

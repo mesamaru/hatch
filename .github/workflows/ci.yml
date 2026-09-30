@@ -25,7 +25,8 @@ jobs:
         run: pip install -r requirements-dev.txt
       - name: DB 移行（2回実行して冪等性も確認）
         run: python -m hatch.migrate && python -m hatch.migrate
-      - name: API の起動確認
+      - name: API の起動確認（外部サービスの設定なし＝初期設定モード）
+        env: { PD_INSTANCE: ci, PD_SECRET_KEY: 0000000000000000000000000000000000000000000000000000000000000000, PD_HEALTH_TOKEN: ci, PD_DATA_DIR: /tmp }
         run: |
           uvicorn hatch.main:app --port 8080 &
           for i in $(seq 1 20); do curl -fsS localhost:8080/api/health && exit 0; sleep 1; done; exit 1

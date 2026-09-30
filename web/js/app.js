@@ -7,6 +7,7 @@ import { ic } from "./components/icons.js";
 import { esc, cell, group } from "./components/cell.js";
 import { toast } from "./components/toast.js";
 import { sheetHead, openSheet, closeSheet, isSheetOpen } from "./components/sheet.js";
+import { renderSetup, setupStatus } from "./setup.js";
 
 const TABS = [
   { id: "servers", label: "サーバー", icon: "server" },
@@ -288,6 +289,8 @@ async function boot() {
     url.searchParams.delete("login_error");
     history.replaceState(null, "", url.pathname + url.search);
   }
+  const setup = await setupStatus();
+  if (setup && setup.needed) return renderSetup();
   try {
     ME = await api.get("/me");
   } catch (e) {

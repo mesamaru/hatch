@@ -40,6 +40,17 @@
 
 ---
 
+## 初期設定
+
+初期設定が終わるまで（`docs/IMPLEMENTATION.md` 8.3）に使う。`status` 以外は `X-Setup-Code: <初期設定コード>` ヘッダーが必要（`unlock` は本文で渡す）。初期設定が済んでいれば `409 setup_done`。
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| GET | /setup/status | 認証不要。`{"needed": bool, "restarting": bool}`。`needed` なら初期設定コードのファイルを作る |
+| POST | /setup/unlock | `{"code"}` → `{"values": {公開してよいキー: 今の値}, "secrets_set": [設定済みの秘密のキー], "problems": {キー: 説明}}`。秘密の値そのものは返さない |
+| POST | /setup/check/{service} | service：`panel`・`cloudflare`・`kuma`・`discord`。本文 `{"values": {キー: 値}}`（空欄のキーは今の値で確認）。`{"ok": bool, "message": "日本語"}` に、Cloudflare は `zones`、Discord は `invite_url`・`guilds`（と `DISCORD_GUILD_ID` を渡したとき `roles`・`channels`）を加えて返す。確認の失敗も `200`（`ok: false`） |
+| POST | /setup/complete | `{"values", "admin_role": {"id","name","max_servers"}, "user_roles": [同じ形]}`。全設定を検証（不足は `400 validation`、`detail.fields` にキーごとの説明）→ `setup.env` に保存 → ロールを登録 → 完了にして再起動を依頼。`{"restarting": true}` |
+
 ## 認証・自分
 
 | メソッド | パス | 説明 |
@@ -193,3 +204,6 @@
 | unsupported_media | 415 | 画像として読めない |
 | last_admin | 409 | 最後の管理者は退会・降格できない |
 | account_deleting | 409 | 退会の手続き中のため作成・変更できない |
+| setup_required | 503 | 初期設定が終わっていない（外部サービスの設定が足りない） |
+| setup_code_invalid | 403 | 初期設定コードが違う |
+| setup_done | 409 | 初期設定は完了している |

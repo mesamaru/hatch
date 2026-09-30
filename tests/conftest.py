@@ -49,8 +49,10 @@ def _dummy_env(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     from hatch import config
 
     config.get_settings.cache_clear()
+    config.get_core_settings.cache_clear()
     yield
     config.get_settings.cache_clear()
+    config.get_core_settings.cache_clear()
 
 
 def _with_db(url: str, dbname: str) -> str:

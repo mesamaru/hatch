@@ -57,9 +57,10 @@ if [[ ! -f "$ENV_FILE" ]]; then
   # umask はサブシェルに閉じ込める（外側に漏れると、後で作るリリースのディレクトリが hatch から実行できなくなる）
   ( umask 027
   cat > "$ENV_FILE" << ENV
-# Hatch 設定ファイル
+# Hatch 設定ファイル（この下の秘密値はインストール時に自動生成したもの）
+# ゲームパネル・Cloudflare・Uptime Kuma・Discord はパネルの初期設定画面で入力します（開き方: hatch-setup）。
+# 画面で保存した値は /var/lib/hatch/setup.env に入り、こちらより優先されます。
 # 編集後: systemctl restart hatch.target
-# 対話式で設定する場合: hatch-setup
 
 # ---- 基本 ----
 PD_REPO=${PD_REPO}
@@ -136,6 +137,7 @@ say "最新のリリースを配置しています"
 
 say "起動を確認しています"
 ln -sf "$PD_HOME/current/deploy/bin/hatch-setup" /usr/local/bin/hatch-setup
+/usr/local/bin/hatch-setup --code >/dev/null
 if [[ ! -f "$PD_ETC/games.yml" ]]; then
   say "ゲームの定義（games.yml）の見本を置いています。パネルの nest・egg の ID に合わせて編集してください"
   install -m 640 -o root -g hatch "$PD_HOME/current/deploy/games.example.yml" "$PD_ETC/games.yml"

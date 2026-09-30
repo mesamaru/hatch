@@ -1,0 +1,6 @@
+[Unit]
+Description=Hatch 設定を読み直すための再起動
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl restart hatch.target

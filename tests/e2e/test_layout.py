@@ -20,7 +20,7 @@ import pytest
 from hatch.auth.crypto import sha256_hex
 
 pytest.importorskip("playwright.sync_api")
-from playwright.sync_api import sync_playwright  # noqa: E402
+from playwright.sync_api import sync_playwright
 
 # docs/UI.md 3.2A で確認するとされている幅×高さ
 VIEWPORTS = [
@@ -87,7 +87,24 @@ def _no_horizontal_scroll(page) -> bool:
     return page.evaluate("document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1")
 
 
-def test_login_screen_has_no_horizontal_scroll(server, browser):
+def _mark_setup_done(db_url: str) -> None:
+    with psycopg.connect(db_url) as c:
+        c.execute("UPDATE app_settings SET value = to_jsonb(now()) WHERE key = 'setup_completed_at'")
+
+
+def test_setup_screen_has_no_horizontal_scroll(server, browser):
+    for width, height in VIEWPORTS:
+        page = browser.new_page(viewport={"width": width, "height": height})
+        try:
+            page.goto(server)
+            page.wait_for_selector(".authcard.setup", timeout=5000)
+            assert _no_horizontal_scroll(page), f"{width}x{height} で横スクロールが出ています"
+        finally:
+            page.close()
+
+
+def test_login_screen_has_no_horizontal_scroll(server, browser, db_url):
+    _mark_setup_done(db_url)
     for width, height in VIEWPORTS:
         page = browser.new_page(viewport={"width": width, "height": height})
         try:
@@ -115,6 +132,7 @@ def _make_session(db_url: str) -> str:
 
 
 def test_servers_screen_has_no_horizontal_scroll(server, browser, db_url):
+    _mark_setup_done(db_url)
     token = _make_session(db_url)
     for width, height in VIEWPORTS:
         context = browser.new_context(viewport={"width": width, "height": height})

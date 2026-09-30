@@ -164,16 +164,20 @@ pct exec "$CTID" -- env PD_REPO="$PD_REPO" PD_BRANCH="$PD_BRANCH" PD_CHANNEL="$P
 msg_ok "インストールが完了しました"
 
 IP="$(pct exec "$CTID" -- hostname -I | awk '{print $1}')"
+CODE="$(pct exec "$CTID" -- /usr/local/bin/hatch-setup --code 2>/dev/null || echo "（pct enter ${CTID} → hatch-setup で表示）")"
 pct set "$CTID" --description "hatch — http://${IP}:8080 — 更新はコンテナ内で update" >/dev/null
 trap - ERR
 
 cat << DONE
 
-${C_OK}Hatch の準備ができました。${C_RST}
+${C_OK}Hatch の準備ができました。${C_RST} 続きはブラウザで行います。
 
-   パネル  http://${IP}:8080
-   初期設定 pct enter ${CTID} → hatch-setup
-   更新    pct enter ${CTID} → update
-   ${C_DIM}Tailscale を後から接続する場合: pct enter ${CTID} → tailscale up${C_RST}
+   1. パネルを開く      http://${IP}:8080
+   2. 初期設定コード    ${CODE}
+   3. 画面の案内に沿って、ゲームパネル・Cloudflare・Uptime Kuma・Discord を設定
+
+   ${C_DIM}コードをもう一度見る: pct enter ${CTID} → hatch-setup
+   更新: pct enter ${CTID} → update
+   Tailscale を後から接続する場合: pct enter ${CTID} → tailscale up${C_RST}
 
 DONE

@@ -9,6 +9,8 @@ Type=simple
 User=hatch
 Group=hatch
 EnvironmentFile=/etc/hatch/hatch.env
+# 初期設定画面で保存した値（あれば hatch.env より優先）
+EnvironmentFile=-/var/lib/hatch/setup.env
 Environment=PD_GAMES_FILE=/etc/hatch/games.yml
 WorkingDirectory=/opt/hatch/current
 ExecStart=/opt/hatch/current/.venv/bin/python -m hatch.worker

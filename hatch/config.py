@@ -1,8 +1,9 @@
-"""設定ファイル（/etc/hatch/hatch.env → 環境変数）の読み込みと検証。
+"""設定ファイル（/etc/hatch/hatch.env と、初期設定画面が書く PD_DATA_DIR/setup.env → 環境変数）の読み込みと検証。
 
 使い方:
-    from hatch.config import get_settings
+    from hatch.config import get_settings, get_core_settings
     s = get_settings()          # 必須の値が無ければ ConfigError（日本語で不足項目を列挙）
+    c = get_core_settings()     # 初期設定の前から必要な値だけ（DB・秘密鍵など。インストーラーが作る）
 
 一覧と意味は docs/IMPLEMENTATION.md 8.1。項目を増やしたら必ずそちらにも追記する。
 """
@@ -45,20 +46,53 @@ class ConfigError(RuntimeError):
     """設定の不足・誤り。メッセージはそのまま利用者（管理者）に見せる。"""
 
 
-class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=None, extra="ignore", case_sensitive=True)
+class CoreSettings(BaseSettings):
+    """初期設定の前から必要な値。インストーラーが自動で作るので、利用者は入力しない。"""
 
-    # ---- 本体 ----
+    model_config = SettingsConfigDict(env_file=None, extra="ignore", case_sensitive=True, validate_default=True)
+
     PD_HOST: str = "0.0.0.0"
     PD_PORT: int = 8080
-    PD_PUBLIC_URL: str
-    PD_INTERNAL_URL: str
+    PD_PUBLIC_URL: str = ""
+    PD_INTERNAL_URL: str = ""
     PD_INSTANCE: str = Field(pattern=r"^[a-z0-9]{1,8}$")
     PD_SECRET_KEY: SecretStr
     PD_HEALTH_TOKEN: SecretStr
     PD_DATA_DIR: Path = Path("/var/lib/hatch")
     PD_TIMEZONE: str = "Asia/Tokyo"
     DATABASE_URL: SecretStr
+
+    @field_validator("PD_PUBLIC_URL", "PD_INTERNAL_URL")
+    @classmethod
+    def _core_url(cls, v: str) -> str:
+        return _check_url(v)
+
+    @field_validator("PD_SECRET_KEY")
+    @classmethod
+    def _secret_len(cls, v: SecretStr) -> SecretStr:
+        if len(v.get_secret_value()) < 32:
+            raise ValueError("32文字以上にしてください（openssl rand -hex 32 で作れます）")
+        return v
+
+    def secret_values(self) -> list[str]:
+        """ログから消すべき値の一覧（logging のマスクで使う）。"""
+        out = []
+        for name in type(self).model_fields:
+            v = getattr(self, name)
+            if isinstance(v, SecretStr) and len(v.get_secret_value()) >= 6:
+                out.append(v.get_secret_value())
+        return out
+
+
+def _check_url(v: str) -> str:
+    v = v.strip().rstrip("/")
+    if v and not re.match(r"^https?://[^\s/]+", v):
+        raise ValueError("http:// か https:// で始まる URL を入力してください")
+    return v
+
+
+class Settings(CoreSettings):
+    """すべての設定。外部サービスの値は初期設定画面（または hatch.env）で入れる。"""
 
     # ---- ゲームパネル ----
     PANEL_KIND: str = Field(default="pterodactyl", pattern=r"^(pterodactyl|pelican)$")
@@ -95,46 +129,51 @@ class Settings(BaseSettings):
     HAPROXY_MAX_CONN: int = Field(default=500, ge=1, le=100_000)
     UDP_PER_IP_PPS: int = Field(default=2000, ge=1, le=1_000_000)
 
-    @field_validator("PD_PUBLIC_URL", "PD_INTERNAL_URL", "PANEL_URL", "KUMA_URL", "PANEL_PUBLIC_URL")
+    @field_validator("PANEL_URL", "KUMA_URL", "PANEL_PUBLIC_URL")
     @classmethod
     def _url(cls, v: str) -> str:
-        v = v.strip().rstrip("/")
-        if v and not re.match(r"^https?://[^\s/]+", v):
-            raise ValueError("http:// か https:// で始まる URL を入力してください")
-        return v
+        return _check_url(v)
 
-    @field_validator("PD_SECRET_KEY")
+    @field_validator("PD_PUBLIC_URL", "PD_INTERNAL_URL")
     @classmethod
-    def _secret_len(cls, v: SecretStr) -> SecretStr:
-        if len(v.get_secret_value()) < 32:
-            raise ValueError("32文字以上にしてください（openssl rand -hex 32 で作れます）")
+    def _required(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("設定されていません")
         return v
 
     @property
     def panel_public_url(self) -> str:
         return self.PANEL_PUBLIC_URL or self.PANEL_URL
 
-    def secret_values(self) -> list[str]:
-        """ログから消すべき値の一覧（logging のマスクで使う）。"""
-        out = []
-        for name in type(self).model_fields:
-            v = getattr(self, name)
-            if isinstance(v, SecretStr) and len(v.get_secret_value()) >= 6:
-                out.append(v.get_secret_value())
-        return out
+
+def problems_of(err: ValidationError) -> dict[str, str]:
+    """検証エラーを {キー: 日本語の説明} にする。"""
+    out: dict[str, str] = {}
+    for e in err.errors():
+        key = str(e["loc"][0]) if e["loc"] else "?"
+        if e["type"] == "missing":
+            out[key] = "設定されていません"
+        else:
+            out[key] = e.get("msg", "").removeprefix("Value error, ")
+    return out
 
 
 def _explain(err: ValidationError) -> str:
-    lines = ["設定ファイル（/etc/hatch/hatch.env）に問題があります。hatch-setup で直してください。"]
-    for e in err.errors():
-        key = str(e["loc"][0]) if e["loc"] else "?"
-        label = LABELS.get(key, key)
-        if e["type"] == "missing":
-            lines.append(f"  - {key}（{label}）が設定されていません")
-        else:
-            msg = e.get("msg", "").removeprefix("Value error, ")
-            lines.append(f"  - {key}（{label}）: {msg}")
+    lines = [
+        "設定に問題があります。パネルの初期設定画面で直してください"
+        "（開き方はコンテナ内で hatch-setup を実行すると表示されます）。"
+    ]
+    for key, msg in problems_of(err).items():
+        lines.append(f"  - {key}（{LABELS.get(key, key)}）: {msg}")
     return "\n".join(lines)
+
+
+@lru_cache(maxsize=1)
+def get_core_settings() -> CoreSettings:
+    try:
+        return CoreSettings()  # type: ignore[call-arg]
+    except ValidationError as e:
+        raise ConfigError(_explain(e)) from None
 
 
 @lru_cache(maxsize=1)
@@ -143,3 +182,12 @@ def get_settings() -> Settings:
         return Settings()  # type: ignore[call-arg]
     except ValidationError as e:
         raise ConfigError(_explain(e)) from None
+
+
+def setup_problems(**overrides: str) -> dict[str, str]:
+    """すべての設定が揃っているかを確かめる（揃っていれば空）。overrides は環境変数より優先する。"""
+    try:
+        Settings(**overrides)  # type: ignore[arg-type]
+    except ValidationError as e:
+        return problems_of(e)
+    return {}

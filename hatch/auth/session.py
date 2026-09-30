@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from fastapi import Request, Response
 
 from .. import db
-from ..config import get_settings
+from ..config import get_core_settings
 from ..domain.permissions import Actor
 from ..errors import AppError
 from ..repo import users as users_repo
@@ -50,7 +50,7 @@ class Principal:
 
 
 def cookie_secure() -> bool:
-    return get_settings().PD_PUBLIC_URL.startswith("https://")
+    return get_core_settings().PD_PUBLIC_URL.startswith("https://")
 
 
 def set_session_cookie(resp: Response, token: str) -> None:

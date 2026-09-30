@@ -21,6 +21,7 @@
 | T14 ゴミ箱・復元・完全削除 | 完了 | 期限切れの自動削除（定期処理）。最終バックアップは T23 で追加（今は「準備中」として飛ばす） |
 | T15 画面の骨組み | 完了 | ナビゲーション（サイドバー・タブバー・ナビゲーションバー）・シート・トースト・検索の枠組み・URL 同期・API クライアント（CSRF・エラー表示）・ログイン・管理者の二段階認証・利用規約の同意・テーマと背景の切り替え |
 | T16 画面：サーバーと作成・管理のアドレス | 未着手 | 次に実装。各画面の中身（一覧・詳細・作成など）をつなぐ |
+| T41 初期設定画面 | 完了 | コンテナ内の対話式設定をやめ、ブラウザのウィザードに。最初の管理者のロールもここで登録 |
 
 
 **1回の作業で1チケット**。上から順に進めます（「依存」が終わっていないチケットには着手しない）。各チケットは単独でテストが通り、`update` で配布できる状態で終わらせます。
@@ -174,7 +175,7 @@
 
 ### T35 自己監視の仕上げ ★★
 - 依存：T08、T17、T18
-- ファイル：`hatch/worker.py`、`hatch/scheduler.py`、`hatch/bot/*`（beat の呼び出しのみ）、`hatch/jobs/self_monitor.py`、`deploy/bin/hatch-setup`、`deploy/systemd/*.service`
+- ファイル：`hatch/worker.py`、`hatch/scheduler.py`、`hatch/bot/*`（beat の呼び出しのみ）、`hatch/jobs/self_monitor.py`、`hatch/main.py`（起動時の登録）、`deploy/systemd/*.service`
 - 内容：`docs/IMPLEMENTATION.md` 8A。`health.py` と `/api/health/full` は実装済み（テストあり）。各プロセスからの beat と Push、Kuma への自己監視の登録、管理画面「システムの状態」の API（`/api/admin/system` → `full_report()` を返すだけ）。
 - 受け入れ条件：worker を止めると2分以内に Kuma の Push 監視が停止になる（フェイクで確認）。登録を2回実行しても監視が増えない。自己監視の監視にオーケストレーター宛ての Webhook が付いていない。
 
@@ -231,6 +232,12 @@
 `docs/SPEC.md` 10 を詳細化してからチケットを作る（Stripe の Webhook、プランの価格、請求の記録、特定商取引法の表記）。
 
 ---
+
+### T41 初期設定画面 ★★
+- 依存：T01、T05、T15
+- ファイル：`hatch/config.py`、`hatch/setup.py`、`hatch/api/setup.py`、`hatch/adapters/setup_checks.py`、`hatch/repo/setup.py`、`hatch/main.py`、`hatch/worker.py`、`hatch/scheduler.py`、`web/js/setup.js`、`web/js/app.js`、`web/css/components.css`、`db/migrations/0002_setup_state.sql`、`deploy/bin/hatch-setup`、`deploy/systemd/*`、`deploy/services.txt`、`misc/update.sh`、`install/hatch-install.sh`、`ct/hatch.sh`
+- 内容：`docs/SPEC.md` 8「初期設定（ブラウザ）」、`docs/IMPLEMENTATION.md` 8.3、`docs/API.md`「初期設定」。
+- 受け入れ条件：外部サービスの設定が無くても API が起動し、パネルを開くと初期設定画面になる。コードが違えば 403。秘密の値を応答に含めない。保存すると `setup.env`（権限 600）とロールの対応表が書かれ、完了後は 409。設定が壊れると再び初期設定が必要になる。既存の環境（管理者のロールあり）は移行で完了扱いになる。
 
 ### T39 オーケストレーターの DB の遠隔バックアップ ★★
 - 依存：T08

@@ -1,45 +1,75 @@
 #!/usr/bin/env bash
-# 対話式の初期設定。入力した値はその場で接続確認してから保存します。
+# 初期設定画面の開き方（パネルの URL と初期設定コード）を表示します。設定そのものはパネルの画面で行います。
+#   hatch-setup          URL とコードを表示
+#   hatch-setup --code   コードだけを表示（スクリプト用）
+#   hatch-setup --reset  初期設定をやり直す（管理者がログインできなくなったときなど）
 set -Eeuo pipefail
+DATA=/var/lib/hatch
+CODE_FILE="$DATA/setup-code"
 ENV_FILE=/etc/hatch/hatch.env
 [[ $EUID -eq 0 ]] || { echo "root で実行してください"; exit 1; }
 
-get() { sed -n "s/^$1=//p" "$ENV_FILE" | tail -1; }
-put() { # put KEY VALUE（値に | や & が含まれても壊れないように置換）
-  local k="$1" v="$2" tmp; tmp="$(mktemp)"
-  awk -v k="$k" -v v="$v" 'BEGIN{d=0} $0 ~ "^"k"=" {print k"="v; d=1; next} {print} END{if(!d) print k"="v}' "$ENV_FILE" > "$tmp"
-  cat "$tmp" > "$ENV_FILE"; rm -f "$tmp"
+sql() { runuser -u postgres -- psql -d hatch -tAqc "$1" 2>/dev/null || true; }
+done_at() { sql "SELECT value #>> '{}' FROM app_settings WHERE key = 'setup_completed_at'"; }
+envget() { # setup.env（画面で保存した値）を優先して読む
+  local v=""
+  if [[ -f "$DATA/setup.env" ]]; then v="$(sed -n "s/^$1=//p" "$DATA/setup.env" | tail -1)"; fi
+  if [[ -z "$v" && -f "$ENV_FILE" ]]; then v="$(sed -n "s/^$1=//p" "$ENV_FILE" | tail -1)"; fi
+  printf '%s' "$v"
 }
-ask() { local cur; cur="$(get "$1")"; read -rp " $2 [${cur:+設定済み}]: " v; echo "${v:-$cur}"; }
-check() { if eval "$2" >/dev/null 2>&1; then echo "   ✓ $1"; else echo "   ✗ $1（値を確認してください）"; fi; }
+ensure_code() {
+  if [[ ! -s "$CODE_FILE" ]]; then
+    python3 -c 'import secrets
+a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+c = "".join(secrets.choice(a) for _ in range(12))
+print(f"{c[:4]}-{c[4:8]}-{c[8:]}")' > "$CODE_FILE.tmp"
+    chown hatch:hatch "$CODE_FILE.tmp"
+    chmod 600 "$CODE_FILE.tmp"
+    mv "$CODE_FILE.tmp" "$CODE_FILE"
+  fi
+  cat "$CODE_FILE"
+}
 
-echo; echo " hatch 初期設定（空欄のまま Enter で現在の値を維持）"; echo
-put PD_PUBLIC_URL "$(ask PD_PUBLIC_URL 'このパネルの公開 URL（例 https://panel.nuids.jp。Discord ログインの戻り先）')"
-put PD_INTERNAL_URL "$(ask PD_INTERNAL_URL 'Tailscale 内から見たこのコンテナの URL（例 http://hatch:8080）')"
-PANEL_URL="$(ask PANEL_URL 'Pterodactyl の URL（例 https://gp.example.net）')"; put PANEL_URL "${PANEL_URL%/}"
-PANEL_APP_KEY="$(ask PANEL_APP_KEY 'Application API キー（ptla_...）')"; put PANEL_APP_KEY "$PANEL_APP_KEY"
-put PANEL_PUBLIC_URL "$(ask PANEL_PUBLIC_URL '利用者に見せるゲームパネルの URL（空欄なら上と同じ）')"
-PANEL_CLIENT_KEY="$(ask PANEL_CLIENT_KEY '管理用アカウントの Client API キー（ptlc_...）')"; put PANEL_CLIENT_KEY "$PANEL_CLIENT_KEY"
-check "Pterodactyl Application API" "curl -fsS -m 8 -H 'Authorization: Bearer $PANEL_APP_KEY' -H 'Accept: application/json' '${PANEL_URL%/}/api/application/users?per_page=1'"
-check "Pterodactyl Client API" "curl -fsS -m 8 -H 'Authorization: Bearer $PANEL_CLIENT_KEY' -H 'Accept: application/json' '${PANEL_URL%/}/api/client/account'"
+case "${1:-}" in
+  --code) ensure_code; exit 0 ;;
+  --reset)
+    sql "UPDATE app_settings SET value = 'null' WHERE key = 'setup_completed_at'" >/dev/null
+    rm -f "$CODE_FILE"
+    echo " 初期設定をやり直せる状態にしました。今の設定値は残っているので、変える項目だけ入力してください。"
+    ;;
+  "") ;;
+  *) sed -n '2,5p' "$0" | sed 's/^# \{0,1\}//'; exit 1 ;;
+esac
 
-CF_API_TOKEN="$(ask CF_API_TOKEN 'Cloudflare API トークン（DNS 編集のみ）')"; put CF_API_TOKEN "$CF_API_TOKEN"
-check "Cloudflare トークン" "curl -fsS -m 8 -H 'Authorization: Bearer $CF_API_TOKEN' https://api.cloudflare.com/client/v4/user/tokens/verify"
-echo "  ※ ドメイン（ゾーン）は、起動後に画面の「管理 → ドメイン」から登録します"
+LOCAL_URL="http://$(hostname -I | awk '{print $1}'):$(envget PD_PORT | grep . || echo 8080)"
+PUBLIC_URL="$(envget PD_PUBLIC_URL)"
+DONE="$(done_at)"
 
-KUMA_URL="$(ask KUMA_URL 'Uptime Kuma の URL（Tailscale 経由推奨）')"; put KUMA_URL "${KUMA_URL%/}"
-put KUMA_USERNAME "$(ask KUMA_USERNAME 'Kuma 連携用ユーザー名')"
-put KUMA_PASSWORD "$(ask KUMA_PASSWORD 'Kuma 連携用パスワード')"
-KUMA_METRICS_KEY="$(ask KUMA_METRICS_KEY 'Kuma の API キー（/metrics 用）')"; put KUMA_METRICS_KEY "$KUMA_METRICS_KEY"
-check "Uptime Kuma /metrics" "curl -fsS -m 8 -u ':$KUMA_METRICS_KEY' '${KUMA_URL%/}/metrics'"
+echo
+if [[ -n "$DONE" ]]; then
+  echo " 初期設定は完了しています（${DONE%%.*}）。"
+  echo "   パネル: ${PUBLIC_URL:-$LOCAL_URL}"
+  echo "   設定をやり直す場合: hatch-setup --reset"
+  echo
+  exit 0
+fi
 
-put DISCORD_BOT_TOKEN "$(ask DISCORD_BOT_TOKEN 'Discord Bot トークン')"
-put DISCORD_CLIENT_ID "$(ask DISCORD_CLIENT_ID 'Discord アプリのクライアントID')"
-put DISCORD_CLIENT_SECRET "$(ask DISCORD_CLIENT_SECRET 'Discord アプリのクライアントシークレット')"
-put DISCORD_GUILD_ID "$(ask DISCORD_GUILD_ID 'Discord サーバーID')"
-put DISCORD_CHANNEL_ANNOUNCE "$(ask DISCORD_CHANNEL_ANNOUNCE 'お知らせを流すチャンネルID（空欄可）')"
-put DISCORD_CHANNEL_OPS "$(ask DISCORD_CHANNEL_OPS '管理者向け通知のチャンネルID（空欄可）')"
+CODE="$(ensure_code)"
+cat << MSG
+ Hatch の初期設定
 
-chown root:hatch "$ENV_FILE"; chmod 640 "$ENV_FILE"
-systemctl restart hatch.target
-echo; echo " 保存して再起動しました。"
+   1. ブラウザでパネルを開いてください
+        ${LOCAL_URL}
+MSG
+if [[ -n "$PUBLIC_URL" && "$PUBLIC_URL" != "$LOCAL_URL" ]]; then
+  echo "        （公開済みなら ${PUBLIC_URL} でも開けます）"
+fi
+cat << MSG
+
+   2. 画面の案内に沿って、次の初期設定コードを入力してください
+        ${CODE}
+
+   あとは画面で、ゲームパネル・Cloudflare・Uptime Kuma・Discord の順に設定します。
+   各キーの取り方は画面に表示されます。
+
+MSG

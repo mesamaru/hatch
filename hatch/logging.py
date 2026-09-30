@@ -61,12 +61,14 @@ class JsonFormatter(logging.Formatter):
 
 
 def setup_logging(level: str = "INFO") -> None:
-    try:
-        from .config import get_settings
+    from .config import get_core_settings, get_settings
 
-        register_secrets(get_settings().secret_values())
-    except Exception:
-        pass
+    for getter in (get_settings, get_core_settings):  # 初期設定の前は本体の秘密だけでも消す
+        try:
+            register_secrets(getter().secret_values())
+            break
+        except Exception:
+            continue
     h = logging.StreamHandler(sys.stdout)
     h.setFormatter(JsonFormatter())
     root = logging.getLogger()

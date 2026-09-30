@@ -12,11 +12,12 @@ from urllib.parse import quote
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from ..config import get_settings
+from ..config import get_core_settings
 
 
 def _key(purpose: str) -> bytes:
-    return hashlib.sha256(f"{purpose}:".encode() + get_settings().PD_SECRET_KEY.get_secret_value().encode()).digest()
+    secret = get_core_settings().PD_SECRET_KEY.get_secret_value()
+    return hashlib.sha256(f"{purpose}:".encode() + secret.encode()).digest()
 
 
 def encrypt(plain: str, purpose: str) -> str:

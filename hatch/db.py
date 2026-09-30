@@ -17,7 +17,7 @@ from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
-from .config import get_settings
+from .config import get_core_settings
 
 _pool: AsyncConnectionPool | None = None
 
@@ -26,7 +26,7 @@ async def open_pool(dsn: str | None = None, *, min_size: int = 1, max_size: int 
     global _pool
     if _pool is not None:
         return _pool
-    dsn = dsn or get_settings().DATABASE_URL.get_secret_value()
+    dsn = dsn or get_core_settings().DATABASE_URL.get_secret_value()
     _pool = AsyncConnectionPool(
         dsn,
         min_size=min_size,

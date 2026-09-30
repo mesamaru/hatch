@@ -23,6 +23,7 @@ from .jobs import publish_slots as _publish_slots  # noqa: F401
 from .jobs.deps import Deps
 from .jobs.engine import Engine
 from .logging import setup_logging
+from .setup import idle_until_stopped
 
 log = logging.getLogger("hatch.worker")
 BEAT_SECONDS = 30
@@ -43,8 +44,9 @@ async def main() -> int:
         s = get_settings()
         games = load_games()
     except ConfigError as e:
-        log.error(str(e))
-        return 2
+        log.warning("%s\n設定が揃うまで待機します。", e)
+        await idle_until_stopped()
+        return 0
     await db.open_pool()
     panel = PterodactylPanel(s.PANEL_URL, s.PANEL_APP_KEY.get_secret_value(), s.PANEL_CLIENT_KEY.get_secret_value())
     dns = CloudflareDns(s.CF_API_TOKEN.get_secret_value(), s.PD_INSTANCE)

@@ -82,11 +82,18 @@ health_ok() {
 }
 
 install_units() { # install_units <リリースディレクトリ>
-  local rel="$1"
-  install -m 644 "$rel"/deploy/systemd/*.service "$rel"/deploy/systemd/*.target /etc/systemd/system/
+  local rel="$1" units
+  shopt -s nullglob
+  units=("$rel"/deploy/systemd/*.service "$rel"/deploy/systemd/*.target "$rel"/deploy/systemd/*.path)
+  shopt -u nullglob
+  install -m 644 "${units[@]}" /etc/systemd/system/
   systemctl daemon-reload
   systemctl enable hatch.target >/dev/null 2>&1
-  while read -r svc; do systemctl enable "$svc" >/dev/null 2>&1; done < <(grep -v '^\s*#' "$rel/deploy/services.txt" | grep -v '^\s*$')
+  while read -r svc; do
+    systemctl enable "$svc" >/dev/null 2>&1
+    # .path は hatch.target の再起動では動き出さないので、ここで開始する
+    if [[ "$svc" == *.path ]]; then systemctl start "$svc" >/dev/null 2>&1 || true; fi
+  done < <(grep -v '^\s*#' "$rel/deploy/services.txt" | grep -v '^\s*$')
 }
 
 switch_to() { # switch_to <リリースディレクトリ>

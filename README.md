@@ -26,75 +26,28 @@ Discord と Web パネルから、Pterodactyl のゲームサーバーを **一�
 git tag v0.1.0 && git push --tags     # 最初のリリース（GitHub Actions が配布ファイルを作ります）
 ```
 
-## セットアップの流れ（スクリプト実行から動作確認まで）
+## セットアップ
 
-**事前準備：** 最初に [docs/setup-checklist.md](docs/setup-checklist.md) で必要な情報を集めてください。
+コンテナの中でコマンドを打つ必要はありません。設定はすべてブラウザの初期設定画面で行います。
 
-**詳細ガイド：** 実際のインストール手順は [docs/install-guide.html](docs/install-guide.html) を参照。
+1. Proxmox VE ホストのシェルで実行します。
 
-### 1. Proxmox ホストでコンテナ作成
+   ```bash
+   bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/hatch.sh)"
+   ```
 
-```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/hatch.sh)"
-```
+2. 最後に表示される URL をブラウザで開き、同じく表示される **初期設定コード** を入力します。
+3. 画面の案内に沿って、ゲームパネル・Cloudflare・Uptime Kuma・Discord を設定します。各キーの取り方は画面に表示され、入力した値はその場で接続確認できます。Discord のサーバー・ロール・チャンネルは一覧から選ぶだけです。
+4. 保存すると自動で再起動し、Discord でログインできるようになります。
 
-対話形式でコンテナのスペック（CPU・メモリ・ディスク・ネットワーク）を入力します。完了後、コンテナ ID とアクセス URL が表示されます。
+事前に値を集めておきたい場合や、うまくいかないときは [docs/SETUP.md](docs/SETUP.md) を参照してください。
+構築の全体（Tailscale・edge・Web パネルの公開を含む）は [docs/setup-guide.html](docs/setup-guide.html) にまとめています。
 
-### 2. コンテナ内で初期設定
-
-```bash
-pct enter <コンテナID>
-hatch-setup
-```
-
-以下を対話形式で設定します（入力値はその場で検証されます）：
-
-- **基本情報**：ホスト名・タイムゾーン
-- **Tailscale URL**：`http://hatch:8080` など（Tailscale 内からのアクセス）
-- **Pterodactyl パネル**：API キー・ホスト名
-- **Cloudflare**：API トークン・ゾーン ID
-- **Uptime Kuma**：URL・認証情報・メトリクスキー
-- **Discord**：Bot トークン・クライアント ID・シークレット
-- **Object Storage**：エンドポイント・バケット・アクセスキー
-- **Edge エージェント**：トークン（自動生成）
-
-### 3. Web パネルの公開設定
-
-Cloudflare Tunnel または edge の nginx 経由で Web パネルを公開します。
-
-### 4. 画面からの初期設定
-
-`https://<パネルのドメイン>/` を開き、Discord でログインして：
-
-1. **管理 → ドメイン**：ゲームサーバーのドメインを登録
-2. **管理 → IP と紐付け**：edge サーバーの IP を確認
-3. **管理 → アドレス枠**：ポート範囲とホスト名パターンを作成
-4. **管理 → Discord ロール連携**：ロールと権限の対応を設定
-5. **管理 → 利用規約**：利用規約を登録
-
-### 5. 動作確認
-
-- テスト用アカウントでログイン
-- サーバーを1台作成
-- アドレスに接続確認
-- 監視画面に反映確認
-- バックアップ・復元・退会を一通りテスト
-
-## インストール（従来のセクション）
-
-**詳細は上記「セットアップの流れ」または [docs/install-guide.html](docs/install-guide.html) を参照してください。**
-
-Proxmox VE ホストのシェルで実行します。
+初期設定コードを見失ったときや、設定をやり直したいときは、コンテナの中で次を実行します。
 
 ```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/mesamaru/hatch/main/ct/hatch.sh)"
-```
-
-完了したら、コンテナに入って初期設定をします（入力した値はその場で接続確認されます）。
-
-```bash
-pct enter <コンテナID>
-hatch-setup
+hatch-setup          # パネルの URL と初期設定コードを表示
+hatch-setup --reset  # 初期設定をやり直す（今の値は残る）
 ```
 
 ### 非対話でインストール
@@ -151,8 +104,6 @@ edge エージェントはオーケストレーターから HAProxy 設定を取
 
 `docs/ENVIRONMENT.md` にまとめています（Proxmox・Pterodactyl・Tailscale・Linode・Cloudflare・Uptime Kuma・Object Storage・Discord・GitHub）。
 
-**Discord Bot セットアップが初めての場合は、[docs/discord-setup.md](docs/discord-setup.md) で詳細な手順を確認してください。**
-
 ## 開発に参加する（AI を含む）
 
 `AGENTS.md` → `docs/SPEC.md` → `docs/IMPLEMENTATION.md` → `docs/API.md` → `docs/EXTERNAL.md` → `docs/UI.md` の順に読み、`docs/TASKS.md` のチケットを1つずつ実装します。
@@ -167,7 +118,7 @@ edge/                           edge エージェントとセットアップ
 hatch/                    API（Python / FastAPI）
 web/                            Web パネル
 db/migrations/                  DB の移行（追加のみ）
-deploy/                         systemd ユニット、初期設定コマンド
+deploy/                         systemd ユニット、初期設定コードの表示コマンド
 docs/SPEC.md                    仕様書
 ```
 

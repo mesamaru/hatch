@@ -20,9 +20,10 @@ from .api import domains as domains_api
 from .api import edge as edge_api
 from .api import me as me_api
 from .api import servers as servers_api
+from .api import setup as setup_api
 from .api import slots as slots_api
-from .config import ConfigError, get_settings
-from .errors import install_handlers
+from .config import ConfigError, get_core_settings, get_settings
+from .errors import AppError, install_handlers
 from .health import full_report
 from .logging import setup_logging
 
@@ -33,10 +34,15 @@ log = logging.getLogger("hatch.api")
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     setup_logging()
     try:
-        get_settings()
+        get_core_settings()
     except ConfigError as e:
         log.error(str(e))
         raise
+    try:
+        get_settings()
+    except ConfigError:
+        # 外部サービスの設定がまだ無い：初期設定画面だけが使える状態で起動する
+        log.warning("初期設定が終わっていません。パネルを開くと初期設定画面が表示されます。")
     await db.open_pool()
     log.info("起動しました", extra={})
     try:
@@ -45,10 +51,17 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         await db.close_pool()
 
 
-app = FastAPI(
-    title="hatch", version=__version__, docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan
-)
+app = FastAPI(title="hatch", version=__version__, docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 install_handlers(app)
+
+
+@app.exception_handler(ConfigError)
+async def _config_error(_, __: ConfigError) -> JSONResponse:
+    err = AppError("setup_required", "初期設定が終わっていません。パネルを開いて初期設定を済ませてください。", 503)
+    return JSONResponse(err.body(), status_code=503)
+
+
+app.include_router(setup_api.router)
 app.include_router(edge_api.router)
 app.include_router(auth_api.router)
 app.include_router(me_api.router)
