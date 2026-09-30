@@ -73,6 +73,7 @@ SELECT s.id::text AS id, s.name, s.game, s.plan_id AS plan, s.status, s.fqdn, s.
        px.id::text AS proxy_id, px.name AS proxy_name,
        sh.permission AS share_permission,
        (SELECT jsonb_object_agg(x.user_id::text, x.permission) FROM server_shares x WHERE x.server_id = s.id) AS shares,
+       (SELECT array_agg(y.user_id::text) FROM server_supporters y WHERE y.server_id = s.id) AS supporters,
        (SELECT jsonb_build_object('id', j.id, 'kind', j.kind, 'status', j.status, 'current_step', j.current_step)
           FROM jobs j WHERE j.server_id = s.id AND j.status IN ('queued','running') ORDER BY j.id DESC LIMIT 1) AS job
 FROM servers s
@@ -82,16 +83,26 @@ LEFT JOIN domains d ON d.id = sl.domain_id
 LEFT JOIN custom_domains cd ON cd.server_id = s.id AND cd.status = 'active'
 LEFT JOIN servers px ON px.id = s.proxy_server_id
 LEFT JOIN server_shares sh ON sh.server_id = s.id AND sh.user_id = %(me)s
+LEFT JOIN server_supporters sp ON sp.server_id = s.id AND sp.user_id = %(me)s
 """
 
 
 async def visible(
-    conn: AsyncConnection, me: str, is_admin: bool, *, owner: str | None = None, statuses: tuple[str, ...] | None = None
+    conn: AsyncConnection,
+    me: str,
+    is_admin: bool,
+    *,
+    is_supporter: bool = False,
+    owner: str | None = None,
+    statuses: tuple[str, ...] | None = None,
 ) -> list[dict[str, Any]]:
-    """見えるサーバー（admin は全員分、利用者は自分のものと共有されたもの）。"""
+    """見えるサーバー（admin は全員分、利用者は自分のものと共有されたもの、サポーターは割り当て分も）。"""
     where = ["s.status = ANY(%(st)s)"]
     if not is_admin:
-        where.append("(s.owner_id = %(me)s OR sh.user_id IS NOT NULL)")
+        mine = "s.owner_id = %(me)s OR sh.user_id IS NOT NULL"
+        if is_supporter:
+            mine += " OR sp.user_id IS NOT NULL"
+        where.append(f"({mine})")
     if owner:
         where.append("s.owner_id = %(owner)s")
     st = list(statuses or ("pending", "provisioning", "running", "stopped", "suspended", "maintenance"))

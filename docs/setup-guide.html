@@ -227,7 +227,7 @@ update --rollback      # 1つ前に戻す（--restore-db で DB も戻す）</co
         <tr><td>コンテナ内で API が起動しない</td><td><code class="mono">journalctl -u hatch-api -n 80</code>。設定が足りない場合は初期設定画面が表示されます（開き方は <code class="mono">hatch-setup</code>）</td></tr>
         <tr><td>edge に反映されない</td><td>edge サーバーで <code class="mono">journalctl -u hatch-edge -f</code>、オーケストレーターとの Tailscale 疎通</td></tr>
         <tr><td>DNS が作られない</td><td>Cloudflare トークンの権限（Zone:Read・DNS:Edit）とゾーン ID の一致</td></tr>
-        <tr><td>ログインできない</td><td>Discord アプリの Redirects に初期設定画面で表示された URL を登録したか、自分に管理者のロールが付いているか。直らなければ <code class="mono">hatch-setup --reset</code> で初期設定をやり直す</td></tr>
+        <tr><td>ログインできない</td><td>Discord アプリの Redirects に初期設定画面で表示された URL を登録したか、自分に管理者のロールが付いているか（Discord サーバーのオーナーはロールが無くても管理者になれます）。直らなければ <code class="mono">hatch-setup --reset</code> で初期設定をやり直す</td></tr>
       </table>
       <p>詳しい仕様は <a href="../docs/SPEC.md">docs/SPEC.md</a>、環境の詳細は <a href="../docs/ENVIRONMENT.md">docs/ENVIRONMENT.md</a>、
       作業ルールは <a href="../AGENTS.md">AGENTS.md</a> を参照してください。リポジトリ：

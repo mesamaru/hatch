@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from ..errors import AppError
 
 SHARE_LEVELS = ("view", "console", "files", "full")
+# サポーターが、割り当てられたサーバーで持つ権限（閲覧と電源操作）
+SUPPORT_LEVEL = "console"
 
 # action → 共同管理者で許可する最低の権限（None は所有者と管理者のみ）
 SERVER_ACTIONS: dict[str, str | None] = {
@@ -28,7 +30,7 @@ GLOBAL_ACTIONS = {"server.create"}
 @dataclass(frozen=True)
 class Actor:
     id: str
-    role: str  # "admin" / "user"
+    role: str  # "admin" / "supporter" / "user"
     deleting: bool = False  # 退会の手続き中（読み取りのみ）
     suspended: bool = False
 
@@ -36,12 +38,17 @@ class Actor:
     def is_admin(self) -> bool:
         return self.role == "admin"
 
+    @property
+    def is_supporter(self) -> bool:
+        return self.role == "supporter"
+
 
 @dataclass(frozen=True)
 class ServerRef:
     owner_id: str
     status: str
     shares: dict[str, str] = field(default_factory=dict)  # user_id → view/console/files/full
+    supporters: frozenset[str] = frozenset()  # 割り当てられたサポーターの user_id
 
 
 def can(actor: Actor, action: str, server: ServerRef | None = None) -> bool:
@@ -62,11 +69,20 @@ def can(actor: Actor, action: str, server: ServerRef | None = None) -> bool:
         return False
     if server.owner_id == actor.id:
         return True
-    level = server.shares.get(actor.id)
+    level = effective_level(actor, server)
     need = SERVER_ACTIONS[action]
     if level is None or need is None:
         return False
     return SHARE_LEVELS.index(level) >= SHARE_LEVELS.index(need)
+
+
+def effective_level(actor: Actor, server: ServerRef) -> str | None:
+    """共有とサポーターの割り当てのうち、高いほうの権限（所有者・管理者は呼び出し側で扱う）。"""
+    levels = [server.shares.get(actor.id)]
+    if actor.is_supporter and actor.id in server.supporters:
+        levels.append(SUPPORT_LEVEL)
+    have = [x for x in levels if x]
+    return max(have, key=SHARE_LEVELS.index) if have else None
 
 
 def require(actor: Actor, action: str, server: ServerRef | None = None) -> None:

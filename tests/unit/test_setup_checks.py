@@ -119,10 +119,41 @@ async def test_discord_lists_roles_and_text_channels():
             ],
         )
     )
+    respx.get(f"{DISCORD_API}/guilds/456").mock(return_value=httpx.Response(200, json={"owner_id": "7"}))
+    respx.get(f"{DISCORD_API}/guilds/456/members").mock(
+        return_value=httpx.Response(
+            200,
+            json=[
+                {"user": {"id": "7", "username": "owner", "global_name": "オーナー"}, "roles": ["901"]},
+                {"user": {"id": "8", "username": "b"}, "roles": ["901"]},
+            ],
+        )
+    )
     r = await check_discord("123", "sec", "bot", "456")
     assert r.ok
-    assert [x["id"] for x in r.data["roles"]] == ["900", "901"]
+    assert [(x["id"], x["members"]) for x in r.data["roles"]] == [("900", 0), ("901", 2)]
     assert [x["id"] for x in r.data["channels"]] == ["10"]
+    # オーナーが管理者のロールを持っていないことを画面で警告できる
+    assert r.data["owner"] == {"name": "オーナー", "role_ids": ["901"]}
+    assert r.data["members_intent"] is True
+
+
+@respx.mock
+async def test_discord_without_members_intent_hides_counts():
+    _discord_ok_token()
+    respx.get(f"{DISCORD_API}/users/@me/guilds").mock(
+        return_value=httpx.Response(200, json=[{"id": "456", "name": "サーバー"}])
+    )
+    respx.get(f"{DISCORD_API}/guilds/456/roles").mock(
+        return_value=httpx.Response(200, json=[{"id": "900", "name": "運営", "position": 1}])
+    )
+    respx.get(f"{DISCORD_API}/guilds/456/channels").mock(return_value=httpx.Response(200, json=[]))
+    respx.get(f"{DISCORD_API}/guilds/456").mock(return_value=httpx.Response(200, json={"owner_id": "7"}))
+    respx.get(f"{DISCORD_API}/guilds/456/members").mock(return_value=httpx.Response(403, json={}))
+    r = await check_discord("123", "sec", "bot", "456")
+    assert r.ok
+    assert r.data["roles"] == [{"id": "900", "name": "運営", "members": None}]
+    assert r.data["owner"] is None and r.data["members_intent"] is False
 
 
 @respx.mock

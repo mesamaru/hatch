@@ -2,6 +2,7 @@
 // 初期設定が終わるまでは、パネルを開くとこの画面になる。操作は初期設定コードで許可される。
 import { esc } from "./components/cell.js";
 import { ic } from "./components/icons.js";
+import { closePicker, openPicker, pickerButton } from "./components/picker.js";
 
 const STEPS = [
   { id: "code", title: "初期設定コード" },
@@ -21,12 +22,20 @@ const S = {
   secretsSet: [],
   checks: {},
   discord: null,
-  adminRole: "",
-  adminMax: 10,
-  userRoles: {},
+  roleMap: {}, // Discord のロール ID → { grants: "admin" | "supporter" | "user", max: 台数 }
   busy: false,
   error: "",
 };
+
+// 権限の3段階（docs/SPEC.md「権限」）
+const TIERS = [
+  { value: "admin", label: "管理者", sub: "すべての操作と設定ができます" },
+  { value: "supporter", label: "サポーター", sub: "管理者が割り当てたサーバーを閲覧・操作できます" },
+  { value: "user", label: "利用者", sub: "自分のサーバーを作って使えます" },
+];
+const TIER_OPTIONS = [{ value: "", label: "使わない", sub: "このロールでは Hatch を使えません" }, ...TIERS];
+const TIER_LABEL = Object.fromEntries(TIERS.map((t) => [t.value, t.label]));
+const DEFAULT_MAX = { admin: 10, supporter: 3, user: 1 };
 
 const root = () => document.getElementById("auth");
 
@@ -200,27 +209,38 @@ function pDiscord() {
     ${invite ? `<div class="row"><a class="btn" href="${esc(invite)}" target="_blank" rel="noopener">Bot をサーバーに招待</a></div>` : ""}
     ${
       guilds.length
-        ? `<div class="group"><div class="field"><label for="f-guild">Discord サーバー</label><select id="f-guild" data-k="DISCORD_GUILD_ID">
-        <option value="">選んでください</option>
-        ${guilds.map((g) => `<option value="${esc(g.id)}" ${val("DISCORD_GUILD_ID") === g.id ? "selected" : ""}>${esc(g.name)}</option>`).join("")}
-        </select></div></div>`
+        ? `<div class="group"><div class="field"><label>Discord サーバー</label>${pickerButton({
+            options: guildOptions(),
+            value: val("DISCORD_GUILD_ID"),
+            attrs: 'data-pick="guild" aria-label="Discord サーバー"',
+          })}</div></div>`
         : ""
     }`;
 }
 
-function roleOptions(selected, excludeId = "") {
-  const roles = (S.discord && S.discord.roles) || [];
-  return roles
-    .filter((r) => r.id !== excludeId)
-    .map((r) => `<option value="${esc(r.id)}" ${selected === r.id ? "selected" : ""}>${esc(r.name)}</option>`)
-    .join("");
+function guildOptions() {
+  return ((S.discord && S.discord.guilds) || []).map((g) => ({ value: g.id, label: g.name }));
 }
-function channelSelect(key, label) {
+function channelOptions() {
   const chans = (S.discord && S.discord.channels) || [];
-  return `<div class="field"><label for="f-${key}">${esc(label)}</label><select id="f-${key}" data-k="${key}">
-    <option value="">使わない</option>
-    ${chans.map((c) => `<option value="${esc(c.id)}" ${val(key) === c.id ? "selected" : ""}># ${esc(c.name)}</option>`).join("")}
-    </select></div>`;
+  return [{ value: "", label: "使わない" }, ...chans.map((c) => ({ value: c.id, label: `# ${c.name}` }))];
+}
+function channelPicker(key, label) {
+  return `<div class="field"><label>${esc(label)}</label>${pickerButton({
+    options: channelOptions(),
+    value: val(key),
+    attrs: `data-pick="chan:${key}" aria-label="${esc(label)}のチャンネル"`,
+  })}</div>`;
+}
+
+/** 画面に出ている Discord のロールのうち、Hatch で使うもの。 */
+function assignedRoles() {
+  const roles = (S.discord && S.discord.roles) || [];
+  return roles.filter((r) => S.roleMap[r.id]).map((r) => ({ ...r, ...S.roleMap[r.id] }));
+}
+function membersText(r) {
+  if (r.members === null || r.members === undefined) return "";
+  return r.members ? `${r.members}人が持っています` : "まだ誰も持っていません";
 }
 
 function pRoles() {
@@ -228,38 +248,57 @@ function pRoles() {
   if (!d.roles) {
     return `<div class="banner w">${ic("warn")}<div class="tx">ロールの一覧を読み込めていません。<div class="bb"><button type="button" class="btn sm" data-s="reload-roles">一覧を読み込む</button></div></div></div>`;
   }
-  const userRows = d.roles
-    .filter((r) => r.id !== S.adminRole)
-    .map((r) => {
-      const on = r.id in S.userRoles;
-      return `<div class="field rolerow"><label><input type="checkbox" data-role="${esc(r.id)}" ${on ? "checked" : ""}> ${esc(r.name)}</label>
-        <input type="number" min="0" max="100" data-role-max="${esc(r.id)}" value="${on ? S.userRoles[r.id] : 1}" ${on ? "" : "disabled"} aria-label="${esc(r.name)} の作成できる台数"><span class="unit">台</span></div>`;
-    });
-  return `<p class="lead">Discord のロールで、誰が Hatch を使えるかを決めます。ロールを持っていない人はログインできません。</p>
+  const rows = d.roles.map((r) => {
+    const m = S.roleMap[r.id];
+    const warn = m && m.grants === "admin" && r.members === 0;
+    const sub = membersText(r);
+    return `<div class="field rolerow"><div class="rn"><b>${esc(r.name)}</b>${sub ? `<small class="${warn ? "warn" : ""}">${esc(sub)}</small>` : ""}</div>
+      ${pickerButton({ options: TIER_OPTIONS, value: m ? m.grants : "", placeholder: "使わない", attrs: `data-pick="role:${esc(r.id)}" aria-label="${esc(r.name)} の権限"` })}</div>`;
+  });
+  const used = assignedRoles();
+  const maxRows = used.map(
+    (r) => `<div class="field maxrow"><label for="f-max-${esc(r.id)}">${esc(r.name)}${r.name === TIER_LABEL[r.grants] ? "" : `<small class="unitlabel">（${esc(TIER_LABEL[r.grants])}）</small>`}</label>
+      <input id="f-max-${esc(r.id)}" type="number" min="0" max="100" data-role-max="${esc(r.id)}" value="${esc(r.max)}"><span class="unit">台</span></div>`,
+  );
+  const admins = used.filter((r) => r.grants === "admin");
+  const nobodyAdmin = admins.length && admins.every((r) => r.members === 0);
+  const owner = d.owner;
+  const ownerIsAdmin = owner && admins.some((r) => owner.role_ids.includes(r.id));
+  let notice = "";
+  if (nobodyAdmin) {
+    notice = `<div class="banner w">${ic("warn")}<div class="tx">管理者にしたロールを、まだ誰も持っていません。Discord で自分にロールを付けてから「一覧を更新」を押してください。${owner ? `（Discord サーバーのオーナーの ${esc(owner.name)} さんは、ロールが無くても管理者としてログインできます）` : ""}</div></div>`;
+  } else if (owner && admins.length && !ownerIsAdmin) {
+    notice = `<div class="banner">${ic("info")}<div class="tx">Discord サーバーのオーナー（${esc(owner.name)} さん）は、ロールが無くても管理者としてログインできます。</div></div>`;
+  }
+  const intent = d.members_intent === false
+    ? `<div class="note">ロールごとの人数を表示するには、Developer Portal の <b>Bot → Server Members Intent</b> をオンにしてから <b>一覧を更新</b> を押してください。</div>`
+    : "";
+  return `<p class="lead">Discord のロールごとに、Hatch での権限を選びます。どのロールも持っていない人はログインできません（Discord サーバーのオーナーは例外で、常に管理者になります）。</p>
+    <div class="tiers">${TIERS.map((t) => `<div class="tier"><span class="tier-n ${t.value}">${t.label}</span><span class="tier-d">${esc(t.sub)}${t.value === "admin" ? "。最初のログインで二段階認証を登録します" : t.value === "supporter" ? "（起動・停止・再起動）。自分のサーバーも作れます" : ""}</span></div>`).join("")}</div>
     ${guide("ロールがまだ無い場合", [
-      "Discord のサーバー名 → <b>サーバー設定 → ロール → ロールを作成</b> で、管理者用（例 <code>運営</code>）と利用者用（例 <code>メンバー</code>）のロールを作ります。",
+      "Discord のサーバー名 → <b>サーバー設定 → ロール → ロールを作成</b> で、管理者用（例 <code>運営</code>）・サポーター用（例 <code>サポーター</code>）・利用者用（例 <code>メンバー</code>）のロールを作ります。",
       "<b>自分に管理者用のロールを付けます</b>（メンバー一覧で自分を右クリック → ロール）。",
       "作ったら下の <b>一覧を更新</b> を押します。",
     ])}
     <div class="row"><button type="button" class="btn sm" data-s="reload-roles">一覧を更新</button></div>
-    <div class="gh">管理者</div>
-    <div class="group">
-      <div class="field"><label for="f-admin">管理者のロール</label><select id="f-admin" data-s-admin>
-        <option value="">選んでください</option>${roleOptions(S.adminRole)}</select></div>
-      <div class="field"><label for="f-admin-max">作成できる台数</label><input id="f-admin-max" type="number" min="0" max="100" value="${S.adminMax}"><span class="unit">台</span></div>
-    </div>
-    <div class="gf">このロールを持つ人が管理者になります。<b>自分が持っているロール</b>を選んでください。</div>
-    <div class="gh">利用者（任意・複数可）</div>
-    <div class="group">${userRows.join("") || `<div class="field">選べるロールがありません</div>`}</div>
-    <div class="gf">チェックしたロールを持つ人は、サーバーを作れる利用者になります。台数は1人あたりの上限です。後から「管理 → ロール連携」で変えられます。</div>
+    ${notice}
+    <div class="gh">Discord のロールと権限</div>
+    <div class="group">${rows.join("") || `<div class="field">選べるロールがありません</div>`}</div>
+    <div class="gf">複数のロールを持つ人は、いちばん強い権限になります。後から「管理 → ロール連携」で変えられます。</div>
+    ${intent}
+    ${
+      maxRows.length
+        ? `<div class="gh">作成できるサーバーの台数（1人あたり）</div><div class="group">${maxRows.join("")}</div>`
+        : ""
+    }
     <div class="gh">通知するチャンネル（任意）</div>
-    <div class="group">${channelSelect("DISCORD_CHANNEL_ANNOUNCE", "お知らせ")}${channelSelect("DISCORD_CHANNEL_OPS", "管理者向け")}</div>
+    <div class="group">${channelPicker("DISCORD_CHANNEL_ANNOUNCE", "お知らせ")}${channelPicker("DISCORD_CHANNEL_OPS", "管理者向け")}</div>
     <div class="gf">お知らせは利用者全員に、管理者向けはエラーなどの通知に使います。Bot がそのチャンネルでメッセージを送れるようにしてください。</div>`;
 }
 
 function pSave() {
-  const roles = (S.discord && S.discord.roles) || [];
-  const roleName = (id) => (roles.find((r) => r.id === id) || {}).name || id;
+  const used = assignedRoles();
+  const names = (g) => used.filter((r) => r.grants === g).map((r) => r.name).join("、");
   const line = (label, ok, text) =>
     `<div class="cell"><div class="tx"><div class="t">${esc(label)}</div><div class="s wrap">${esc(text)}</div></div><span class="val ${ok ? "good" : "bad"}">${ok ? ic("ok") : ic("warn")}</span></div>`;
   const chk = (k) => !!(S.checks[k] && S.checks[k].ok);
@@ -270,8 +309,9 @@ function pSave() {
       ${line("Cloudflare", chk("cloudflare"), chk("cloudflare") ? S.checks.cloudflare.message : "接続確認をしていません")}
       ${line("Uptime Kuma", chk("kuma"), val("KUMA_URL") || "設定済み")}
       ${line("Discord", chk("discord"), (S.discord && (S.discord.guilds || []).find((g) => g.id === val("DISCORD_GUILD_ID")) || {}).name || "")}
-      ${line("管理者のロール", !!S.adminRole, S.adminRole ? roleName(S.adminRole) : "未選択")}
-      ${line("利用者のロール", true, Object.keys(S.userRoles).map(roleName).join("、") || "なし（管理者だけが使えます）")}
+      ${line("管理者", !!names("admin"), names("admin") || "未選択")}
+      ${line("サポーター", true, names("supporter") || "なし")}
+      ${line("利用者", true, names("user") || "なし（管理者とサポーターだけが使えます）")}
     </div>
     <div class="note">最初のログインのあと、管理者には二段階認証の登録を求められます。Google Authenticator などの認証アプリを用意してください。</div>`;
 }
@@ -281,7 +321,7 @@ function pDone(message) {
   const same = url === location.origin;
   return `<div class="authcard glass setup"><h1>初期設定が完了しました</h1>
     ${message ? `<div class="banner w">${ic("warn")}<div class="tx">${esc(message)}</div></div>` : ""}
-    <p class="lead">Discord でログインしてください。管理者のロールを持っていれば、管理者としてログインできます。</p>
+    <p class="lead">Discord でログインしてください。管理者にしたロールを持っている人と、Discord サーバーのオーナーは、管理者としてログインできます。</p>
     ${same ? `<button type="button" class="btn fill block" data-s="login">Discord でログイン</button>` : `<a class="btn fill block" href="${esc(url)}/">公開 URL（${esc(url)}）を開いてログイン</a>`}
     ${guide("ログインした後にやること", [
       "<b>管理 → ドメイン</b>：ゲームサーバーに使うドメインを登録します（Cloudflare のゾーン ID はドメインの概要ページの右下にあります）。",
@@ -294,6 +334,7 @@ const PAGES = { code: pCode, url: pUrl, panel: pPanel, cloudflare: pCloudflare, 
 
 /* ---------------- 描画 ---------------- */
 function render() {
+  closePicker();
   const st = STEPS[S.step];
   const last = S.step === STEPS.length - 1;
   const checkBtn = st.check
@@ -351,6 +392,8 @@ async function unlock() {
     const st = await call("POST", "/unlock", { code: S.code });
     S.values = { ...st.values };
     S.secretsSet = st.secrets_set;
+    // やり直しのときは、今のロールの割り当てを初期値にする
+    S.roleMap = Object.fromEntries((st.role_rules || []).map((r) => [r.id, { grants: r.grants, max: r.max_servers }]));
     S.step = 1;
   } catch (e) {
     S.error = e.message;
@@ -368,7 +411,9 @@ function validateStep(id) {
   if (id === "discord") {
     if (!S.discord || !S.discord.roles) return "接続確認をして、Discord サーバーを選んでください。";
   }
-  if (id === "roles" && !S.adminRole) return "管理者のロールを選んでください。";
+  if (id === "roles" && !assignedRoles().some((r) => r.grants === "admin")) {
+    return "管理者にするロールを1つ以上選んでください。";
+  }
   return "";
 }
 
@@ -376,13 +421,15 @@ async function complete() {
   S.busy = true;
   S.error = "";
   render();
-  const roles = (S.discord && S.discord.roles) || [];
-  const name = (id) => (roles.find((r) => r.id === id) || {}).name || id;
   try {
     await call("POST", "/complete", {
       values: stepValues(),
-      admin_role: { id: S.adminRole, name: name(S.adminRole), max_servers: Number(S.adminMax) || 0 },
-      user_roles: Object.entries(S.userRoles).map(([id, max]) => ({ id, name: name(id), max_servers: Number(max) || 0 })),
+      roles: assignedRoles().map((r) => ({
+        id: r.id,
+        name: r.name,
+        grants: r.grants,
+        max_servers: Math.min(100, Math.max(0, Number(r.max) || 0)),
+      })),
     });
   } catch (e) {
     S.error = e.message;
@@ -407,7 +454,44 @@ async function waitForRestart() {
   root().innerHTML = `<div class="authscreen">${pDone("自動で再起動しなかったようです。コンテナで systemctl restart hatch.target を実行してから、ログインしてください。")}</div>`;
 }
 
+function refocus(pick) {
+  const b = root().querySelector(`[data-pick="${CSS.escape(pick)}"]`);
+  if (b) b.focus();
+}
+
+function onPick(el) {
+  const kind = el.dataset.pick;
+  if (kind === "guild") {
+    return openPicker(el, guildOptions(), val("DISCORD_GUILD_ID"), (v) => {
+      if (v === val("DISCORD_GUILD_ID")) return;
+      S.values.DISCORD_GUILD_ID = v;
+      runCheck("discord");
+    });
+  }
+  if (kind.startsWith("chan:")) {
+    const key = kind.slice(5);
+    return openPicker(el, channelOptions(), val(key), (v) => {
+      S.values[key] = v;
+      render();
+      refocus(kind);
+    });
+  }
+  if (kind.startsWith("role:")) {
+    const id = kind.slice(5);
+    const now = S.roleMap[id];
+    return openPicker(el, TIER_OPTIONS, now ? now.grants : "", (v) => {
+      if (!v) delete S.roleMap[id];
+      else S.roleMap[id] = { grants: v, max: now && now.grants === v ? now.max : DEFAULT_MAX[v] };
+      S.error = "";
+      render();
+      refocus(kind);
+    });
+  }
+}
+
 async function onClick(e) {
+  const picker = e.target.closest("[data-pick]");
+  if (picker && !picker.disabled) return onPick(picker);
   const el = e.target.closest("[data-s]");
   if (!el || el.disabled) return;
   const act = el.dataset.s;
@@ -452,33 +536,16 @@ async function onClick(e) {
 
 function onInput(e) {
   const t = e.target;
-  // select とチェックボックスは input と change の両方が来るので、change だけを扱う
-  if ((t.tagName === "SELECT" || t.type === "checkbox") && e.type !== "change") return;
   if (t.dataset.k) {
     S.values[t.dataset.k] = t.value.trim();
-    if (t.dataset.k === "DISCORD_GUILD_ID" && t.value) return runCheck("discord");
     const step = STEPS[S.step];
-    if (step.check && S.checks[step.check] && e.type === "change" && t.tagName !== "SELECT") {
+    if (step.check && S.checks[step.check] && e.type === "change") {
       delete S.checks[step.check];
       render();
     }
     return;
   }
-  if (t.id === "f-admin") {
-    S.adminRole = t.value;
-    delete S.userRoles[t.value];
-    return render();
-  }
-  if (t.id === "f-admin-max") {
-    S.adminMax = t.value;
-    return;
-  }
-  if (t.dataset.role) {
-    if (t.checked) S.userRoles[t.dataset.role] = 1;
-    else delete S.userRoles[t.dataset.role];
-    return render();
-  }
-  if (t.dataset.roleMax) S.userRoles[t.dataset.roleMax] = t.value;
+  if (t.dataset.roleMax && S.roleMap[t.dataset.roleMax]) S.roleMap[t.dataset.roleMax].max = t.value;
 }
 
 export function renderSetup() {

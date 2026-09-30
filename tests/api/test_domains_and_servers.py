@@ -225,3 +225,39 @@ async def test_suspended_server_read_only(with_rule):
     ] == "規約違反"
     r = await t.post("/api/servers/storia/power", json={"signal": "start"})
     assert r.json()["error"]["code"] == "server_suspended"
+
+
+async def test_supporter_sees_and_operates_only_assigned_servers(with_rule):
+    env = with_rule
+    await create(env)
+    await create(env, "suzuki", "rpg", 25562)
+    sup_id = make_user(env["url"], "sato", role="supporter")
+    sup = client_for(env["url"], sup_id)
+    try:
+        assert (await sup.get("/api/servers")).json()["items"] == []
+        assert (await sup.get("/api/servers/storia")).status_code == 404
+        # 割り当ては管理者だけ。サポーター以外は割り当てられない
+        assert (await env["tanaka"].put(f"/api/servers/storia/supporters/{sup_id}")).status_code == 403
+        r = await env["admin"].put(f"/api/servers/storia/supporters/{env['ids']['suzuki']}")
+        assert r.status_code == 400 and r.json()["error"]["code"] == "not_supporter"
+        assert (await env["admin"].put(f"/api/servers/storia/supporters/{sup_id}")).status_code == 204
+        assert [x["id"] for x in (await env["admin"].get("/api/supporters")).json()["items"]] == [sup_id]
+        listed = (await env["admin"].get("/api/servers/storia/supporters")).json()["items"]
+        assert [(x["id"], x["active"]) for x in listed] == [(sup_id, True)]
+
+        # 割り当てたサーバーだけが見え、閲覧と電源操作ができる。設定の変更やゴミ箱はできない
+        items = (await sup.get("/api/servers")).json()["items"]
+        assert [(s["name"], s["my_permission"]) for s in items] == [("storia", "support")]
+        assert (await sup.post("/api/servers/storia/power", json={"signal": "stop"})).status_code == 204
+        assert (await sup.patch("/api/servers/storia", json={"auto_restart": False})).status_code == 403
+        assert (await sup.delete("/api/servers/storia")).status_code == 403
+        assert (await sup.get("/api/servers/rpg")).status_code == 404
+
+        # 操作ログには利用者の名前を書かず ID で残す
+        detail = q(env["url"], "SELECT detail::text FROM audit_log WHERE action = 'サポーターを割り当て'")[0][0]
+        assert sup_id in detail and "sato" not in detail
+
+        assert (await env["admin"].delete(f"/api/servers/storia/supporters/{sup_id}")).status_code == 204
+        assert (await sup.get("/api/servers/storia")).status_code == 404
+    finally:
+        await sup.aclose()

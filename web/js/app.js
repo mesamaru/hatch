@@ -44,12 +44,15 @@ const TITLES = {
 const LOGIN_ERRORS = {
   state: "確認用の情報が一致しませんでした。もう一度ログインしてください。",
   not_member: "対象の Discord サーバーに参加していません。",
-  not_allowed: "利用できるロールがなく、招待もされていません。",
+  no_role:
+    "Hatch を使えるロールが、あなたの Discord アカウントに付いていません。管理者に、管理者・サポーター・利用者のいずれかのロールを付けてもらってから、もう一度ログインしてください。",
+  not_allowed: "このアカウントは利用できません。心当たりがない場合は管理者に問い合わせてください。",
   email: "Discord のメールアドレスが確認されていません。",
   email_taken: "同じメールアドレスの別アカウントが既にあります。",
   suspended: "アカウントが利用停止中です。",
   discord: "Discord との通信に失敗しました。時間をおいて試してください。",
 };
+const ROLE_LABELS = { admin: "管理者", supporter: "サポーター", user: "利用者" };
 const DISPLAY_KEY = "hatch-display";
 const BG_PRESETS = [
   { id: "none", name: "なし", light: "none", dark: "none" },
@@ -135,7 +138,7 @@ function renderChrome() {
           `<button type="button" class="sbtn" data-act="tab" data-arg="${t.id}" ${ROUTE.tab === t.id ? 'aria-current="page"' : ""}>${ic(t.icon)}<span>${t.label}</span></button>`
       )
       .join("")}
-    <div class="foot"><span class="ico" style="background:var(--gray);border-radius:50%;font-weight:700;font-size:14px">${esc((u.username || "?")[0].toUpperCase())}</span><div><div>${esc(u.username)}</div><div style="font-size:13px;color:var(--label2)">${u.role === "admin" ? "管理者" : "利用者"}</div></div></div>`;
+    <div class="foot"><span class="ico" style="background:var(--gray);border-radius:50%;font-weight:700;font-size:14px">${esc((u.username || "?")[0].toUpperCase())}</span><div><div>${esc(u.username)}</div><div style="font-size:13px;color:var(--label2)">${ROLE_LABELS[u.role] || "利用者"}</div></div></div>`;
 }
 function onScroll() {
   const n = document.getElementById("navbar");
@@ -170,7 +173,7 @@ function bgName(bg) {
 function pSettings() {
   const u = ME.user;
   return `${navbar("設定")}<div class="page"><h1 class="large">設定</h1>
-    ${group([cell({ icon: "server", color: "var(--gray)", title: `<b style="font-weight:600">${esc(u.username)}</b>`, sub: u.role === "admin" ? "管理者" : "利用者" })])}
+    ${group([cell({ icon: "server", color: "var(--gray)", title: `<b style="font-weight:600">${esc(u.username)}</b>`, sub: ROLE_LABELS[u.role] || "利用者" })])}
     ${group(
       [
         `<div class="field"><label for="th">テーマ</label><select id="th" data-set="theme"><option value="" ${DISPLAY.theme === "" ? "selected" : ""}>自動</option><option value="light" ${DISPLAY.theme === "light" ? "selected" : ""}>ライト</option><option value="dark" ${DISPLAY.theme === "dark" ? "selected" : ""}>ダーク</option></select></div>`,

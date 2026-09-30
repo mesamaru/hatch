@@ -17,7 +17,7 @@ from hatch.auth.session import Principal, require_admin
 from hatch.errors import AppError
 from hatch.main import app
 
-ADMIN_ROLE, USER_ROLE = "900", "901"
+ADMIN_ROLE, USER_ROLE, SUPPORT_ROLE = "900", "901", "902"
 
 
 class FakeOAuth:
@@ -52,8 +52,8 @@ async def env(db_url):
     with psycopg.connect(db_url) as c:
         c.execute(
             "INSERT INTO discord_role_rules (discord_role_id, label, grants_role, max_servers) VALUES "
-            "(%s, '運営', 'admin', 0), (%s, 'サポーター', 'user', 5)",
-            (ADMIN_ROLE, USER_ROLE),
+            "(%s, '運営', 'admin', 0), (%s, 'メンバー', 'user', 5), (%s, 'サポーター', 'supporter', 3)",
+            (ADMIN_ROLE, USER_ROLE, SUPPORT_ROLE),
         )
     fake = FakeOAuth()
     app.dependency_overrides[auth_api.get_oauth] = lambda: fake
@@ -64,8 +64,8 @@ async def env(db_url):
     await db.close_pool()
 
 
-def ident(id_="111", name="Tanaka_Craft!", roles=(USER_ROLE,), email="t@example.com", verified=True):
-    return DiscordIdentity(id_, name, email, verified, tuple(roles))
+def ident(id_="111", name="Tanaka_Craft!", roles=(USER_ROLE,), email="t@example.com", verified=True, owner=False):
+    return DiscordIdentity(id_, name, email, verified, tuple(roles), is_owner=owner)
 
 
 async def login(env, identity) -> httpx.Response:
@@ -107,7 +107,8 @@ async def test_state_mismatch_is_rejected(env):
 @pytest.mark.parametrize(
     ("identity", "code"),
     [
-        (ident(roles=()), "not_allowed"),
+        (ident(roles=()), "no_role"),
+        (ident(roles=("555",)), "no_role"),
         (ident(verified=False), "email"),
         (AppError("not_member", "x", 403), "not_member"),
     ],
@@ -238,3 +239,41 @@ def test_encrypt_roundtrip():
 
     with pytest.raises(InvalidTag):
         crypto.decrypt(t, "other")
+
+
+async def test_guild_owner_becomes_admin_without_roles(env):
+    """Discord サーバーのオーナーは、管理者のロールを付け忘れても管理者としてログインできる。"""
+    r = await login(env, ident(roles=(), owner=True))
+    assert r.headers["location"] == "/"
+    assert q(env["url"], "SELECT role, max_servers FROM users") == [("admin", 10)]
+
+
+async def test_highest_role_wins(env):
+    await login(env, ident(roles=(USER_ROLE, SUPPORT_ROLE)))
+    assert q(env["url"], "SELECT role, max_servers FROM users") == [("supporter", 5)]
+
+
+async def test_losing_supporter_role_removes_assignments(env):
+    await login(env, ident(roles=(SUPPORT_ROLE,)))
+    with psycopg.connect(env["url"]) as c:
+        uid = c.execute("SELECT id FROM users").fetchone()[0]
+        sid = c.execute(
+            "INSERT INTO servers (name, owner_id, plan_id, game, status, expires_at) "
+            "VALUES ('srv1', %s, 'light', 'paper', 'running', now() + interval '30 days') RETURNING id",
+            (uid,),
+        ).fetchone()[0]
+        c.execute("INSERT INTO server_supporters (server_id, user_id) VALUES (%s, %s)", (sid, uid))
+    env["client"].cookies.clear()
+    await login(env, ident(roles=(USER_ROLE,)))
+    assert q(env["url"], "SELECT role FROM users") == [("user",)]
+    assert q(env["url"], "SELECT count(*) FROM server_supporters") == [(0,)]
+    actions = [r[0] for r in q(env["url"], "SELECT action FROM audit_log ORDER BY id")]
+    assert "Discord のロールで権限が変わりました" in actions
+
+
+def test_grant_for():
+    assert auth_api.grant_for([], False) is None
+    assert auth_api.grant_for([], True) == ("admin", 10)
+    rules = [{"grants_role": "user", "max_servers": 2}, {"grants_role": "supporter", "max_servers": 1}]
+    assert auth_api.grant_for(rules, False) == ("supporter", 2)
+    assert auth_api.grant_for(rules, True) == ("admin", 2)

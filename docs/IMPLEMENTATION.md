@@ -92,16 +92,18 @@ tests/
 
 `domain/permissions.py` の1関数にまとめる：`can(user, action, server=None) -> bool`。ルートでは `require(user, action, server)` を呼び、ダメなら `AppError("forbidden", ..., 403)`。
 
-| action | admin | 所有者 | 共同管理者 view | console | files | full |
-|---|---|---|---|---|---|---|
-| server.view | ○ | ○ | ○ | ○ | ○ | ○ |
-| server.power | ○ | ○ | — | ○ | ○ | ○ |
-| server.backup | ○ | ○ | — | — | ○ | ○ |
-| server.restore | ○ | ○ | — | — | — | ○ |
-| server.plugins | ○ | ○ | — | — | ○ | ○ |
-| server.settings / share / domain / trash / dev_copy | ○ | ○ | — | — | — | — |
-| server.extend | 実行 | 申請 | — | — | — | — |
-| admin.* | ○ | — | — | — | — | — |
+| action | admin | 所有者 | 共同管理者 view | console | files | full | 割り当てられたサポーター |
+|---|---|---|---|---|---|---|---|
+| server.view | ○ | ○ | ○ | ○ | ○ | ○ | ○ |
+| server.power | ○ | ○ | — | ○ | ○ | ○ | ○ |
+| server.backup | ○ | ○ | — | — | ○ | ○ | — |
+| server.restore | ○ | ○ | — | — | — | ○ | — |
+| server.plugins | ○ | ○ | — | — | ○ | ○ | — |
+| server.settings / share / domain / trash / dev_copy | ○ | ○ | — | — | — | — | — |
+| server.extend | 実行 | 申請 | — | — | — | — | — |
+| admin.* | ○ | — | — | — | — | — | — |
+
+ユーザーの権限（`users.role`）は `admin`・`supporter`・`user` の3段階。サポーターは、`server_supporters` で割り当てられたサーバーに対して、共同管理者 console と同じ権限を持つ（`SUPPORT_LEVEL`）。共有もされていれば高いほうを使う。`role` が `supporter` でない人の割り当ては効かない（ログインで権限が変わったときに割り当ても消す）。
 
 利用停止中（`suspended`）のサーバーは、admin 以外は `server.view` しかできない。
 
@@ -360,7 +362,7 @@ systemd は `/etc/hatch/hatch.env` の後に `/var/lib/hatch/setup.env`（初期
 - 初期設定コード：`PD_DATA_DIR/setup-code`（権限 600、12文字、読み間違えやすい文字を除く）。インストーラー（`hatch-setup --code`）か API が作る。完了すると消す。比較は定数時間。
 - 保存：画面で入力できるキー（8.1 の「画面 ○」）だけを `PD_DATA_DIR/setup.env` に書く（一時ファイル → 入れ替え、権限 600）。値は空白・引用符・`$`・`#`・`;`・バックスラッシュを含まないものだけ受け付ける（systemd の EnvironmentFile にそのまま書くため）。空欄は「今の値のまま」。
 - 再起動：API は hatch ユーザーで動くので自分では再起動できない。保存後に `PD_DATA_DIR/restart-request` を書き、`hatch-reload.path`（root の systemd）が検知して `systemctl restart hatch.target` を実行する。画面は `/api/setup/status` の `restarting` が false になるまで待つ。
-- 完了時に、選んだ Discord ロールを `discord_role_rules` に登録（管理者のロールは `grants_role='admin'`）し、`setup_completed_at` を埋め、操作ログに「初期設定を保存」（キー名だけ。値は書かない）を残す。
+- 完了時に、Discord ロールと権限の対応を `discord_role_rules` に書く（`grants_role` は `admin`・`supporter`・`user`。画面で「使わない」にしたロールは消す）。ログインでは、持っているロールのうち最も強い権限を使う。Discord サーバーのオーナー（Bot で `GET /guilds/{id}` の `owner_id` を確認）は、ロールが無くても `admin` にする。その後 `setup_completed_at` を埋め、操作ログに「初期設定を保存」（キー名だけ。値は書かない）を残す。
 
 ---
 

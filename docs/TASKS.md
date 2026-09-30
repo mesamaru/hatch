@@ -22,6 +22,7 @@
 | T15 画面の骨組み | 完了 | ナビゲーション（サイドバー・タブバー・ナビゲーションバー）・シート・トースト・検索の枠組み・URL 同期・API クライアント（CSRF・エラー表示）・ログイン・管理者の二段階認証・利用規約の同意・テーマと背景の切り替え |
 | T16 画面：サーバーと作成・管理のアドレス | 未着手 | 次に実装。各画面の中身（一覧・詳細・作成など）をつなぐ |
 | T41 初期設定画面 | 完了 | コンテナ内の対話式設定をやめ、ブラウザのウィザードに。最初の管理者のロールもここで登録 |
+| T42 権限の3段階とログインの改善 | 完了 | 管理者・サポーター・利用者。Discord サーバーのオーナーは常に管理者。初期設定の選択肢を独自のメニューに。サポーターの割り当ての画面は T22 で作る（API は完成） |
 
 
 **1回の作業で1チケット**。上から順に進めます（「依存」が終わっていないチケットには着手しない）。各チケットは単独でテストが通り、`update` で配布できる状態で終わらせます。
@@ -238,6 +239,12 @@
 - ファイル：`hatch/config.py`、`hatch/setup.py`、`hatch/api/setup.py`、`hatch/adapters/setup_checks.py`、`hatch/repo/setup.py`、`hatch/main.py`、`hatch/worker.py`、`hatch/scheduler.py`、`web/js/setup.js`、`web/js/app.js`、`web/css/components.css`、`db/migrations/0002_setup_state.sql`、`deploy/bin/hatch-setup`、`deploy/systemd/*`、`deploy/services.txt`、`misc/update.sh`、`install/hatch-install.sh`、`ct/hatch.sh`
 - 内容：`docs/SPEC.md` 8「初期設定（ブラウザ）」、`docs/IMPLEMENTATION.md` 8.3、`docs/API.md`「初期設定」。
 - 受け入れ条件：外部サービスの設定が無くても API が起動し、パネルを開くと初期設定画面になる。コードが違えば 403。秘密の値を応答に含めない。保存すると `setup.env`（権限 600）とロールの対応表が書かれ、完了後は 409。設定が壊れると再び初期設定が必要になる。既存の環境（管理者のロールあり）は移行で完了扱いになる。
+
+### T42 権限の3段階とログインの改善 ★★
+- 依存：T04、T05、T13、T41
+- ファイル：`db/migrations/0003_supporter.sql`、`hatch/domain/permissions.py`、`hatch/repo/servers.py`、`hatch/repo/supporters.py`、`hatch/repo/setup.py`、`hatch/repo/users.py`、`hatch/api/auth.py`、`hatch/api/servers.py`、`hatch/api/setup.py`、`hatch/adapters/discord_oauth.py`、`hatch/adapters/setup_checks.py`、`web/js/setup.js`、`web/js/app.js`、`web/js/components/picker.js`、`web/js/components/icons.js`、`web/css/components.css`
+- 内容：`docs/SPEC.md`「権限（3段階）」、`docs/IMPLEMENTATION.md` 3.5、`docs/API.md`「初期設定」「サーバー」、`docs/UI.md`「選択肢」。
+- 受け入れ条件：サポーターは割り当てられたサーバーだけが見え、閲覧と電源操作ができ、設定・削除はできない（他のサーバーは 404）。割り当ては管理者だけができ、サポーター以外は `400 not_supporter`。サポーターでなくなると割り当てが消える。Discord サーバーのオーナーはロールが無くても管理者になる。ロールが無い人は `no_role` で理由を表示する。初期設定でロールごとに3段階から選べ、管理者が1つも無ければ保存できない。選ばなかったロールは対応表から外れる。
 
 ### T39 オーケストレーターの DB の遠隔バックアップ ★★
 - 依存：T08

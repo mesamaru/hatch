@@ -51,18 +51,21 @@ class Unlock(BaseModel):
     code: str = Field(max_length=40)
 
 
-def _state() -> dict:
+async def _state() -> dict:
+    async with db.transaction() as conn:
+        rules = await setup_repo.role_rules(conn)
     return {
         "values": {k: st.current(k) for k in st.PUBLIC_KEYS},
         "secrets_set": [k for k in st.SECRET_KEYS if st.current(k)],
         "problems": setup_problems(),
+        "role_rules": rules,
     }
 
 
 @router.post("/unlock")
 async def unlock(body: Unlock) -> dict:
     await _require_setup(body.code)
-    return _state()
+    return await _state()
 
 
 class Values(BaseModel):
@@ -114,12 +117,12 @@ async def check(service: Literal["panel", "cloudflare", "kuma", "discord"], body
 class RoleChoice(BaseModel):
     id: str = Field(pattern=r"^\d{5,25}$")
     name: str = Field(min_length=1, max_length=100)
+    grants: Literal["admin", "supporter", "user"]
     max_servers: int = Field(ge=0, le=100)
 
 
 class Complete(Values):
-    admin_role: RoleChoice
-    user_roles: list[RoleChoice] = Field(default_factory=list, max_length=50)
+    roles: list[RoleChoice] = Field(max_length=100)
 
 
 @router.post("/complete", dependencies=[Depends(require_code)])
@@ -129,25 +132,22 @@ async def complete(body: Complete, background: BackgroundTasks) -> dict:
     if problems:
         fields = {k: f"{LABELS.get(k, k)}：{msg}" for k, msg in problems.items()}
         raise AppError("validation", "まだ入力されていない項目があります。", 400, {"fields": fields})
-    if any(r.id == body.admin_role.id for r in body.user_roles):
-        raise AppError("validation", "管理者のロールと利用者のロールには別のロールを選んでください。", 400)
+    if len({r.id for r in body.roles}) != len(body.roles):
+        raise AppError("validation", "同じロールが2回選ばれています。画面を読み込み直してください。", 400)
+    if not any(r.grants == "admin" for r in body.roles):
+        raise AppError("validation", "管理者にするロールを1つ以上選んでください。", 400)
 
     st.write_env_file(v)
     async with db.transaction() as conn:
-        a = body.admin_role
-        await setup_repo.upsert_role_rule(
-            conn, role_id=a.id, label=a.name, grants_role="admin", max_servers=a.max_servers
-        )
-        for r in body.user_roles:
-            await setup_repo.upsert_role_rule(
-                conn, role_id=r.id, label=r.name, grants_role="user", max_servers=r.max_servers
-            )
+        # 画面に出したロールの割り当てがすべて。選ばれなかったロールは対応表から外す
+        await setup_repo.replace_role_rules(conn, [r.model_dump() for r in body.roles])
         await setup_repo.mark_completed(conn)
+        counts = {g: sum(r.grants == g for r in body.roles) for g in ("admin", "supporter", "user")}
         await audit.add(
             conn,
             action="初期設定を保存",
             via="web",
-            detail={"keys": sorted(v), "roles": 1 + len(body.user_roles)},
+            detail={"keys": sorted(v), "roles": counts},
         )
     st.discard_code()
     background.add_task(st.request_restart)

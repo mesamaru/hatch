@@ -10,8 +10,8 @@ from pydantic import BaseModel, Field
 
 from .. import db
 from ..adapters.panel import PanelAdapter
-from ..auth.session import Principal, require_user
-from ..domain.permissions import ServerRef, require
+from ..auth.session import Principal, require_admin, require_user
+from ..domain.permissions import ServerRef, effective_level, require
 from ..errors import AppError, TransientError, UpstreamError
 from ..games import Game
 from ..jobs import deploy as _deploy  # noqa: F401 - ジョブの登録
@@ -19,6 +19,7 @@ from ..jobs import lifecycle as _lifecycle  # noqa: F401
 from ..jobs.engine import enqueue
 from ..repo import audit
 from ..repo import servers as servers_repo
+from ..repo import supporters as supporters_repo
 from ..services.deploy import DeployRequest, request_deploy
 from .deps import get_games, get_panel
 
@@ -90,7 +91,12 @@ def _iso(v):
 
 
 def _ref(row) -> ServerRef:
-    return ServerRef(owner_id=row["owner_id"], status=row["status"], shares=row["shares"] or {})
+    return ServerRef(
+        owner_id=row["owner_id"],
+        status=row["status"],
+        shares=row["shares"] or {},
+        supporters=frozenset(row["supporters"] or ()),
+    )
 
 
 def _my_permission(p: Principal, row) -> str:
@@ -98,7 +104,11 @@ def _my_permission(p: Principal, row) -> str:
         return "admin"
     if row["owner_id"] == p.user_id:
         return "owner"
-    return row["share_permission"] or "none"
+    level = effective_level(p.actor, _ref(row))
+    if level is None:
+        return "none"
+    # 共有の権限のほうが高ければ共有の権限を、そうでなければ「サポート」を返す
+    return level if level == row["share_permission"] else "support"
 
 
 def server_out(p: Principal, row) -> dict:
@@ -146,7 +156,14 @@ async def list_servers(
         raise AppError("forbidden", "他の人で絞り込めるのは管理者だけです。", 403)
     statuses = tuple(status.split(",")) if status else None
     async with db.transaction() as conn:
-        rows = await servers_repo.visible(conn, p.user_id, p.role == "admin", owner=owner, statuses=statuses)
+        rows = await servers_repo.visible(
+            conn,
+            p.user_id,
+            p.role == "admin",
+            is_supporter=p.role == "supporter",
+            owner=owner,
+            statuses=statuses,
+        )
     return {"items": [server_out(p, r) for r in rows]}
 
 
@@ -323,3 +340,83 @@ async def purge_server(key: str, body: Purge, p: Principal = Depends(require_use
     return await _enqueue_lifecycle(
         p, key, "purge", ("trashed", "purging"), "ゴミ箱にあるサーバーだけを完全に削除できます。", check=check
     )
+
+
+# ---------------------------------------------------------------------------
+# サポーターの割り当て（管理者のみ）
+# ---------------------------------------------------------------------------
+@router.get("/api/supporters")
+async def list_supporters(p: Principal = Depends(require_admin)) -> dict:
+    """割り当てられるサポーターの一覧。"""
+    async with db.transaction() as conn:
+        rows = await supporters_repo.list_supporter_users(conn)
+    return {"items": [{"id": r["id"], "username": r["username"]} for r in rows]}
+
+
+async def _admin_server(conn, p: Principal, key: str):
+    row = await servers_repo.find_view(conn, p.user_id, key)
+    if row is None:
+        raise AppError("not_found", "見つかりません。", 404)
+    return row
+
+
+@router.get("/api/servers/{key}/supporters")
+async def server_supporters(key: str, p: Principal = Depends(require_admin)) -> dict:
+    async with db.transaction() as conn:
+        row = await _admin_server(conn, p, key)
+        rows = await supporters_repo.of_server(conn, row["id"])
+    return {
+        "items": [
+            {
+                "id": r["id"],
+                "username": r["username"],
+                "active": r["role"] == "supporter",
+                "assigned_at": _iso(r["created_at"]),
+            }
+            for r in rows
+        ]
+    }
+
+
+@router.put("/api/servers/{key}/supporters/{user_id}", status_code=204)
+async def assign_supporter(key: str, user_id: str, p: Principal = Depends(require_admin)) -> Response:
+    async with db.transaction() as conn:
+        row = await _admin_server(conn, p, key)
+        cur = await conn.execute("SELECT role, status FROM users WHERE id::text = %s", (user_id,))
+        user = await cur.fetchone()
+        if user is None or user["status"] not in ("active", "invited"):
+            raise AppError("not_found", "ユーザーが見つかりません。", 404)
+        if user["role"] != "supporter":
+            raise AppError(
+                "not_supporter",
+                "サポーターの権限を持つ人だけを割り当てられます。Discord でサポーターのロールを付けてください。",
+                400,
+            )
+        if await supporters_repo.assign(conn, row["id"], user_id, p.user_id):
+            await audit.add(
+                conn,
+                action="サポーターを割り当て",
+                via="web",
+                actor_id=p.user_id,
+                target=row["name"],
+                server_id=row["id"],
+                detail={"user_id": user_id},
+            )
+    return Response(status_code=204)
+
+
+@router.delete("/api/servers/{key}/supporters/{user_id}", status_code=204)
+async def unassign_supporter(key: str, user_id: str, p: Principal = Depends(require_admin)) -> Response:
+    async with db.transaction() as conn:
+        row = await _admin_server(conn, p, key)
+        if await supporters_repo.unassign(conn, row["id"], user_id):
+            await audit.add(
+                conn,
+                action="サポーターの割り当てを解除",
+                via="web",
+                actor_id=p.user_id,
+                target=row["name"],
+                server_id=row["id"],
+                detail={"user_id": user_id},
+            )
+    return Response(status_code=204)

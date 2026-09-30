@@ -23,6 +23,7 @@ class DiscordIdentity:
     email: str | None
     email_verified: bool
     role_ids: tuple[str, ...]  # ギルドでのロール。メンバーでなければ None ではなく例外
+    is_owner: bool = False  # Discord サーバーのオーナー（ロールが無くても管理者にする）
 
 
 class DiscordOAuth(Protocol):
@@ -37,6 +38,7 @@ class DiscordOAuthClient:
         client_secret: str,
         redirect_uri: str,
         guild_id: str,
+        bot_token: str = "",
         *,
         client: httpx.AsyncClient | None = None,
     ):
@@ -46,6 +48,7 @@ class DiscordOAuthClient:
             redirect_uri,
             guild_id,
         )
+        self.bot_token = bot_token
         self.http = ServiceClient("Discord", API, {}, client=client)
 
     def authorize_url(self, state: str) -> str:
@@ -85,4 +88,17 @@ class DiscordOAuthClient:
             email=me.get("email"),
             email_verified=bool(me.get("verified")),
             role_ids=tuple(map(str, member.get("roles") or [])),
+            is_owner=await self._owner_id() == str(me["id"]),
         )
+
+    async def _owner_id(self) -> str | None:
+        """Discord サーバーのオーナー（Bot で確認する。取れなければ None でログインは続ける）。"""
+        if not self.bot_token:
+            return None
+        try:
+            res = await self.http.request(
+                "GET", f"/guilds/{self.guild_id}", headers={"Authorization": f"Bot {self.bot_token}"}
+            )
+        except Exception:
+            return None
+        return str(res.json().get("owner_id") or "") or None

@@ -26,6 +26,7 @@ from ..auth.session import (
 from ..config import get_settings
 from ..errors import AppError, TransientError, UpstreamError
 from ..repo import audit
+from ..repo import supporters as supporters_repo
 from ..repo import users as users_repo
 
 log = logging.getLogger("hatch.auth")
@@ -40,7 +41,26 @@ def get_oauth() -> DiscordOAuth:
         s.DISCORD_CLIENT_SECRET.get_secret_value(),
         f"{s.PD_PUBLIC_URL}/api/auth/callback",
         s.DISCORD_GUILD_ID,
+        s.DISCORD_BOT_TOKEN.get_secret_value(),
     )
+
+
+ROLE_RANK = ("user", "supporter", "admin")
+OWNER_DEFAULT_MAX = 10
+
+
+def grant_for(rules: list[dict], is_owner: bool) -> tuple[str, int] | None:
+    """ロールの対応表から (権限, 台数) を決める。複数あれば高い権限・多い台数。対象外なら None。
+
+    Discord サーバーのオーナーは、ロールが無くても管理者にする（最初の管理者が締め出されないように）。
+    """
+    if not rules and not is_owner:
+        return None
+    role = max((r["grants_role"] for r in rules), key=ROLE_RANK.index, default="user")
+    max_servers = max((r["max_servers"] for r in rules), default=OWNER_DEFAULT_MAX)
+    if is_owner:
+        role = "admin"
+    return role, max_servers
 
 
 def _fail(code: str) -> RedirectResponse:
@@ -95,23 +115,31 @@ async def callback(
             return _fail("not_allowed")
         user = await users_repo.by_discord_id(conn, ident.id)
         rules = await users_repo.role_rules(conn, ident.role_ids)
+        grant = grant_for(rules, ident.is_owner)
         if user is None:
-            if not rules:
-                return _fail("not_allowed")
+            if grant is None:
+                # 理由を調べられるように、件数だけ残す（ロールの名前や ID、利用者の名前は残さない）
+                log.info(
+                    "ログインを断りました：対応するロールがありません"
+                    "（持っているロール %d 個・登録済みのロール %d 個）",
+                    len(ident.role_ids),
+                    await users_repo.count_role_rules(conn),
+                )
+                return _fail("no_role")
             if not ident.email or not ident.email_verified:
                 return _fail("email")
             if await users_repo.email_owner(conn, ident.email):
                 return _fail("email_taken")
-            role = "admin" if any(r["grants_role"] == "admin" for r in rules) else "user"
+            role, max_servers = grant
             user_id = await users_repo.create(
                 conn,
                 username=await _unique_username(conn, _username_from(ident)),
                 email=ident.email,
                 discord_id=ident.id,
                 role=role,
-                max_servers=max(r["max_servers"] for r in rules),
+                max_servers=max_servers,
             )
-            await audit.add(conn, action="アカウントを作成", via="web", actor_id=user_id)
+            await audit.add(conn, action="アカウントを作成", via="web", actor_id=user_id, detail={"role": role})
         else:
             user_id = user["id"]
             if user["status"] == "deleted":
@@ -120,12 +148,22 @@ async def callback(
                 return _fail("suspended")
             if user["status"] == "invited":
                 await conn.execute("UPDATE users SET status = 'active' WHERE id = %s", (user_id,))
-            if rules:  # ロールの対応表に合わせて権限と台数を更新する（ロールが無い人は招待で入った人なので変えない）
-                role = "admin" if any(r["grants_role"] == "admin" for r in rules) else "user"
+            if grant:  # ロールの対応表に合わせて権限と台数を更新する（ロールが無い人は招待で入った人なので変えない）
+                role, max_servers = grant
                 await conn.execute(
                     "UPDATE users SET role = %s, max_servers = %s, updated_at = now() WHERE id = %s",
-                    (role, max(r["max_servers"] for r in rules), user_id),
+                    (role, max_servers, user_id),
                 )
+                if role != user["role"]:
+                    if role != "supporter":
+                        await supporters_repo.clear_user(conn, user_id)
+                    await audit.add(
+                        conn,
+                        action="Discord のロールで権限が変わりました",
+                        via="web",
+                        actor_id=user_id,
+                        detail={"from": user["role"], "to": role},
+                    )
         token, sid = new_session_token()
         await users_repo.create_session(
             conn,

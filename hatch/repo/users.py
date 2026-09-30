@@ -92,3 +92,8 @@ async def delete_session(conn: AsyncConnection, sid_hash: str) -> None:
 
 async def delete_user_sessions(conn: AsyncConnection, user_id: str) -> None:
     await conn.execute("DELETE FROM sessions WHERE user_id = %s", (user_id,))
+
+
+async def count_role_rules(conn: AsyncConnection) -> int:
+    cur = await conn.execute("SELECT count(*) AS n FROM discord_role_rules")
+    return (await cur.fetchone())["n"]

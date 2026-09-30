@@ -15,8 +15,9 @@ from hatch.adapters import setup_checks
 from hatch.adapters.setup_checks import CheckResult
 from hatch.main import app
 
-ADMIN = {"id": "90000", "name": "運営", "max_servers": 10}
-MEMBER = {"id": "90001", "name": "メンバー", "max_servers": 2}
+ADMIN = {"id": "90000", "name": "運営", "grants": "admin", "max_servers": 10}
+SUPPORT = {"id": "90002", "name": "サポーター", "grants": "supporter", "max_servers": 3}
+MEMBER = {"id": "90001", "name": "メンバー", "grants": "user", "max_servers": 2}
 
 
 @pytest.fixture
@@ -112,8 +113,7 @@ async def test_complete_saves_settings_roles_and_finishes(env):
         "/api/setup/complete",
         json={
             "values": {"PD_PUBLIC_URL": "https://hatch.example.com/", "DISCORD_BOT_TOKEN": "new-bot-token"},
-            "admin_role": ADMIN,
-            "user_roles": [MEMBER],
+            "roles": [ADMIN, SUPPORT, MEMBER],
         },
         headers={"X-Setup-Code": code},
     )
@@ -124,7 +124,7 @@ async def test_complete_saves_settings_roles_and_finishes(env):
     if os.name == "posix":
         assert (env["dir"] / "setup.env").stat().st_mode & 0o077 == 0
     rules = q(env["url"], "SELECT discord_role_id, grants_role, max_servers FROM discord_role_rules ORDER BY 1")
-    assert rules == [("90000", "admin", 10), ("90001", "user", 2)]
+    assert rules == [("90000", "admin", 10), ("90001", "user", 2), ("90002", "supporter", 3)]
     assert not (env["dir"] / "setup-code").exists()
     assert (env["dir"] / "restart-request").exists()
     audit = q(env["url"], "SELECT action, detail::text FROM audit_log")
@@ -140,7 +140,7 @@ async def test_complete_requires_all_settings(env, monkeypatch):
     monkeypatch.delenv("CF_API_TOKEN")
     code = await unlocked(env)
     r = await env["client"].post(
-        "/api/setup/complete", json={"values": {}, "admin_role": ADMIN}, headers={"X-Setup-Code": code}
+        "/api/setup/complete", json={"values": {}, "roles": [ADMIN]}, headers={"X-Setup-Code": code}
     )
     assert r.status_code == 400
     assert "CF_API_TOKEN" in r.json()["error"]["detail"]["fields"]
@@ -149,8 +149,28 @@ async def test_complete_requires_all_settings(env, monkeypatch):
 
 async def test_complete_requires_admin_role(env):
     code = await unlocked(env)
-    r = await env["client"].post("/api/setup/complete", json={"values": {}}, headers={"X-Setup-Code": code})
+    r = await env["client"].post(
+        "/api/setup/complete", json={"values": {}, "roles": [MEMBER]}, headers={"X-Setup-Code": code}
+    )
     assert r.status_code == 400
+    assert "管理者" in r.json()["error"]["message"]
+
+
+async def test_redo_setup_shows_current_roles_and_removes_unselected(env):
+    q(
+        env["url"],
+        "INSERT INTO discord_role_rules (discord_role_id, label, grants_role, max_servers) "
+        "VALUES ('90000', '運営', 'admin', 10), ('99999', '旧', 'user', 1) RETURNING 1",
+    )
+    code = await unlocked(env)
+    r = await env["client"].post("/api/setup/unlock", json={"code": code})
+    assert {x["id"]: x["grants"] for x in r.json()["role_rules"]} == {"90000": "admin", "99999": "user"}
+    r = await env["client"].post(
+        "/api/setup/complete", json={"values": {}, "roles": [ADMIN, SUPPORT]}, headers={"X-Setup-Code": code}
+    )
+    assert r.status_code == 200, r.text
+    rules = q(env["url"], "SELECT discord_role_id, grants_role FROM discord_role_rules ORDER BY 1")
+    assert rules == [("90000", "admin"), ("90002", "supporter")]
 
 
 async def test_setup_reopens_when_settings_break(env, monkeypatch):

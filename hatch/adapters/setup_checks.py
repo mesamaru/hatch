@@ -169,11 +169,35 @@ async def check_discord(
                 return CheckResult(False, "選んだ Discord サーバーに Bot が参加していません。招待してください。", data)
             roles = (await http.request("GET", f"/guilds/{guild_id}/roles", headers=bot)).json()
             channels = (await http.request("GET", f"/guilds/{guild_id}/channels", headers=bot)).json()
+            guild = (await http.request("GET", f"/guilds/{guild_id}", headers=bot)).json()
+            # メンバーの一覧は Server Members Intent が必要。オフなら人数は出さない（403）
+            res = await http.request(
+                "GET", f"/guilds/{guild_id}/members", headers=bot, params={"limit": 1000}, ok=(200, 403)
+            )
+            members = res.json() if res.status_code == 200 else None
+            counts: dict[str, int] = {}
+            owner_id = str(guild.get("owner_id") or "")
+            owner: dict[str, Any] | None = None
+            for m in members or []:
+                for rid in m.get("roles") or []:
+                    counts[str(rid)] = counts.get(str(rid), 0) + 1
+                u = m.get("user") or {}
+                if str(u.get("id")) == owner_id:
+                    owner = {
+                        "name": m.get("nick") or u.get("global_name") or u.get("username") or "",
+                        "role_ids": [str(x) for x in m.get("roles") or []],
+                    }
             data["roles"] = [
-                {"id": str(r["id"]), "name": r["name"]}
+                {
+                    "id": str(r["id"]),
+                    "name": r["name"],
+                    "members": counts.get(str(r["id"]), 0) if members is not None else None,
+                }
                 for r in sorted(roles, key=lambda r: -r.get("position", 0))
                 if str(r["id"]) != guild_id and not r.get("managed")
             ]
+            data["owner"] = owner
+            data["members_intent"] = members is not None
             data["channels"] = [
                 {"id": str(c["id"]), "name": c["name"]}
                 for c in sorted(channels, key=lambda c: c.get("position", 0))

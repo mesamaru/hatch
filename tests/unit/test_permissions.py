@@ -62,3 +62,18 @@ def test_deleting_account_is_read_only():
 def test_unknown_action_is_denied():
     with pytest.raises(ValueError):
         can(ADMIN, "server.fly", srv())
+
+
+def test_supporter_can_view_and_power_assigned_servers_only():
+    sup = Actor(id="s", role="supporter")
+    assigned = ServerRef(owner_id="o", status="running", supporters=frozenset({"s"}))
+    assert can(sup, "server.view", assigned) and can(sup, "server.power", assigned)
+    for action in ("server.backup", "server.settings", "server.trash", "server.share"):
+        assert not can(sup, action, assigned), action
+    assert not can(sup, "server.view", srv())
+    # 一般の利用者に割り当てが残っていても効かない
+    assert not can(OTHER, "server.view", ServerRef(owner_id="o", status="running", supporters=frozenset({"x"})))
+    # 共有の権限のほうが高ければそちらが使われる
+    both = ServerRef(owner_id="o", status="running", shares={"s": "files"}, supporters=frozenset({"s"}))
+    assert can(sup, "server.backup", both)
+    assert not can(sup, "admin.domains", assigned)

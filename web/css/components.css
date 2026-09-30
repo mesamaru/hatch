@@ -177,8 +177,20 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 .setup .field:not(.col) input[type=number]{flex:0 0 70px;text-align:right;padding:14px 0}
 .setup .field input.code-in{font-family:var(--mono);font-size:22px;letter-spacing:.15em;text-transform:uppercase}
 .setup .field .hint{font-size:13px;color:var(--label2);line-height:1.5;padding:0 0 12px}
-.setup .rolerow label{flex:1;display:flex;align-items:center;gap:10px}
-.setup .rolerow input[type=checkbox]{width:20px;height:20px;flex:0 0 20px;padding:0;accent-color:var(--blue)}
+.setup .field label .unitlabel{font-size:13px;color:var(--label2);margin-left:2px}
+.setup .rolerow{padding-top:4px;padding-bottom:4px}
+.setup .rolerow .rn{flex:1;min-width:0;display:flex;flex-direction:column}
+.setup .rolerow .rn b{font-weight:400;overflow-wrap:anywhere}
+.setup .rolerow .rn small{font-size:13px;color:var(--label2)}
+.setup .rolerow .rn small.warn{color:var(--orange)}
+.setup .rolerow .picker{max-width:none;flex:none}
+.setup .tiers{background:var(--bg);border-radius:var(--r-card);padding:2px 14px;margin:0 0 12px}
+.setup .tier{display:flex;gap:12px;align-items:baseline;padding:10px 0;font-size:15px;line-height:1.5}
+.setup .tier+.tier{border-top:.5px solid var(--sep)}
+.setup .tier-n{flex:none;width:5.5em;font-weight:600}
+.setup .tier-n.admin{color:var(--red)}.setup .tier-n.supporter{color:var(--indigo)}.setup .tier-n.user{color:var(--green)}
+.setup .tier-d{color:var(--label2);min-width:0}
+.setup .maxrow label{flex:1;min-width:0}
 .setup .guide{background:var(--bg);border-radius:var(--r-card);padding:10px 14px;margin:0 0 10px;font-size:15px;line-height:1.6}
 .setup .guide summary{font-weight:600;cursor:pointer}
 .setup .guide ol{margin:6px 0 2px;padding-left:22px}
@@ -280,6 +292,20 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 .menu button svg{width:20px;height:20px;margin-left:auto;color:var(--label2)}
 .menu button.red,.menu button.red svg{color:var(--red)}
 .menu hr{border:0;border-top:.5px solid var(--sep);margin:4px 8px}
+/* 選択肢のメニュー（select の代わり。web/js/components/picker.js） */
+.menu.picklist{min-width:0;overflow-y:auto;overscroll-behavior:contain;gap:1px}
+.menu.picklist button{justify-content:space-between;min-height:44px;color:var(--label)}
+.menu.picklist button:focus-visible{outline:none;background:var(--fill)}
+.menu.picklist button[aria-selected="true"]{color:var(--blue);font-weight:600}
+.menu.picklist button[aria-selected="true"] svg{color:var(--blue);margin-left:12px;flex:none}
+.menu.picklist .ol{display:flex;flex-direction:column;min-width:0;gap:1px}
+.menu.picklist .ot{overflow-wrap:anywhere}
+.menu.picklist .os{font-size:13px;font-weight:400;color:var(--label2)}
+.picker{display:inline-flex;align-items:center;justify-content:flex-end;gap:4px;margin-left:auto;min-width:0;max-width:62%;min-height:44px;padding:0;border:0;background:none;color:var(--blue);font-size:17px;text-align:right}
+.picker .pv{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.picker svg{width:16px;height:16px;flex:none;opacity:.75}
+.picker.empty{color:var(--label2)}
+.picker:disabled{color:var(--label3);cursor:default}
 .steps{list-style:none;margin:0;padding:0}
 .steps li{display:flex;gap:10px;align-items:center;padding:6px 0;font-size:15px;color:var(--label3)}
 .steps li svg{width:20px;height:20px;flex:0 0 20px}
@@ -291,4 +317,5 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 .prog i{display:block;height:100%;border-radius:3px;background:var(--blue);transition:width .3s}
 #toast{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translate(-50%,-160%);z-index:80;display:flex;align-items:center;gap:10px;padding:10px 18px 10px 12px;border-radius:26px;font-size:15px;font-weight:500;transition:transform .35s cubic-bezier(.2,.9,.3,1.2);width:max-content;max-width:calc(100vw - 24px)}
 #toast.on{transform:translate(-50%,0)}
+#toast:not(.on){visibility:hidden;transition:transform .35s cubic-bezier(.2,.9,.3,1.2),visibility 0s .35s}
 #toast svg{width:22px;height:22px;color:var(--green);flex:0 0 22px}

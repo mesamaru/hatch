@@ -27,7 +27,7 @@
   "auto_restart": true, "public_status": false,
   "expires_at": "2026-10-29T00:00:00Z", "maintenance_until": null,
   "suspend_reason": null,
-  "my_permission": "owner",        // admin|owner|view|console|files|full
+  "my_permission": "owner",        // admin|owner|view|console|files|full|support（割り当てられたサポーター）
   "monitor": {"state": "up", "ping_ms": 38, "uptime_24h": 99.9} ,  // state: up|down|paused|pending|unknown
   "job": null                      // 実行中のジョブがあれば Job
 }
@@ -47,16 +47,16 @@
 | メソッド | パス | 説明 |
 |---|---|---|
 | GET | /setup/status | 認証不要。`{"needed": bool, "restarting": bool}`。`needed` なら初期設定コードのファイルを作る |
-| POST | /setup/unlock | `{"code"}` → `{"values": {公開してよいキー: 今の値}, "secrets_set": [設定済みの秘密のキー], "problems": {キー: 説明}}`。秘密の値そのものは返さない |
-| POST | /setup/check/{service} | service：`panel`・`cloudflare`・`kuma`・`discord`。本文 `{"values": {キー: 値}}`（空欄のキーは今の値で確認）。`{"ok": bool, "message": "日本語"}` に、Cloudflare は `zones`、Discord は `invite_url`・`guilds`（と `DISCORD_GUILD_ID` を渡したとき `roles`・`channels`）を加えて返す。確認の失敗も `200`（`ok: false`） |
-| POST | /setup/complete | `{"values", "admin_role": {"id","name","max_servers"}, "user_roles": [同じ形]}`。全設定を検証（不足は `400 validation`、`detail.fields` にキーごとの説明）→ `setup.env` に保存 → ロールを登録 → 完了にして再起動を依頼。`{"restarting": true}` |
+| POST | /setup/unlock | `{"code"}` → `{"values": {公開してよいキー: 今の値}, "secrets_set": [設定済みの秘密のキー], "problems": {キー: 説明}, "role_rules": [{"id","grants","max_servers"}]}`（`role_rules` は登録済みのロールの対応。やり直しのときの初期値）。秘密の値そのものは返さない |
+| POST | /setup/check/{service} | service：`panel`・`cloudflare`・`kuma`・`discord`。本文 `{"values": {キー: 値}}`（空欄のキーは今の値で確認）。`{"ok": bool, "message": "日本語"}` に、Cloudflare は `zones`、Discord は `invite_url`・`guilds`（と `DISCORD_GUILD_ID` を渡したとき `roles`（`[{"id","name","members"}]`。`members` はそのロールを持つ人数で、Server Members Intent がオフなら `null`）・`channels`・`owner`（Discord サーバーのオーナー `{"name","role_ids"}` か `null`）・`members_intent`）を加えて返す。確認の失敗も `200`（`ok: false`） |
+| POST | /setup/complete | `{"values", "roles": [{"id","name","grants":"admin|supporter|user","max_servers"}]}`。`grants` が `admin` のロールが1つも無ければ `400 validation`。全設定を検証（不足は `400 validation`、`detail.fields` にキーごとの説明）→ `setup.env` に保存 → ロールの対応表を `roles` のとおりにする（無いロールは外す）→ 完了にして再起動を依頼。`{"restarting": true}` |
 
 ## 認証・自分
 
 | メソッド | パス | 説明 |
 |---|---|---|
 | GET | /auth/login | Discord の認可画面へリダイレクト（`state` を Cookie に保存） |
-| GET | /auth/callback | Discord から戻る。成功なら `/` へ、失敗なら `/?login_error=<code>` へ移動する。code：`state`（やり直し）、`not_member`（Discord サーバーに未参加）、`not_allowed`（対象ロールも招待も無い・利用禁止）、`email`（メールアドレスが未確認）、`email_taken`（同じメールの別アカウントがある）、`suspended`（利用停止中）、`discord`（Discord との通信に失敗） |
+| GET | /auth/callback | Discord から戻る。成功なら `/` へ、失敗なら `/?login_error=<code>` へ移動する。code：`state`（やり直し）、`not_member`（Discord サーバーに未参加）、`no_role`（対象のロールが無く、招待もされていない。Discord サーバーのオーナーはロールが無くても管理者になる）、`not_allowed`（利用禁止・削除済み）、`email`（メールアドレスが未確認）、`email_taken`（同じメールの別アカウントがある）、`suspended`（利用停止中）、`discord`（Discord との通信に失敗） |
 | POST | /auth/logout | セッション削除 |
 | POST | /auth/totp/setup | 管理者のみ。`{"otpauth_url","secret"}` を返す（未登録時のみ） |
 | POST | /auth/totp/verify | `{"code":"123456"}` → セッションの `totp_ok=true` |
@@ -90,6 +90,10 @@
 | DELETE | /servers/{id} | server.trash | ゴミ箱へ → ジョブ |
 | POST | /servers/{id}/restore | server.trash | ゴミ箱から戻す → ジョブ |
 | POST | /servers/{id}/purge | server.trash | `{"confirm_name"}` が名前と一致しないと `400 confirm_mismatch` → ジョブ |
+| GET | /supporters | admin | 割り当てられるサポーター `{"items":[{"id","username"}]}` |
+| GET | /servers/{id}/supporters | admin | 割り当て済みのサポーター `{"items":[{"id","username","active","assigned_at"}]}`（`active` はまだサポーターの権限を持っているか） |
+| PUT | /servers/{id}/supporters/{user_id} | admin | サポーターを割り当てる → `204`。相手がサポーターでなければ `400 not_supporter` |
+| DELETE | /servers/{id}/supporters/{user_id} | admin | 割り当てを外す → `204` |
 
 ### バックアップ・共有・プラグイン・ドメイン
 
@@ -185,6 +189,7 @@
 | tos_required | 403 | 利用規約への同意が必要（作成・変更系） |
 | not_found | 404 | |
 | user_not_found | 404 | 共有相手などのユーザーが見つからない |
+| not_supporter | 400 | サポーターの権限を持たない人を割り当てようとした |
 | validation | 400 | 入力が不正（`detail.fields` に項目ごとの日本語） |
 | name_taken | 409 | サーバー名が使われている（ゴミ箱を含む） |
 | name_reserved | 400 | 予約名 |

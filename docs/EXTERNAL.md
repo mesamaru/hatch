@@ -165,7 +165,8 @@ api.add_monitor(
 
 - 必要なもの：Bot トークン、OAuth2 のクライアントID・シークレット、サーバー（ギルド）ID。
 - Developer Portal で **Server Members Intent を有効**にする（ロールの付与・剥奪を受け取るため）。
-- ログイン：OAuth2 の scope は `identify email guilds.members.read`（パネルのアカウントにメールアドレスが必要なため `email` も要る。未確認のメールアドレスではアカウントを作らない）。`GET /users/@me` と `GET /users/@me/guilds/{guild}/member`（ロール一覧）を使う。
+- ログイン：OAuth2 の scope は `identify email guilds.members.read`（パネルのアカウントにメールアドレスが必要なため `email` も要る。未確認のメールアドレスではアカウントを作らない）。`GET /users/@me` と `GET /users/@me/guilds/{guild}/member`（ロール一覧）を使う。加えて Bot のトークンで `GET /guilds/{guild}` の `owner_id` を見て、Discord サーバーのオーナーはロールが無くても管理者にする（取得に失敗してもログインは続ける）。
+- 初期設定のロール一覧：Bot のトークンで `GET /guilds/{guild}/roles`・`/channels`・`GET /guilds/{guild}` と `GET /guilds/{guild}/members?limit=1000`（ロールごとの人数とオーナーのロール）。members は Server Members Intent が必要で、オフなら `403` になるので人数を出さない。
 - スラッシュコマンド：受け取ったら **3秒以内に defer**（「考え中…」）。ジョブの進捗は、interaction の followup ではなく **Bot がチャンネルに送った通常メッセージを編集**する（interaction のトークンは15分で切れるため）。メッセージの場所は `jobs.discord_message` に保存。
 - ボタンの `custom_id` は `pd:<action>:<id>` 形式。押した人の権限を API で再確認する（メッセージを見た他人が押しても操作できないように）。
 - DM が送れない（受信拒否）場合は、送れなかったことを記録するだけにする。チャンネルに個人宛ての内容を流さない。
