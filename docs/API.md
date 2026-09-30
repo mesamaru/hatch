@@ -159,6 +159,23 @@
 | GET / PATCH | /admin/settings | `app_settings` のキーのみ。`default_background` に自分のアップロードを指定すると、その画像は全員が読めるようになる |
 | POST | /admin/users/{id}/withdraw-cancel | 管理者による退会の取り消し |
 
+### Linode・edge・ゲームパネル（予定：T43・T47）
+
+| メソッド | パス | 説明 |
+|---|---|---|
+| GET / POST | /admin/linode-accounts | 追加：`{"label","token"}`。トークンで Linode の API を確認してから保存。応答にトークンは含めない |
+| DELETE | /admin/linode-accounts/{id} | 使っている edge・ファイアウォールがあると `409 in_use` |
+| GET | /admin/linode-accounts/{id}/linodes | その契約の Linode 一覧（edge の登録で選ぶ）`[{"id","label","region","ipv4"}]` |
+| GET | /admin/linode-accounts/{id}/firewalls | その契約のファイアウォール一覧 |
+| GET / POST | /admin/firewalls | Hatch が管理するファイアウォール。追加：`{"linode_account_id","linode_firewall_id","label"}` |
+| POST | /admin/firewalls/{id}/sync | 今すぐ反映 → ジョブ |
+| GET / POST | /admin/edges | edge の登録：`{"id","public_ip","tailscale_ip","linode_account_id"?,"linode_id"?,"firewall_id"?}` |
+| PATCH / DELETE | /admin/edges/{id} | ファイアウォールの付け替え（共有・個別の切り替え）など |
+| GET / POST | /admin/panels | ゲームパネルの登録：`{"name","url","public_url"?,"app_key","client_key"}`。キーは応答に含めない |
+| PATCH / DELETE | /admin/panels/{id} | ノードやサーバーがあると削除不可 |
+| GET | /admin/panels/{id}/nodes | パネルのノード一覧（Wings の登録で選ぶ） |
+| GET / POST / PATCH | /admin/nodes | Wings の登録：`{"id","panel_id","panel_node_id","tailscale_ip","memory_mb","disk_mb"}` |
+
 ```jsonc
 // SlotRule
 {"id": 1, "name": "Minecraft 共有枠", "domain_id": 1, "port_start": 25560, "port_end": 25569,

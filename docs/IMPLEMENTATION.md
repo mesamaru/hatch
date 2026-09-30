@@ -306,6 +306,51 @@ UDP には接続数の制限をかけられないので、1 IP あたりのパ�
 
 ---
 
+## 7A. Linode・統合版・複数のゲームパネル（SPEC 6B）
+
+### 7A.1 追加するテーブル（`0004_*.sql` 以降。追記のみ）
+
+| テーブル | 主な列 | 備考 |
+|---|---|---|
+| `panels` | id, name, url, public_url, app_key_enc, client_key_enc, is_default, created_at | ゲームパネル。キーは `crypto.encrypt(…, "panel")`。移行時に `hatch.env`・`setup.env` の値から1件目を作る |
+| `nodes`（列の追加） | panel_id（→ panels） | 既存の行は1件目のパネルに紐付ける。`panel_node_id` の一意制約は (panel_id, panel_node_id) に変える（旧制約の削除は次のリリース） |
+| `panel_accounts` | user_id, panel_id, panel_user_id, synced_at | 利用者のパネルごとのアカウント。既存の `users.panel_user_id` は1件目のパネルとして移す（列の削除は次のリリース） |
+| `linode_accounts` | id, label, token_enc, created_at | トークンは `crypto.encrypt(…, "linode")` |
+| `firewalls` | id, linode_account_id, linode_firewall_id, label, synced_at, last_error | Hatch が管理する Linode Cloud Firewall |
+| `edges`（列の追加） | linode_account_id, linode_id, firewall_id（→ firewalls, NULL 可） | NULL の edge はファイアウォールを管理しない（Linode 以外の edge） |
+| `server_ports` | server_id, port, protocol（tcp/udp）, opened_at, closed_at | 公開中のポート。ファイアウォール・edge 設定の正本。完全削除で `closed_at` を入れる |
+
+### 7A.2 ファイアウォールの反映（ジョブ `sync_firewall`）
+
+1. 対象のファイアウォールを使う edge を集め、`server_ports` の `closed_at IS NULL` の行からポートの集合を作る（プロトコルごと）。
+2. 連続するポートを範囲にまとめ、15個ずつに分けて `hatch-<instance>-tcp-1`・`-udp-1` … というラベルの受信ルール（ACCEPT、送信元は全体）にする。
+3. Linode の `GET /networking/firewalls/{id}/rules` で今のルールを取り、ラベルが `hatch-<instance>-` で始まらないルールはそのまま残して、Hatch の分だけを差し替えた全体を `PUT /networking/firewalls/{id}/rules` で送る（API はルール全体の置き換えのため）。
+4. 合計が25個を超える場合は送らずに失敗させ、`firewalls.last_error` に理由を残す。
+5. 作成の手順「edge に公開」の直前に `server_ports` を作り、同じジョブの中で反映を待つ（取り消しでは `closed_at` を入れて反映）。完全削除の最後に `closed_at` を入れて反映する。
+6. Linode の API は `adapters/linode.py`（`LinodeAdapter`）に閉じ込める。テストはフェイク（`tests/fakes/linode.py`）。
+
+### 7A.3 統合版の UDP 中継（edge エージェント）
+
+- edge 設定の版に `udp_relays: [{"port", "backend", "proxy_protocol": true}]` を加える。エージェントは asyncio の UDP 中継を持ち、版が変わったら差分だけ開け閉めする。
+- プレイヤー（送信元 IP:ポート）ごとに、Wings へ送るための **新しい UDP ソケット** を作る。最初のパケットにだけ PROXY プロトコル v2 のヘッダー（`PROXY` コマンド、`UDP over IPv4/IPv6`、送信元＝プレイヤー、宛先＝edge の公開 IP:ポート）を付ける。返信はそのソケットで受けてプレイヤーへ返す。
+- 60秒通信の無いプレイヤーの中継は閉じる。1ポートあたりのプレイヤー数・1 IP あたりのパケット数に上限を設ける（DoS 対策）。
+- Geyser は送信元（中継の IP:ポート）ごとに最初のヘッダーを覚え、ヘッダーを取り除いて処理する（CloudburstMC Network の `RakProxyServerHandler`）。そのため、送信ポートの使い回しは禁止（別のプレイヤーの IP として扱われる）。
+- サーバー側の設定：Geyser の `advanced.bedrock.use-haproxy-protocol: true` と、許可する送信元（`haproxy-protocol-whitelisted-ips` に edge の Tailscale IP）。古い版の Geyser では `bedrock.enable-proxy-protocol` と `bedrock.proxy-protocol-whitelisted-ips`（設定ファイルの版を見て書き分ける）。Paper の `proxies.proxy-protocol: true`。Hatch がゲームパネルのファイル API で作成時に書き込む（`games.yml` の `configure` に書き込む内容を定義する）。
+
+### 7A.4 透過転送（統合版の専用サーバー・その他の UDP）
+
+- edge：nftables で宛先だけを書き換える（DNAT）。送信元は書き換えない（masquerade しない）。edge と各 Wings のノードの間に WireGuard のトンネル（Tailscale の上に作る）を張り、転送はトンネルを通す。
+- Wings のノード：トンネルから入った接続に印（connmark）を付け、その接続の返信（コンテナから出るもの）を印で見分けて、トンネル経由で edge に戻す経路表（`ip rule fwmark`）を使う。設定は `wings/install-hatch-route.sh` で入れる（nftables と ip rule。Docker のブリッジ経由の返信も対象）。
+- ノードごとに「透過転送に対応済み」を記録し、対応していないノードに置くサーバーは従来の転送（IP は edge のものに見える）にする。**要検証**：Wings が作る Docker のネットワーク設定との組み合わせを、テスト環境で確認してから本番に入れる。
+
+### 7A.5 複数のゲームパネル
+
+- `PanelAdapter` はパネルごとに作る（`panels` の行から組み立て、キャッシュする）。ジョブと API は「サーバーのノード → パネル」で使うアダプターを選ぶ。
+- 作成の手順「パネルのユーザーを確認」は、選んだノードのパネルについて `panel_accounts` を見て、無ければ作る。
+- 初期設定画面のゲームパネルの入力は、1件目のパネル（`panels`）として保存する（`setup.env` の `PANEL_*` は移行のためにだけ読む）。
+
+---
+
 ## 8. 設定一覧
 
 ### 8.1 設定ファイル（`/etc/hatch/hatch.env`）

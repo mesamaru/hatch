@@ -23,6 +23,11 @@
 | T16 画面：サーバーと作成・管理のアドレス | 完了 | サーバーの一覧・詳細・作成（3段階のシート）・ゴミ箱、管理のドメイン・IP と紐付け・アドレス枠（プレビュー付きの編集・DNS の事前作成・スロットの停止）。ジョブの進捗バナー。外部サービスをフェイクにした Playwright の通しテスト（`tests/e2e/test_servers_flow.py`）。API の無い画面（バックアップ・共有・監視など）は「準備中」 |
 | T41 初期設定画面 | 完了 | コンテナ内の対話式設定をやめ、ブラウザのウィザードに。最初の管理者のロールもここで登録 |
 | T42 権限の3段階とログインの改善 | 完了 | 管理者・サポーター・利用者。Discord サーバーのオーナーは常に管理者。初期設定の選択肢を独自のメニューに。サポーターの割り当ての画面は T22 で作る（API は完成）。二段階認証は任意（設定からオン・オフ） |
+| T43 Linode のアカウント・edge・ファイアウォール | 未着手 | 次に実装 |
+| T44 Java 版の PROXY プロトコルの自動設定 | 未着手 | |
+| T45 統合版（Geyser）の UDP 中継 | 未着手 | |
+| T46 透過転送（統合版の専用サーバー・UDP のゲーム） | 未着手 | 要検証（Wings の Docker との組み合わせ） |
+| T47 複数のゲームパネルと Wings | 未着手 | |
 
 
 **1回の作業で1チケット**。上から順に進めます（「依存」が終わっていないチケットには着手しない）。各チケットは単独でテストが通り、`update` で配布できる状態で終わらせます。
@@ -245,6 +250,36 @@
 - ファイル：`db/migrations/0003_supporter.sql`、`hatch/domain/permissions.py`、`hatch/repo/servers.py`、`hatch/repo/supporters.py`、`hatch/repo/setup.py`、`hatch/repo/users.py`、`hatch/api/auth.py`、`hatch/api/servers.py`、`hatch/api/setup.py`、`hatch/adapters/discord_oauth.py`、`hatch/adapters/setup_checks.py`、`web/js/setup.js`、`web/js/app.js`、`web/js/components/picker.js`、`web/js/components/icons.js`、`web/css/components.css`
 - 内容：`docs/SPEC.md`「権限（3段階）」、`docs/IMPLEMENTATION.md` 3.5、`docs/API.md`「初期設定」「サーバー」、`docs/UI.md`「選択肢」。
 - 受け入れ条件：サポーターは割り当てられたサーバーだけが見え、閲覧と電源操作ができ、設定・削除はできない（他のサーバーは 404）。割り当ては管理者だけができ、サポーター以外は `400 not_supporter`。サポーターでなくなると割り当てが消える。Discord サーバーのオーナーはロールが無くても管理者になる。ロールが無い人は `no_role` で理由を表示する。初期設定でロールごとに3段階から選べ、管理者が1つも無ければ保存できない。選ばなかったロールは対応表から外れる。
+
+### T43 Linode のアカウント・edge・ファイアウォール ★★★
+- 依存：T11、T12、T14
+- ファイル：`db/migrations/0004_linode.sql`、`hatch/adapters/linode.py`、`hatch/jobs/firewall.py`、`hatch/api/infra.py`、`hatch/jobs/deploy.py`・`lifecycle.py`（公開と完全削除）、`tests/fakes/linode.py`、`web/js/pages/admin-infra.js`
+- 内容：`docs/SPEC.md` 6B「Linode のアカウントとファイアウォール」、`docs/IMPLEMENTATION.md` 7A.1・7A.2、`docs/API.md`「Linode・edge・ゲームパネル」。
+- 受け入れ条件：複数の Linode アカウントを登録でき、トークンは応答に出ない。edge ごとにファイアウォールを共有・個別で選べる。作成でポートが開き、ゴミ箱の間は開いたまま、完全削除と作成の取り消しで締まる。手で作ったルールは残る。25ルールを超えるときは反映せずに理由を記録する。連続ポートは範囲にまとまる。
+
+### T44 Java 版の PROXY プロトコルの自動設定 ★★
+- 依存：T12、T47（なくても可）
+- ファイル：`hatch/games.py`（`configure`）、`hatch/adapters/panel.py`（ファイルの書き込み）、`hatch/jobs/deploy.py`、`deploy/games.example.yml`
+- 内容：作成時に、Paper の `proxies.proxy-protocol: true`、Velocity の `haproxy-protocol = true` をゲームパネルのファイル API で書き込む（`games.yml` の `configure` で定義）。
+- 受け入れ条件：`proxy_protocol: true` のゲームは、作成後の最初の起動から PROXY プロトコルを受け付ける設定になっている（フェイクのパネルで書き込みを確認）。
+
+### T45 統合版（Geyser）の UDP 中継 ★★★
+- 依存：T11、T43、T44
+- ファイル：`edge/agent.py`（UDP 中継）、`hatch/edge/render.py`・`publish.py`（`udp_relays`）、`hatch/games.py`（`bedrock: geyser`）、画面の統合版の表示
+- 内容：`docs/IMPLEMENTATION.md` 7A.3。Geyser 付きのゲームは同じポート番号の UDP も公開し、プレイヤーごとの送信ソケットで PROXY プロトコル v2 を最初のパケットにだけ付けて中継する。Geyser の設定を自動で書き込む。
+- 受け入れ条件：中継の単体テストで、プレイヤーごとに送信ポートが分かれ、最初のパケットにだけ正しい PROXY v2 ヘッダー（送信元＝プレイヤー）が付き、返信が正しいプレイヤーに戻る。無通信のプレイヤーは閉じる。上限を超えると捨てる。
+
+### T46 透過転送（統合版の専用サーバー・UDP のゲーム） ★★★
+- 依存：T11、T43
+- ファイル：`hatch/edge/render.py`（nftables）、`edge/agent.py`、`wings/install-hatch-route.sh`（新規）、`nodes` の「透過転送に対応済み」
+- 内容：`docs/IMPLEMENTATION.md` 7A.4。**先にテスト環境で、Wings の Docker ネットワークと組み合わせて返信が edge に戻ることを確認する**（確認できない場合は、この方式をやめて報告する）。
+- 受け入れ条件：対応済みのノードの UDP のゲームで、サーバーから見えるプレイヤーの IP が本物になる（テスト環境での手動確認の記録を報告に書く）。生成する nftables の設定は `nft -c` で検証するテストがある。
+
+### T47 複数のゲームパネルと Wings ★★★
+- 依存：T06、T12、T21（パスワード同期がある場合）
+- ファイル：`db/migrations/0005_panels.sql`、`hatch/api/deps.py`（パネルごとのアダプター）、`hatch/jobs/deploy.py`、`hatch/api/infra.py`、`hatch/setup.py`・`api/setup.py`（1件目のパネル）、画面の管理
+- 内容：`docs/IMPLEMENTATION.md` 7A.1・7A.5。
+- 受け入れ条件：2つのパネルを登録し、それぞれのノードにサーバーを作れる（フェイクのパネル2つで確認）。利用者のアカウントは、そのパネルで初めて作るときだけ作られる。既存の環境は移行で1件目のパネルになり、そのまま動く。キーは応答に出ない。
 
 ### T39 オーケストレーターの DB の遠隔バックアップ ★★
 - 依存：T08

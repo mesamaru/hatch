@@ -24,7 +24,7 @@
 | 1 | **Proxmox VE**（既存） | オーケストレーターの LXC | インストーラー（`ct/hatch.sh`）を実行するだけ。Debian 13 のテンプレートは自動取得 | 2 vCPU・メモリ 2〜4GB・ディスク 20GB |
 | 2 | **Pterodactyl パネル＋Wings**（既存） | ゲームサーバー本体 | Application API キー（ユーザー・ノード・アロケーション・サーバー・nest/egg を読み書き）、root 管理者アカウントの Client API キー、各ノードのアロケーションに使う Tailscale IP、nest・egg の ID（`games.yml`）、「リモートファイルの取得」を有効化（開発用コピー用） | 既存のまま |
 | 3 | **Tailscale** | 全部品の内部通信 | タグ（`tag:hatch`・`tag:edge`・`tag:wings`・`tag:kuma`）、LXC と edge 用の認証キー、ACL（下記） | 無料プランの範囲 |
-| 4 | **Linode ×2**（edge-1 東京・edge-2 大阪） | プレイヤーの入口 | `edge/install-edge.sh` を実行。Linode のファイアウォールで「アドレス枠のポート範囲（TCP・UDP）」と 80/443 のみ許可 | 最小プラン（1GB）で十分。回線の転送量に注意 |
+| 4 | **Linode ×2**（edge-1 東京・edge-2 大阪） | プレイヤーの入口 | `edge/install-edge.sh` を実行。Linode Cloud Firewall を作って edge に付け、SSH など Hatch の外のルールだけを手で入れる（ゲームのポートは Hatch が自動で開け閉めする。API トークンは Linodes の読み取り・Firewalls の読み書き） | 最小プラン（1GB）で十分。回線の転送量に注意 |
 | 5 | **Cloudflare** | DNS（ゲームはプロキシなし） | 2つのドメインのネームサーバーを Cloudflare に、API トークン（両ゾーンの Zone:Read・DNS:Edit のみ） | 無料プラン |
 | 6 | **Web パネルの公開** | `panel.nuids.jp` | どちらか：① Cloudflare Tunnel（LXC に cloudflared。受信ポートを開けなくてよい。**おすすめ**）② edge の nginx から Tailscale 経由で中継（Let's Encrypt の証明書） | — |
 | 7 | **Uptime Kuma 2.x** | 監視と自己監視 | 連携用のユーザー、`/metrics` 用の API キー、自己監視の通知用の Discord Webhook（管理者用チャンネル）。**オーケストレーターと別の場所**（Linode など）に置く。バージョンを固定 | 1 vCPU・1GB |
