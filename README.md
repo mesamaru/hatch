@@ -28,7 +28,9 @@ git tag v0.1.0 && git push --tags     # 最初のリリース（GitHub Actions �
 
 ## セットアップの流れ（スクリプト実行から動作確認まで）
 
-詳細は [docs/install-guide.html](docs/install-guide.html) を参照してください。
+**事前準備：** 最初に [docs/setup-checklist.md](docs/setup-checklist.md) で必要な情報を集めてください。
+
+**詳細ガイド：** 実際のインストール手順は [docs/install-guide.html](docs/install-guide.html) を参照。
 
 ### 1. Proxmox ホストでコンテナ作成
 
