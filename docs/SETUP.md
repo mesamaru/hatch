@@ -168,6 +168,10 @@ Discord のロールごとに、Hatch での権限を選びます。権限は3�
    - **ドメイン**：ゲームサーバーに使うドメインと Cloudflare のゾーン ID
    - **IP と紐付け**：edge サーバーの IP を確認
    - **アドレス枠**：ポートの範囲とホスト名の形を作り、「DNS を作成」
+4. **管理 → ノードと edge** で、プレイヤーの入口（edge）を登録します
+   - **Linode のアカウント**：Cloud Manager 右上のアカウント → API Tokens → Create a Personal Access Token。Linodes は Read Only、Firewalls は Read/Write、他は No Access にして作り、表示されたトークンを貼り付けます（契約が複数あれば、契約ごとに追加）
+   - **ファイアウォール**：Cloud Manager の Firewalls → Create Firewall で作り、SSH など必要なルールだけを入れておきます。ここで登録すると、ゲームのポートは Hatch が自動で開け閉めします（サーバーを作ると開き、完全に削除すると締まる）
+   - **edge**：edge/install-edge.sh で入力した名前で登録し、Linode とファイアウォールを選びます。複数の edge で1つのファイアウォールを共有しても、edge ごとに別にしても構いません
 
 ---
 

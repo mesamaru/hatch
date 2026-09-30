@@ -192,6 +192,14 @@ api.add_monitor(
 
 ---
 
-## 7. edge エージェント
+## 7. Linode（Cloud Firewall）
+
+- 認証は Personal Access Token。**Linodes：Read Only、Firewalls：Read/Write** だけを付ける。契約ごとに1つ登録する（`linode_accounts`。暗号化して保存）。
+- 使う API：`GET /v4/linode/instances`（edge の Linode を選ぶ）、`GET /v4/networking/firewalls`、`GET・PUT /v4/networking/firewalls/{id}/rules`、`GET・POST /v4/networking/firewalls/{id}/devices`。
+- **ルールの PUT は全体の置き換え**。必ず GET した全体の Hatch の分（ラベルが `hatch-<PD_INSTANCE>-`）だけを差し替えて送る。手で作ったルールと `inbound_policy`・`outbound_policy` はそのまま返す。
+- 上限：1つのファイアウォールにルール25個（受信・送信の合計）、1ルールにポート15個まで。Hatch は連続するポートを範囲にまとめ、範囲は2つ分として数えて控えめに分ける。超えるときは送らずに `firewalls.last_error` に理由を残す。
+- 一覧は `page`・`page_size`（最大500）でページ分けされる。
+
+## 8. edge エージェント
 
 `edge/agent.py` を参照。API は `docs/API.md` の「edge エージェント」。エージェントの変更は後方互換を保つ（古いエージェントが新しい API に繋がっても動くこと）。

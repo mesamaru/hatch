@@ -13,6 +13,7 @@ import sys
 import uvicorn
 
 from hatch.api.deps import get_dns, get_games, get_panel
+from hatch.api.infra import get_linode_factory
 from hatch.games import parse
 from hatch.jobs import bindings as _bindings  # noqa: F401 - ジョブの種類を登録する
 from hatch.jobs import deploy as _deploy  # noqa: F401
@@ -22,9 +23,11 @@ from hatch.jobs.deps import Deps
 from hatch.jobs.engine import Engine
 from hatch.main import app
 from tests.fakes.dns import FakeDns
+from tests.fakes.linode import FakeLinode, FakeLinodeCloud
 from tests.fakes.panel import FakePanel
 
 ZONE = "a" * 32
+LINODE_TOKEN = "linode-token-0123456789abcdef"  # フェイクの Linode で使えるトークン
 GAMES = parse(
     {
         "paper": {"label": "Paper", "kind": "mc", "nest": 1, "egg": 3, "proxy_protocol": True},
@@ -39,9 +42,14 @@ async def main(port: int) -> None:
     app.dependency_overrides[get_dns] = lambda: dns
     app.dependency_overrides[get_panel] = lambda: panel
     app.dependency_overrides[get_games] = lambda: GAMES
+    cloud = FakeLinodeCloud(LINODE_TOKEN)
+    linode = lambda token: FakeLinode(cloud, token)  # noqa: E731
+    app.dependency_overrides[get_linode_factory] = lambda: linode
     server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
     engine = Engine(
-        Deps(panel=panel, dns=dns, games=GAMES, poll_interval=0, edge_wait=0), retry_delays=(0, 0, 0), heartbeat=3600
+        Deps(panel=panel, dns=dns, games=GAMES, poll_interval=0, edge_wait=0, linode=linode),
+        retry_delays=(0, 0, 0),
+        heartbeat=3600,
     )
     stop = asyncio.Event()
 

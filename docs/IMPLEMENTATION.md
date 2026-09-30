@@ -318,16 +318,16 @@ UDP には接続数の制限をかけられないので、1 IP あたりのパ�
 | `linode_accounts` | id, label, token_enc, created_at | トークンは `crypto.encrypt(…, "linode")` |
 | `firewalls` | id, linode_account_id, linode_firewall_id, label, synced_at, last_error | Hatch が管理する Linode Cloud Firewall |
 | `edges`（列の追加） | linode_account_id, linode_id, firewall_id（→ firewalls, NULL 可） | NULL の edge はファイアウォールを管理しない（Linode 以外の edge） |
-| `server_ports` | server_id, port, protocol（tcp/udp）, opened_at, closed_at | 公開中のポート。ファイアウォール・edge 設定の正本。完全削除で `closed_at` を入れる |
 
 ### 7A.2 ファイアウォールの反映（ジョブ `sync_firewall`）
 
-1. 対象のファイアウォールを使う edge を集め、`server_ports` の `closed_at IS NULL` の行からポートの集合を作る（プロトコルごと）。
+1. 開けるポート＝アドレス（スロット）を使っているサーバーのポート（`slots.status` が `assigned`・`held`）。プロトコルは `games.yml` の `protocol`。別の表は持たず、毎回 DB から作る（完全削除と作成の取り消しでスロットが解放されると、次の反映で締まる）。edge が使っているファイアウォールごとに反映する（共有なら1回）。
 2. 連続するポートを範囲にまとめ、15個ずつに分けて `hatch-<instance>-tcp-1`・`-udp-1` … というラベルの受信ルール（ACCEPT、送信元は全体）にする。
 3. Linode の `GET /networking/firewalls/{id}/rules` で今のルールを取り、ラベルが `hatch-<instance>-` で始まらないルールはそのまま残して、Hatch の分だけを差し替えた全体を `PUT /networking/firewalls/{id}/rules` で送る（API はルール全体の置き換えのため）。
 4. 合計が25個を超える場合は送らずに失敗させ、`firewalls.last_error` に理由を残す。
-5. 作成の手順「edge に公開」の直前に `server_ports` を作り、同じジョブの中で反映を待つ（取り消しでは `closed_at` を入れて反映）。完全削除の最後に `closed_at` を入れて反映する。
-6. Linode の API は `adapters/linode.py`（`LinodeAdapter`）に閉じ込める。テストはフェイク（`tests/fakes/linode.py`）。
+5. 作成の手順「edge に公開」の直後に「ファイアウォールを開ける」を行う（取り消しでは、取り消しが終わった後に `sync_firewall` のジョブで締める）。完全削除は最後に「ファイアウォールを締める」を行う。edge の登録・変更の後にも反映する。
+6. Linode の API は `adapters/linode.py`（`LinodeAdapter`）に閉じ込める。テストはフェイク（`tests/fakes/linode.py`）。ルールの組み立ては純粋関数（`domain/firewall.py`）。
+7. edge にファイアウォールを付けると、edge の Linode がそのファイアウォールに付いていなければ付ける（`POST /networking/firewalls/{id}/devices`）。管理をやめるときは Hatch のルールだけを消す。
 
 ### 7A.3 統合版の UDP 中継（edge エージェント）
 

@@ -224,6 +224,7 @@ Discord と Web パネルから、Pterodactyl のゲームサーバー（Minecra
 | Cloudflare DNS | ゲーム用の CNAME・SRV、`edge.<ドメイン>` などの A | レコードの comment が `hatch:<PD_INSTANCE> …`（例 `hatch:prod slot=25561`） | comment が `hatch:` で始まるレコードは変更・削除しない。Hatch の枠のホスト名と同じ名前のレコードを作らない（Hatch は comment の無い同名レコードを上書きせず、作成に失敗する）。ゲーム用レコードは必ず **プロキシ無効** |
 | Pterodactyl | ユーザー（Hatch のユーザー名・メールと同じ）、サーバー、アロケーション | サーバーの `external_id` に Hatch 側の ID。アロケーションは Tailscale の IP（100.x）上 | Hatch が作ったサーバーを直接削除・移動しない（Hatch の DB とずれる）。ユーザーを更新するときは **全項目を送る**（Application API はパスワードだけ送ると他の項目が消える） |
 | edge（HAProxy・nftables） | アドレス枠のポートの転送設定 | 設定ファイル全体を Hatch が生成し、エージェントが差し替える | edge の設定を手で編集しない（次の版で上書きされる）。アドレス枠のポート範囲を他の用途に使わない |
+| Linode Cloud Firewall | ゲームのポートの受信ルール | ルールのラベルが `hatch-<PD_INSTANCE>-`（例 `hatch-prod-tcp-1`） | このラベルのルールを変更・削除しない（次の反映で元に戻る）。ルールは1つのファイアウォールに25個までなので、手で作るルールは少なくする |
 | Uptime Kuma | サーバーごとの監視（予定）、Hatch 自身の監視 | 監視名が `pd:<PD_INSTANCE>:<ID>` | この名前の監視を変更・削除しない |
 
 - `PD_INSTANCE` が違えば（`prod` と `stg`）、同じゾーン・同じ Kuma を使っても互いに干渉しません。連携ツールも同じ考え方（自分の印を付け、自分のものだけを扱う）にすると安全です。

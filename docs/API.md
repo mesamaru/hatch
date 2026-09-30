@@ -159,7 +159,7 @@
 | GET / PATCH | /admin/settings | `app_settings` のキーのみ。`default_background` に自分のアップロードを指定すると、その画像は全員が読めるようになる |
 | POST | /admin/users/{id}/withdraw-cancel | 管理者による退会の取り消し |
 
-### Linode・edge・ゲームパネル（予定：T43・T47）
+### Linode・edge・ゲームパネル（Linode・edge は実装済み：T43。ゲームパネル・ノードは予定：T47）
 
 | メソッド | パス | 説明 |
 |---|---|---|

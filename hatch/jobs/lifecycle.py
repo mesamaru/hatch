@@ -17,6 +17,7 @@ from ..repo import audit
 from ..repo import servers as servers_repo
 from ..repo import slots as slots_repo
 from .engine import JobContext, Step, job_kind
+from .firewall import CloseFirewall
 
 
 async def _info(ctx: JobContext) -> dict[str, Any]:
@@ -322,4 +323,4 @@ class RemoveDnsForever(RemoveDns):
 
 @job_kind("purge")
 def purge_steps(ctx: JobContext) -> list[Step]:
-    return [MarkPurging(), FinalBackup(), RemoveDnsForever(), DeletePanelServer(), ReleaseAll()]
+    return [MarkPurging(), FinalBackup(), RemoveDnsForever(), DeletePanelServer(), ReleaseAll(), CloseFirewall()]

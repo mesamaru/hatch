@@ -21,6 +21,7 @@ from ..repo import servers as servers_repo
 from ..repo import slots as slots_repo
 from .deps import Deps
 from .engine import JobContext, Step, job_kind
+from .firewall import OpenFirewall
 
 BACKUP_SCHEDULE = "Hatch 自動バックアップ"
 
@@ -418,6 +419,7 @@ def deploy_steps(ctx: JobContext) -> list[Step]:
         CreatePanelServer(),
         WaitInstall(),
         PublishEdge(),
+        OpenFirewall(),
         DnsStep("main"),
         DnsStep("srv"),
         StartServer(),

@@ -38,7 +38,7 @@ async function pAdmin() {
         : "<b>最初に「ドメイン」を登録してください。</b>次に「アドレス枠」を作ると、サーバーを作成できるようになります。"
     )}
     ${group([cell({ icon: "people", color: "var(--green)", title: "ユーザー", act: "go", arg: "users" }), later("user", "var(--indigo)", "Discord ロール連携", "roles"), later("bell", "var(--red)", "お知らせ", "announce"), later("gavel", "var(--orange)", "違反対応", "violations")], "利用者")}
-    ${group([later("pulse", "var(--green)", "システムの状態", "system"), later("sparkle", "var(--green)", "整合性チェック", "health"), later("server", "var(--blue)", "ノードと edge", "nodes"), later("clock", "var(--orange)", "期限が近いサーバー", "expiring")], "運用")}
+    ${group([later("pulse", "var(--green)", "システムの状態", "system"), later("sparkle", "var(--green)", "整合性チェック", "health"), cell({ icon: "server", color: "var(--blue)", title: "ノードと edge", sub: "Linode のファイアウォール", act: "go", arg: "nodes" }), later("clock", "var(--orange)", "期限が近いサーバー", "expiring")], "運用")}
     ${group([later("list", "var(--gray)", "操作ログ", "audit"), later("key", "var(--gray)", "API キー", "keys")], "記録と設定")}
   </div>`;
 }

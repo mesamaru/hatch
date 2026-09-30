@@ -18,6 +18,7 @@ const KIND = {
   publish_slots: { run: "の DNS を作成中", ok: "の DNS を作成しました", ng: "の DNS を作成できませんでした", scope: "admin" },
   unpublish_slots: { run: "の DNS を削除中", ok: "の DNS を削除しました", ng: "の DNS を削除できませんでした", scope: "admin" },
   sync_binding: { run: "の DNS を反映中", ok: "の DNS を反映しました", ng: "の DNS を反映できませんでした", scope: "admin" },
+  sync_firewall: { run: "に反映中", ok: "に反映しました", ng: "に反映できませんでした", scope: "admin" },
   delete_binding: { run: "の紐付けを削除中", ok: "の紐付けを削除しました", ng: "の紐付けを削除できませんでした", scope: "admin" },
 };
 

@@ -17,6 +17,7 @@ class Deps:
     dns: DnsAdapter
     games: dict[str, Game]
     limits: Limits = field(default_factory=Limits)
+    linode: Any = None  # トークン → LinodeAdapter（None なら本物の LinodeClient。テストはフェイクを入れる）
     monitor: Any = None  # MonitorAdapter（T17 で実装。None の間は監視の手順を飛ばす）
     poll_interval: float = 5.0  # インストール完了・起動の確認間隔
     install_timeout: float = 600.0

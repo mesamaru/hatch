@@ -13,6 +13,7 @@ import { ctx, isBusyUi, navbar, pageShell } from "./ctx.js";
 import { SERVER_ACTIONS, SERVER_PAGES, serverTitle } from "./pages/servers.js";
 import { ADMIN_ACTIONS, ADMIN_PAGES, adminTitle } from "./pages/admin-address.js";
 import { JOB_ACTIONS } from "./pages/jobs.js";
+import { INFRA_ACTIONS, INFRA_PAGES } from "./pages/admin-infra.js";
 
 const TABS = [
   { id: "servers", label: "サーバー", icon: "server" },
@@ -164,6 +165,7 @@ async function pageFor(top) {
   }
   if (ROUTE.tab === "admin") {
     if (!top) return ADMIN_PAGES.root();
+    if (INFRA_PAGES[top.page]) return INFRA_PAGES[top.page](top.arg);
     if (ADMIN_PAGES[top.page]) return ADMIN_PAGES[top.page](top.arg);
     return ADMIN_PAGES.later(top.page);
   }
@@ -519,6 +521,7 @@ const ACT = {
   ...SERVER_ACTIONS,
   ...ADMIN_ACTIONS,
   ...JOB_ACTIONS,
+  ...INFRA_ACTIONS,
 };
 
 document.addEventListener("click", (e) => {
