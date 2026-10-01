@@ -20,6 +20,10 @@ const ROUTES = [
     re: /^\/admin\/domains\/([^/]+)\/?$/,
     to: (m) => ({ tab: "admin", stack: [{ page: "domains" }, { page: "domain", arg: decodeURIComponent(m[1]) }] }),
   },
+  {
+    re: /^\/admin\/start\/([a-z]+)\/?$/,
+    to: (m) => ({ tab: "admin", stack: [{ page: "start" }, { page: "start-step", arg: m[1] }] }),
+  },
   { re: /^\/admin\/domains\/?$/, to: () => ({ tab: "admin", stack: [{ page: "domains" }] }) },
   { re: /^\/admin\/ips\/?$/, to: () => ({ tab: "admin", stack: [{ page: "ips" }] }) },
   {
@@ -60,6 +64,7 @@ export function pathFor(tab, stack) {
     if (stack[0].page === "domains") return stack[1] ? `/admin/domains/${encodeURIComponent(stack[1].arg)}` : "/admin/domains";
     if (stack[0].page === "rules") return stack[1] ? `/admin/slots/${encodeURIComponent(stack[1].arg)}` : "/admin/slots";
     if (stack[0].page === "ips") return "/admin/ips";
+    if (stack[0].page === "start" && stack[1]) return `/admin/start/${encodeURIComponent(stack[1].arg)}`;
     return `/admin/${stack[0].page}`;
   }
   if (tab === "settings") return stack.length ? `/settings/${stack[0].page}` : "/settings";

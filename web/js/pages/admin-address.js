@@ -493,7 +493,7 @@ async function saveRule() {
     toast("アドレス枠を保存しました");
     if (needsPublish) toast("「DNS を作成」を押すと、割り当て前にアドレスを使えるようにできます");
     const top = ctx.route.stack[ctx.route.stack.length - 1];
-    if (top && (top.page === "rule" || top.page === "start")) ctx.refresh();
+    if (top && (top.page === "rule" || top.page === "start" || top.page === "start-step")) ctx.refresh();
     else ctx.go("rule", String(id));
   } catch (e) {
     R.saving = false;

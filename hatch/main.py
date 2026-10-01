@@ -114,11 +114,15 @@ class _WebFiles(StaticFiles):
 
     async def get_response(self, path: str, scope):
         try:
-            return await super().get_response(path, scope)
+            res = await super().get_response(path, scope)
         except StarletteHTTPException as exc:
             if exc.status_code == 404 and not path.startswith(("api/", "css/", "js/")):
-                return await super().get_response("index.html", scope)
-            raise
+                res = await super().get_response("index.html", scope)
+            else:
+                raise
+        # 更新後に古い画面が残らないよう、毎回 ETag で確かめさせる（変わっていなければ 304 で軽い）
+        res.headers["Cache-Control"] = "no-cache"
+        return res
 
 
 app.mount("/", _WebFiles(directory=BASE_DIR / "web", html=True), name="web")

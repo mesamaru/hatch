@@ -175,3 +175,11 @@ async def test_domain_can_be_removed_with_its_edge_record(env):
     assert env["dns"].names(ZONE) == set()
     assert (await env["admin"].get("/api/admin/domains")).json()["items"] == []
     assert states(await status(env))["domain"] == "todo"
+
+
+async def test_screen_files_are_revalidated_after_update(env):
+    """更新後に古い画面が残らないよう、画面のファイルは毎回確かめさせる。"""
+    for path in ("/js/app.js", "/css/components.css", "/admin/start"):
+        r = await env["admin"].get(path)
+        assert r.status_code == 200, path
+        assert r.headers["cache-control"] == "no-cache", path

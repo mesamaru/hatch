@@ -112,7 +112,7 @@ async function submitForm() {
   }
 }
 
-const TOKEN_GUIDE = `API トークンの作り方
+export const TOKEN_GUIDE = `API トークンの作り方
   <ul class="howto">
     <li>Linode の Cloud Manager で、右上のアカウント → <b>API Tokens</b> を開く</li>
     <li><b>Create a Personal Access Token</b> を押す</li>
@@ -201,19 +201,33 @@ async function loadLinodes() {
   }
 }
 
+export const EDGE_GUIDE = `edge は、プレイヤーが接続する入口のサーバーです（edge/install-edge.sh を実行したサーバー）。
+  <ul class="howto">
+    <li><b>名前</b>：install-edge.sh を実行したときに「edge の名前」に入力したもの（例 edge-1）。edge はこの名前で Hatch から設定を受け取るので、同じにします。忘れたときは、edge のサーバーで <code>grep EDGE_ID /etc/hatch-edge/agent.env</code></li>
+    <li><b>Linode・ファイアウォール</b>：Linode で動かしている場合に選びます。公開 IP は自動で入ります</li>
+    <li><b>Tailscale の IP</b>：空欄で構いません。edge が Hatch に接続すると自動で入ります</li>
+  </ul>`;
+
+function renameAccount(a) {
+  FORM = {
+    title: "名前を変更",
+    ok: "保存",
+    values: { label: a.label },
+    fields: [{ key: "label", label: "名前", placeholder: "例：Linode" }],
+    submit: async (v) => {
+      await api.patch(`/admin/linode-accounts/${a.id}`, { label: (v.label || "").trim() });
+      toast("名前を変更しました");
+    },
+  };
+  renderForm();
+}
+
 async function edgeForm(edge) {
   const isNew = !edge;
   FORM = {
     title: isNew ? "edge を登録" : `${edge.id} を変更`,
     ok: isNew ? "登録" : "保存",
-    lead: isNew
-      ? `edge は、プレイヤーが接続する入口のサーバーです（edge/install-edge.sh を実行したサーバー）。
-        <ul class="howto">
-          <li><b>名前</b>：install-edge.sh を実行したときに「edge の名前」に入力したもの（例 edge-1）。edge はこの名前で Hatch から設定を受け取るので、同じにします。忘れたときは、edge のサーバーで <code>grep EDGE_ID /etc/hatch-edge/agent.env</code></li>
-          <li><b>Linode・ファイアウォール</b>：Linode で動かしている場合に選びます。公開 IP は自動で入ります</li>
-          <li><b>Tailscale の IP</b>：空欄で構いません。edge が Hatch に接続すると自動で入ります</li>
-        </ul>`
-      : "",
+    lead: isNew ? EDGE_GUIDE : "",
     values: isNew
       ? { account: "" }
       : {
@@ -383,6 +397,7 @@ export const INFRA_ACTIONS = {
     const a = DATA.accounts.find((x) => String(x.id) === id);
     if (!a) return;
     openMenu(el, [
+      { label: "名前を変更", icon: "tune", run: () => renameAccount(a) },
       { label: "トークンを入れ替える", icon: "key", run: () => replaceToken(a) },
       "-",
       {

@@ -14,7 +14,7 @@ import { SERVER_ACTIONS, SERVER_PAGES, serverTitle } from "./pages/servers.js";
 import { ADMIN_ACTIONS, ADMIN_PAGES, adminTitle } from "./pages/admin-address.js";
 import { JOB_ACTIONS } from "./pages/jobs.js";
 import { INFRA_ACTIONS, INFRA_PAGES } from "./pages/admin-infra.js";
-import { START_ACTIONS, START_PAGES } from "./pages/getting-started.js";
+import { START_ACTIONS, START_PAGES, startTitle } from "./pages/getting-started.js";
 
 const TABS = [
   { id: "servers", label: "サーバー", icon: "server" },
@@ -120,7 +120,7 @@ function isAdmin() {
   return !!ME && ME.user.role === "admin";
 }
 function pageTitle(entry) {
-  return serverTitle(entry) || adminTitle(entry) || TITLES[entry.page] || "";
+  return serverTitle(entry) || adminTitle(entry) || startTitle(entry) || TITLES[entry.page] || "";
 }
 function backLabel() {
   if (ROUTE.stack.length > 1) return pageTitle(ROUTE.stack[ROUTE.stack.length - 2]);
