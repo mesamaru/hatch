@@ -213,3 +213,20 @@ async def test_read_only_linodes_token_explains_and_can_be_replaced(env, cloud):
     assert cloud.fw[501]["devices"] == {101}
     # Tailscale の IP は省略でき、edge からの報告（Tailscale 経由）で入る
     assert q(env["url"], "SELECT tailscale_ip FROM edges WHERE id = 'edge-2'") == [(None,)]
+
+
+async def test_firewall_can_be_removed_even_if_linode_refuses(env, cloud):
+    """トークンの権限が足りずに Linode のルールを消せなくても、Hatch の登録だけは外せる（アカウントも消せる）。"""
+    acc, fw = await register(env, cloud)
+    ad = env["admin"]
+    r = await ad.patch("/api/admin/edges/edge-1", json={"clear_firewall": True})
+    assert r.status_code == 200, r.text
+    cloud.token = "rotated-token-0123456789"  # 登録したトークンが使えなくなった
+    r = await ad.delete(f"/api/admin/firewalls/{fw}")
+    assert r.status_code == 409 and r.json()["error"]["code"] == "linode_cleanup_failed", r.text
+    assert (await ad.delete(f"/api/admin/firewalls/{fw}", params={"keep_rules": "true"})).status_code == 204
+    assert q(env["url"], "SELECT count(*) FROM firewalls") == [(0,)]
+    # edge を「Linode 以外」に戻すと、アカウントも削除できる
+    assert (await ad.patch("/api/admin/edges/edge-1", json={"clear_linode": True})).status_code == 200
+    assert q(env["url"], "SELECT linode_account_id, linode_id FROM edges") == [(None, None)]
+    assert (await ad.delete(f"/api/admin/linode-accounts/{acc}")).status_code == 204

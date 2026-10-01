@@ -30,7 +30,7 @@ def test_finish_getting_started_from_the_checklist(app_server, browser):  # noqa
     expect(main).to_contain_text("はじめの設定が残っています（1 / 4）")
     page.click('[data-act="gs-open"]')
     expect(page).to_have_url(f"{base}/admin/start")
-    expect(main).to_contain_text("登録済み：edge-1（203.0.113.10）")
+    expect(main).to_contain_text("公開 IP 203.0.113.10")
     expect(main).to_contain_text("ドメインを登録次にやる")
     assert _no_horizontal_scroll(page)
 
@@ -39,17 +39,26 @@ def test_finish_getting_started_from_the_checklist(app_server, browser):  # noqa
     page.fill("#d-name", "nuids.jp")
     page.fill("#d-zone", ZONE)
     page.click("#simple-ok")
-    expect(main).to_contain_text("登録済み：nuids.jp", timeout=20000)
+    expect(main).to_contain_text("edge.nuids.jp 反映済み", timeout=20000)
 
     # アドレス枠（保存してもこの画面に残る）
     page.get_by_role("button", name="アドレス枠を作る").last.click()
     page.fill("#r-name", "共有枠")
     expect(page.locator("#rule-save")).to_be_enabled()
     page.click("#rule-save")
-    expect(main).to_contain_text("登録済み：共有枠")
+    expect(main).to_contain_text("ポート 25560〜25569")
     expect(page).to_have_url(f"{base}/admin/start")
 
     # DNS
+    page.get_by_role("button", name="DNS を作成").last.click()
+    expect(main).to_contain_text("はじめの設定はすべて済みました", timeout=20000)
+
+    # 済んだ手順も「…」からやり直せる（DNS を削除すると、また「次にやる」に戻る）
+    page.click('[data-act="gs-menu-dns"]')
+    page.get_by_role("menuitem", name="DNS を削除").click()
+    page.click("#cf-ok")
+    expect(main).to_contain_text("未作成", timeout=20000)
+    expect(main).to_contain_text("アドレス枠の DNS を作る次にやる")
     page.get_by_role("button", name="DNS を作成").last.click()
     expect(main).to_contain_text("はじめの設定はすべて済みました", timeout=20000)
 

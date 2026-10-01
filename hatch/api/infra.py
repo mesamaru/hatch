@@ -8,7 +8,7 @@ from __future__ import annotations
 import ipaddress
 from collections.abc import Callable
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, Field
 
 from .. import db
@@ -244,9 +244,15 @@ async def add_firewall(
 
 @router.delete("/firewalls/{firewall_id}", status_code=204)
 async def delete_firewall(
-    firewall_id: int, p: Principal = Depends(require_admin), factory=Depends(get_linode_factory)
+    firewall_id: int,
+    keep_rules: bool = Query(default=False),
+    p: Principal = Depends(require_admin),
+    factory=Depends(get_linode_factory),
 ) -> Response:
-    """管理をやめる。Linode 側の Hatch のルールは消す（手で作ったルールは残す）。"""
+    """管理をやめる。Linode 側の Hatch のルールは消す（手で作ったルールは残す）。
+
+    keep_rules=true なら Linode には触れず、Hatch の登録だけ外す（トークンの権限が足りず消せないとき）。
+    """
     async with db.transaction() as conn:
         cur = await conn.execute(
             """SELECT f.label, f.linode_firewall_id, a.id AS account_id, a.token_enc,
@@ -265,12 +271,21 @@ async def delete_firewall(
         current = await li.get_rules(fw["linode_firewall_id"])
         await li.put_rules(fw["linode_firewall_id"], merge(current, instance, {}))
 
-    await _with_linode({"token_enc": fw["token_enc"]}, factory, clear)
+    if not keep_rules:
+        try:
+            await _with_linode({"token_enc": fw["token_enc"]}, factory, clear)
+        except AppError as e:
+            raise AppError(
+                "linode_cleanup_failed",
+                f"Linode のファイアウォールから Hatch のルールを消せませんでした（{e.message}）。"
+                "「登録だけ外す」を選ぶと、Linode 側には触れずに Hatch の登録を外します。"
+                "残ったルール（名前が hatch- で始まるもの）は、Cloud Manager で消してください。",
+                409,
+            ) from None
     async with db.transaction() as conn:
         await conn.execute("DELETE FROM firewalls WHERE id = %s", (firewall_id,))
-        await audit.add(
-            conn, action="ファイアウォールの管理をやめる", via="web", actor_id=p.user_id, target=fw["label"]
-        )
+        action = "ファイアウォールの登録だけ外す" if keep_rules else "ファイアウォールの管理をやめる"
+        await audit.add(conn, action=action, via="web", actor_id=p.user_id, target=fw["label"])
     return Response(status_code=204)
 
 
@@ -304,6 +319,7 @@ class EdgePatch(BaseModel):
     linode_id: int | None = None
     firewall_id: int | None = None
     clear_firewall: bool = False  # ファイアウォールを外す
+    clear_linode: bool = False  # Linode の紐付け（アカウント・Linode・ファイアウォール）をすべて外す
 
 
 def _ip(value: str, field: str) -> str:
@@ -408,6 +424,8 @@ async def patch_edge(
         account_id = body.linode_account_id if body.linode_account_id is not None else e["linode_account_id"]
         linode_id = body.linode_id if body.linode_id is not None else e["linode_id"]
         firewall_id = None if body.clear_firewall else (body.firewall_id or e["firewall_id"])
+        if body.clear_linode:
+            account_id = linode_id = firewall_id = None
         fw = await _check_links(conn, account_id, linode_id, firewall_id)
         if fw:
             await _attach(conn, account_id, linode_id, fw, factory)

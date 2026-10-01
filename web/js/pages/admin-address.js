@@ -122,7 +122,7 @@ async function pDomain(id) {
       rs.map((r) => ruleCell(r)).concat([`<button type="button" class="cell action" data-act="rule-new" data-arg="${d.id}">このドメインで枠を追加</button>`]),
       "アドレス枠"
     )}
-    <div style="height:22px"></div>${group([`<button type="button" class="cell danger" data-act="domain-del" data-arg="${d.id}" ${bs.length || rs.length ? "disabled" : ""}>このドメインを削除</button>`], "", bs.length || rs.length ? "紐付けとアドレス枠を先に削除すると、ドメインを削除できます。" : "")}`,
+    <div style="height:22px"></div>${group([`<button type="button" class="cell danger" data-act="domain-del" data-arg="${d.id}" ${rs.length ? "disabled" : ""}>このドメインを削除</button>`], "", rs.length ? "アドレス枠を先に削除すると、ドメインを削除できます。" : bs.length ? "紐付け（A レコード）も一緒に削除します。" : "")}`,
     { sub: "" }
   );
 }
@@ -514,6 +514,11 @@ async function dnsJob(id, kind) {
   ctx.refresh();
 }
 
+/** アドレス枠の編集シートを開く（はじめの設定からも使う）。 */
+export function editRule(id) {
+  return openRule(id);
+}
+
 /* ---------------- 操作 ---------------- */
 export const ADMIN_ACTIONS = {
   "go-domain"(id) {
@@ -532,8 +537,9 @@ export const ADMIN_ACTIONS = {
       ok: "削除",
       danger: true,
       onOk: async () => {
-        await api.del(`/admin/domains/${id}`);
-        toast("ドメインを削除しました");
+        const r = await api.del(`/admin/domains/${id}`);
+        if (r && r.job) trackJob({ id: r.job.id, kind: "delete_domain", name: NAMES.domain.get(String(id)) || "ドメイン" });
+        toast(r && r.job ? "DNS を消してから、ドメインを削除します" : "ドメインを削除しました");
         ctx.goTab("admin", [{ page: "domains" }]);
       },
     });

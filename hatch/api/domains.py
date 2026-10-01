@@ -5,6 +5,7 @@ from __future__ import annotations
 import ipaddress
 
 from fastapi import APIRouter, Depends, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from .. import db
@@ -109,6 +110,9 @@ async def patch_domain(domain_id: int, body: DomainPatch, p: Principal = Depends
 
 @router.delete("/domains/{domain_id}", status_code=204)
 async def delete_domain(domain_id: int, p: Principal = Depends(require_admin)) -> Response:
+    """アドレス枠が無ければ外せる。紐付け（edge.<ドメイン> など）が残っていれば、
+    A レコードを消してから外すジョブにする。
+    """
     async with db.transaction() as conn:
         cur = await conn.execute(
             """SELECT d.name, (SELECT count(*) FROM slot_rules r WHERE r.domain_id = d.id) AS rules,
@@ -119,8 +123,16 @@ async def delete_domain(domain_id: int, p: Principal = Depends(require_admin)) -
         row = await cur.fetchone()
         if row is None:
             raise AppError("not_found", "ドメインが見つかりません。", 404)
-        if row["rules"] or row["bindings"]:
-            raise AppError("in_use", "このドメインのアドレス枠と IP の紐付けを先に削除してください。", 409)
+        if row["rules"]:
+            raise AppError("in_use", "このドメインのアドレス枠を先に削除してください。", 409)
+        if row["bindings"]:
+            job = await enqueue(
+                conn, "delete_domain", via="web", params={"domain_id": domain_id}, requested_by=p.user_id
+            )
+            await audit.add(
+                conn, action="ドメインを削除", via="web", actor_id=p.user_id, target=row["name"], job_id=job
+            )
+            return JSONResponse({"job": {"id": job, "kind": "delete_domain", "status": "queued"}}, status_code=202)
         await conn.execute("DELETE FROM domains WHERE id = %s", (domain_id,))
         await audit.add(conn, action="ドメインを削除", via="web", actor_id=p.user_id, target=row["name"])
     return Response(status_code=204)

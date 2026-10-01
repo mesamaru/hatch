@@ -20,6 +20,7 @@ const KIND = {
   sync_binding: { run: "の DNS を反映中", ok: "の DNS を反映しました", ng: "の DNS を反映できませんでした", scope: "admin" },
   sync_firewall: { run: "に反映中", ok: "に反映しました", ng: "に反映できませんでした", scope: "admin" },
   delete_binding: { run: "の紐付けを削除中", ok: "の紐付けを削除しました", ng: "の紐付けを削除できませんでした", scope: "admin" },
+  delete_domain: { run: "を削除中", ok: "を削除しました", ng: "を削除できませんでした", scope: "admin" },
 };
 
 const JOBS = new Map(); // id → { id, kind, name, serverId, status, step, steps, error, dismissed }

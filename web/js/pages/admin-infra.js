@@ -13,10 +13,11 @@ let FORM = null; // 入力中のシート { kind, values, options }
 const fieldErr = (e) => [e.message, ...Object.values((e.detail && e.detail.fields) || {})].join("\n");
 
 /* ---------------- 画面 ---------------- */
-/** 一覧を読み直す（はじめの設定など、他の画面からシートを開くときにも使う）。 */
-async function loadData() {
+/** 一覧を読み直す（はじめの設定など、他の画面からシートやメニューを開くときにも使う）。 */
+export async function loadData() {
   const [edges, fws, accounts] = await Promise.all([api.get("/admin/edges"), api.get("/admin/firewalls"), api.get("/admin/linode-accounts")]);
   DATA = { edges: edges.items, fws: fws.items, accounts: accounts.items };
+  return DATA;
 }
 
 async function withData(fn) {
@@ -259,7 +260,8 @@ async function edgeForm(edge) {
         r = await api.post("/admin/edges", { id: (v.id || "").trim(), ...body });
         toast("edge を登録しました");
       } else {
-        if (!v.firewall) body.clear_firewall = true;
+        if (!v.account) body.clear_linode = true;
+        else if (!v.firewall) body.clear_firewall = true;
         r = await api.patch(`/admin/edges/${encodeURIComponent(edge.id)}`, body);
         toast("edge を変更しました");
       }
@@ -358,8 +360,19 @@ export const INFRA_ACTIONS = {
             ok: "管理をやめる",
             danger: true,
             onOk: async () => {
-              await api.del(`/admin/firewalls/${id}`);
-              toast("管理をやめました");
+              // Linode のルールを消せなかったら、もう一度押すと Hatch の登録だけ外す
+              const keep = document.getElementById("cf-ok")?.dataset.keep === "1";
+              try {
+                await api.del(`/admin/firewalls/${id}${keep ? "?keep_rules=true" : ""}`);
+              } catch (e) {
+                const b = document.getElementById("cf-ok");
+                if (e.code === "linode_cleanup_failed" && b) {
+                  b.dataset.keep = "1";
+                  b.textContent = "登録だけ外す";
+                }
+                throw e;
+              }
+              toast(keep ? "Hatch の登録を外しました" : "管理をやめました");
               ctx.refresh();
             },
           }),

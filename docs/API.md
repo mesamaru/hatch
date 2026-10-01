@@ -133,7 +133,7 @@
 |---|---|---|
 | GET | /admin/getting-started | はじめの設定の進み具合（下記 GettingStarted）。SPEC.md 8「はじめの設定」 |
 | GET / POST | /admin/domains | 追加：`{"name","cf_zone_id"}` → ゾーンを確認（名前が一致しなければ `400 zone_mismatch`）し、`edge.<name>` の紐付けを作る |
-| PATCH / DELETE | /admin/domains/{id} | `{"is_default"?, "edge_host"?}`。枠や紐付けがあると削除不可（`409 in_use`） |
+| PATCH / DELETE | /admin/domains/{id} | `{"is_default"?, "edge_host"?}`。アドレス枠があると削除不可（`409 in_use`）。紐付け（edge.<ドメイン> など）が残っていれば、A レコードを消してからドメインを外すジョブ（`202`、`delete_domain`）。無ければ `204` |
 | GET / POST / DELETE | /admin/ips, /admin/ips/{id} | `{"label","address","edge_id"?}`。紐付けや枠が使っていると削除不可 |
 | GET / POST / DELETE | /admin/bindings, /admin/bindings/{id} | `{"domain_id","host","ip_id"?,"follow_active_edge"}` → ジョブ（A レコード作成） |
 | POST | /admin/bindings/{id}/sync | A レコードを今の設定で作り直す → ジョブ。最初の edge を登録したとき・使用中の edge の公開 IP を変えたときは、「使用中の edge に追従」の紐付けを自動で作り直す（応答の `dns_jobs`） |
@@ -171,9 +171,10 @@
 | GET | /admin/linode-accounts/{id}/linodes | その契約の Linode 一覧（edge の登録で選ぶ）`[{"id","label","region","ipv4"}]` |
 | GET | /admin/linode-accounts/{id}/firewalls | その契約のファイアウォール一覧 |
 | GET / POST | /admin/firewalls | Hatch が管理するファイアウォール。追加：`{"linode_account_id","linode_firewall_id","label"}` |
+| DELETE | /admin/firewalls/{id} | 管理をやめる（Linode 側の Hatch のルールを消す）。edge が使っていると `409 in_use`。Linode のルールを消せないと `409 linode_cleanup_failed`。`?keep_rules=true` なら Linode に触れずに Hatch の登録だけ外す |
 | POST | /admin/firewalls/{id}/sync | 今すぐ反映 → ジョブ |
 | GET / POST | /admin/edges | edge の登録：`{"id","public_ip","tailscale_ip"?,"linode_account_id"?,"linode_id"?,"firewall_id"?}`。`tailscale_ip` を省くと、edge の最初の報告（`POST /api/edge/report`。送信元が 100.64.0.0/10 のとき）で入る。ファイアウォールに付ける権限が無いと `400 linode_attach_forbidden` |
-| PATCH / DELETE | /admin/edges/{id} | ファイアウォールの付け替え（共有・個別の切り替え）など |
+| PATCH / DELETE | /admin/edges/{id} | ファイアウォールの付け替え（共有・個別の切り替え）など。`{"clear_firewall":true}` でファイアウォールを外し、`{"clear_linode":true}` で Linode の紐付け（アカウント・Linode・ファイアウォール）をすべて外す |
 | GET / POST | /admin/panels | ゲームパネルの登録：`{"name","url","public_url"?,"app_key","client_key"}`。キーは応答に含めない |
 | PATCH / DELETE | /admin/panels/{id} | ノードやサーバーがあると削除不可 |
 | GET | /admin/panels/{id}/nodes | パネルのノード一覧（Wings の登録で選ぶ） |
@@ -224,6 +225,7 @@
 | totp_required | 403 | 二段階認証を有効にしている人が、まだコードを入力していない |
 | tos_required | 403 | 利用規約への同意が必要（作成・変更系） |
 | linode_token_invalid | 400 | Linode の API トークンが使えない（無効・権限不足） |
+| linode_cleanup_failed | 409 | ファイアウォールの管理をやめるときに、Linode 側の Hatch のルールを消せなかった（`?keep_rules=true` で登録だけ外せる） |
 | linode_attach_forbidden | 400 | Linode をファイアウォールに付ける権限がない（トークンの Linodes が Read Only） |
 | not_found | 404 | |
 | user_not_found | 404 | 共有相手などのユーザーが見つからない |

@@ -1,4 +1,7 @@
-"""IP の紐付け（A レコード）の作成・更新・削除。params: {"binding_id": 1}"""
+"""IP の紐付け（A レコード）の作成・更新・削除。params: {"binding_id": 1}
+
+delete_domain は params: {"domain_id": 1}。そのドメインの紐付けの A レコードをすべて消してから、ドメインを外す。
+"""
 
 from __future__ import annotations
 
@@ -47,6 +50,22 @@ class SyncBinding(Step):
         return {"record_id": rec.id, "ip": b["ip"]}
 
 
+async def _delete_binding(ctx: JobContext, b: dict) -> int:
+    dns = ctx.deps.dns
+    ids = [b["cf_record_id"]] if b["cf_record_id"] else []
+    if not ids:  # 作成の途中だった場合は名前で探す
+        ids = [
+            r.id
+            for r in await dns.find(b["cf_zone_id"], fqdn(b["host"], b["domain"]))
+            if dns.is_ours(r) and r.type == "A"
+        ]
+    for rid in ids:
+        await dns.delete(b["cf_zone_id"], rid)
+    async with db.transaction() as conn:
+        await conn.execute("DELETE FROM ip_bindings WHERE id = %s", (b["id"],))
+    return len(ids)
+
+
 class DeleteBinding(Step):
     key, name = "delete_binding", "A レコードを削除"
 
@@ -54,19 +73,36 @@ class DeleteBinding(Step):
         b = await _load(ctx.params["binding_id"])
         if b is None:
             return {}
-        dns = ctx.deps.dns
-        ids = [b["cf_record_id"]] if b["cf_record_id"] else []
-        if not ids:  # 作成の途中だった場合は名前で探す
-            ids = [
-                r.id
-                for r in await dns.find(b["cf_zone_id"], fqdn(b["host"], b["domain"]))
-                if dns.is_ours(r) and r.type == "A"
-            ]
-        for rid in ids:
-            await dns.delete(b["cf_zone_id"], rid)
+        return {"deleted": await _delete_binding(ctx, b)}
+
+
+class DeleteDomainRecords(Step):
+    key, name = "delete_domain_records", "A レコードを削除"
+
+    async def run(self, ctx: JobContext):
         async with db.transaction() as conn:
-            await conn.execute("DELETE FROM ip_bindings WHERE id = %s", (b["id"],))
-        return {"deleted": len(ids)}
+            cur = await conn.execute("SELECT id FROM ip_bindings WHERE domain_id = %s", (ctx.params["domain_id"],))
+            ids = [r["id"] for r in await cur.fetchall()]
+        deleted = 0
+        for bid in ids:
+            b = await _load(bid)
+            if b is not None:
+                deleted += await _delete_binding(ctx, b)
+        return {"deleted": deleted}
+
+
+class DeleteDomain(Step):
+    key, name = "delete_domain", "ドメインを外す"
+
+    async def run(self, ctx: JobContext):
+        async with db.transaction() as conn:
+            cur = await conn.execute(
+                "SELECT 1 FROM slot_rules WHERE domain_id = %s LIMIT 1", (ctx.params["domain_id"],)
+            )
+            if await cur.fetchone():
+                raise AppError("in_use", "このドメインのアドレス枠を先に削除してください。", 409)
+            await conn.execute("DELETE FROM domains WHERE id = %s", (ctx.params["domain_id"],))
+        return {}
 
 
 @job_kind("sync_binding")
@@ -77,3 +113,8 @@ def _sync(ctx: JobContext) -> list[Step]:
 @job_kind("delete_binding")
 def _delete(ctx: JobContext) -> list[Step]:
     return [DeleteBinding()]
+
+
+@job_kind("delete_domain")
+def _delete_domain(ctx: JobContext) -> list[Step]:
+    return [DeleteDomainRecords(), DeleteDomain()]

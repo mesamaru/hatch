@@ -162,3 +162,16 @@ def test_failed_dns_shows_reason_and_retry():
     dns = compute(d)["steps"][5]
     assert dns["state"] == "error" and dns["retry"] == {"rules": [7]}
     assert "権限がありません" in dns["problem"] and "「mc」" in dns["problem"]
+
+
+async def test_domain_can_be_removed_with_its_edge_record(env):
+    """やり直しのため、edge.<ドメイン> の紐付けが残っていてもドメインを外せる（A レコードも消える）。"""
+    await env["admin"].post("/api/admin/domains", json={"name": "nuids.jp", "cf_zone_id": ZONE})
+    await drain(env)
+    assert env["dns"].names(ZONE) == {("A", "edge.nuids.jp")}
+    r = await env["admin"].delete("/api/admin/domains/1")
+    assert r.status_code == 202 and r.json()["job"]["kind"] == "delete_domain", r.text
+    await drain(env)
+    assert env["dns"].names(ZONE) == set()
+    assert (await env["admin"].get("/api/admin/domains")).json()["items"] == []
+    assert states(await status(env))["domain"] == "todo"
