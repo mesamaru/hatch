@@ -583,6 +583,18 @@ export const ADMIN_ACTIONS = {
     const fq = rest.join("|");
     openMenu(el, [
       { label: "ホスト名をコピー", icon: "copy", run: () => copyText(fq) },
+      {
+        label: "DNS を反映し直す",
+        icon: "restart",
+        run: async () => {
+          try {
+            const r = await api.post(`/admin/bindings/${id}/sync`);
+            trackJob({ id: r.job.id, kind: "sync_binding", name: fq });
+          } catch (e) {
+            toast(e.message, "warn");
+          }
+        },
+      },
       "-",
       {
         label: "削除",

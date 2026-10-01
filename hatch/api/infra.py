@@ -18,7 +18,8 @@ from ..auth.session import Principal, require_admin
 from ..config import get_core_settings
 from ..domain.firewall import merge
 from ..errors import AppError, TransientError, UpstreamError
-from ..jobs import firewall as _fw  # noqa: F401 - ジョブの登録
+from ..jobs import bindings as _bindings  # noqa: F401 - ジョブの登録
+from ..jobs import firewall as _fw  # noqa: F401
 from ..jobs.engine import enqueue
 from ..repo import audit
 
@@ -61,6 +62,15 @@ async def _with_linode(account: dict, factory, fn):
         raise _linode_error(e) from None
     finally:
         await linode.aclose()
+
+
+async def _resync_follow_bindings(conn, p: Principal) -> list[int]:
+    """「使用中の edge に追従」の A レコード（edge.<ドメイン> など）を、今の edge の IP で作り直す。"""
+    cur = await conn.execute("SELECT id FROM ip_bindings WHERE follow_active_edge ORDER BY id")
+    return [
+        await enqueue(conn, "sync_binding", via="web", params={"binding_id": r["id"]}, requested_by=p.user_id)
+        for r in await cur.fetchall()
+    ]
 
 
 async def _enqueue_sync(conn, p: Principal) -> int:
@@ -332,8 +342,10 @@ async def add_edge(body: EdgeIn, p: Principal = Depends(require_admin), factory=
             (body.id, public_ip, ts_ip, first, body.linode_account_id, body.linode_id, body.firewall_id),
         )
         job = await _enqueue_sync(conn, p) if fw else None
+        # 最初の edge（＝使用中）を登録したら、edge.<ドメイン> などの A レコードをこの edge に向ける
+        dns_jobs = await _resync_follow_bindings(conn, p) if first else []
         await audit.add(conn, action="edge を登録", via="web", actor_id=p.user_id, target=body.id, job_id=job)
-    return {"id": body.id, "is_active": first, "job": {"id": job} if job else None}
+    return {"id": body.id, "is_active": first, "job": {"id": job} if job else None, "dns_jobs": dns_jobs}
 
 
 @router.patch("/edges/{edge_id}")
@@ -364,8 +376,12 @@ async def patch_edge(
             ),
         )
         job = await _enqueue_sync(conn, p)
+        # 使用中の edge の公開 IP が変わったら、追従する A レコードも書き換える
+        new_ip = _ip(body.public_ip, "public_ip") if body.public_ip else None
+        moved = e["is_active"] and new_ip and new_ip != str(e["public_ip"])
+        dns_jobs = await _resync_follow_bindings(conn, p) if moved else []
         await audit.add(conn, action="edge を変更", via="web", actor_id=p.user_id, target=edge_id, job_id=job)
-    return {"id": edge_id, "firewall_id": firewall_id, "job": {"id": job}}
+    return {"id": edge_id, "firewall_id": firewall_id, "job": {"id": job}, "dns_jobs": dns_jobs}
 
 
 @router.delete("/edges/{edge_id}", status_code=204)

@@ -239,6 +239,21 @@ async def add_binding(body: BindingIn, p: Principal = Depends(require_admin)) ->
     return {"id": bid, "job": {"id": job, "kind": "sync_binding", "status": "queued"}}
 
 
+@router.post("/bindings/{binding_id}/sync", status_code=202)
+async def resync_binding(binding_id: int, p: Principal = Depends(require_admin)) -> dict:
+    """A レコードを今の設定で作り直す（edge を後から登録したとき、権限を直したときなど）。"""
+    async with db.transaction() as conn:
+        cur = await conn.execute("SELECT host FROM ip_bindings WHERE id = %s", (binding_id,))
+        row = await cur.fetchone()
+        if row is None:
+            raise AppError("not_found", "紐付けが見つかりません。", 404)
+        job = await enqueue(conn, "sync_binding", via="web", params={"binding_id": binding_id}, requested_by=p.user_id)
+        await audit.add(
+            conn, action="IP の紐付けを反映し直す", via="web", actor_id=p.user_id, target=row["host"], job_id=job
+        )
+    return {"job": {"id": job, "kind": "sync_binding", "status": "queued"}}
+
+
 @router.delete("/bindings/{binding_id}", status_code=202)
 async def delete_binding(binding_id: int, p: Principal = Depends(require_admin)) -> dict:
     async with db.transaction() as conn:

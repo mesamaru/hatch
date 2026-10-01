@@ -222,6 +222,7 @@ async function edgeForm(edge) {
         toast("edge を変更しました");
       }
       if (r.job && r.job.id) trackJob({ id: r.job.id, kind: "sync_firewall", name: "ファイアウォール" });
+      for (const id of r.dns_jobs || []) trackJob({ id, kind: "sync_binding", name: "edge の A レコード" });
     },
   };
   await loadLinodes();

@@ -8,7 +8,7 @@ import pytest
 
 from hatch.api.infra import get_linode_factory
 from hatch.main import app
-from tests.api.test_domains_and_servers import add_domain, create, env, q, with_rule  # noqa: F401 - fixture
+from tests.api.test_domains_and_servers import ZONE, add_domain, create, env, q, with_rule  # noqa: F401 - fixture
 from tests.fakes.linode import FakeLinode, FakeLinodeCloud, hatch_ports
 
 TOKEN = "linode-token-0123456789abcdef"
@@ -151,3 +151,39 @@ async def test_too_many_rules_fails_deploy_and_records_reason(with_rule, cloud):
     assert "上限" in (job["error"] or "")
     # 取り消し後の反映では、このサーバーのポートは開かない（手で作ったルールはそのまま）
     assert hatch_ports(cloud) == {} and len(cloud.fw[501]["rules"]["inbound"]) == 25
+
+
+async def test_registering_first_edge_fixes_edge_record(env):
+    """edge を登録する前にドメインを追加すると edge.<ドメイン> は作れないが、edge を登録すると自動で作り直す。"""
+    q(env["url"], "DELETE FROM edges RETURNING 1")
+    ad = env["admin"]
+    r = await ad.post("/api/admin/domains", json={"name": "nuids.jp", "cf_zone_id": ZONE})
+    assert r.status_code == 201, r.text
+    await drain(env)
+    assert ("A", "edge.nuids.jp") not in env["dns"].names(ZONE)
+    assert q(env["url"], "SELECT status FROM jobs WHERE kind = 'sync_binding'") == [("failed",)] or q(
+        env["url"], "SELECT status FROM jobs WHERE kind = 'sync_binding'"
+    ) == [("rolled_back",)]
+
+    # Linode 以外の edge として登録（最初の edge なので使用中になる）
+    r = await ad.post(
+        "/api/admin/edges", json={"id": "edge-1", "public_ip": "45.33.1.10", "tailscale_ip": "100.64.1.1"}
+    )
+    assert r.status_code == 201, r.text
+    assert r.json()["is_active"] is True and len(r.json()["dns_jobs"]) == 1
+    await drain(env)
+    rec = next(x for x in env["dns"].records[ZONE].values() if x["name"] == "edge.nuids.jp")
+    assert rec["type"] == "A" and rec["content"] == "45.33.1.10"
+
+    # 公開 IP を変えると追従する
+    r = await ad.patch("/api/admin/edges/edge-1", json={"public_ip": "45.33.1.11"})
+    assert len(r.json()["dns_jobs"]) == 1
+    await drain(env)
+    rec = next(x for x in env["dns"].records[ZONE].values() if x["name"] == "edge.nuids.jp")
+    assert rec["content"] == "45.33.1.11"
+
+    # 手動で反映し直すこともできる
+    bid = q(env["url"], "SELECT id FROM ip_bindings WHERE host = 'edge'")[0][0]
+    r = await ad.post(f"/api/admin/bindings/{bid}/sync")
+    assert r.status_code == 202
+    assert (await env["tanaka"].post(f"/api/admin/bindings/{bid}/sync")).status_code == 403

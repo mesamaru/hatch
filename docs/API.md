@@ -135,6 +135,7 @@
 | PATCH / DELETE | /admin/domains/{id} | `{"is_default"?, "edge_host"?}`。枠や紐付けがあると削除不可（`409 in_use`） |
 | GET / POST / DELETE | /admin/ips, /admin/ips/{id} | `{"label","address","edge_id"?}`。紐付けや枠が使っていると削除不可 |
 | GET / POST / DELETE | /admin/bindings, /admin/bindings/{id} | `{"domain_id","host","ip_id"?,"follow_active_edge"}` → ジョブ（A レコード作成） |
+| POST | /admin/bindings/{id}/sync | A レコードを今の設定で作り直す → ジョブ。最初の edge を登録したとき・使用中の edge の公開 IP を変えたときは、「使用中の edge に追従」の紐付けを自動で作り直す（応答の `dns_jobs`） |
 | GET / POST | /admin/slot-rules | 作成：SlotRule（下記） |
 | POST | /admin/slot-rules/preview | 保存せずに検証と展開結果を返す：`{"problems":[str],"slots":[{"port","fqdn","excluded"}]}`。画面は入力のたびに呼ぶ（300ms 間引き） |
 | GET / PATCH / DELETE | /admin/slot-rules/{id} | 変更の制限は IMPLEMENTATION.md 4.3 |
