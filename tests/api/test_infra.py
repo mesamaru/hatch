@@ -230,3 +230,28 @@ async def test_firewall_can_be_removed_even_if_linode_refuses(env, cloud):
     assert (await ad.patch("/api/admin/edges/edge-1", json={"clear_linode": True})).status_code == 200
     assert q(env["url"], "SELECT linode_account_id, linode_id FROM edges") == [(None, None)]
     assert (await ad.delete(f"/api/admin/linode-accounts/{acc}")).status_code == 204
+
+
+async def test_account_can_be_deleted_with_its_edges_and_firewalls(env, cloud):
+    """使っている edge とファイアウォールがあっても、まとめて外してアカウントを削除できる。"""
+    acc, _fw = await register(env, cloud)
+    ad = env["admin"]
+    assert (await ad.delete(f"/api/admin/linode-accounts/{acc}")).status_code == 409
+    cloud.fw[501]["rules"]["inbound"].append(
+        {"label": "hatch-test-tcp-1", "action": "ACCEPT", "protocol": "TCP", "ports": "25565", "addresses": {}}
+    )
+    r = await ad.delete(f"/api/admin/linode-accounts/{acc}", params={"detach": "true"})
+    assert r.status_code == 200 and r.json() == {"kept_rules": []}, r.text
+    assert q(env["url"], "SELECT linode_account_id, linode_id, firewall_id FROM edges") == [(None, None, None)]
+    assert q(env["url"], "SELECT count(*) FROM firewalls") == [(0,)]
+    assert q(env["url"], "SELECT count(*) FROM linode_accounts") == [(0,)]
+    # Hatch のルールは消え、手で作った SSH のルールは残る
+    assert [x["label"] for x in cloud.fw[501]["rules"]["inbound"]] == ["ssh"]
+
+
+async def test_account_delete_keeps_rules_when_linode_refuses(env, cloud):
+    acc, _fw = await register(env, cloud)
+    cloud.token = "rotated-token-0123456789"  # 登録したトークンが使えなくなった
+    r = await env["admin"].delete(f"/api/admin/linode-accounts/{acc}", params={"detach": "true"})
+    assert r.status_code == 200 and r.json() == {"kept_rules": ["hatch-edge"]}, r.text
+    assert q(env["url"], "SELECT count(*) FROM linode_accounts") == [(0,)]

@@ -69,5 +69,16 @@ def test_register_linode_firewall_and_edge_from_the_screen(app_server, browser, 
             True,
             "45.33.1.10",
         )
+    # アカウントは、使っている edge とファイアウォールがあっても、まとめて外して削除できる
+    page.click('[data-act="menu-firewall"]')
+    expect(page.get_by_role("menuitem", name="管理をやめる（使っている edge から先に外す）")).to_be_disabled()
+    page.keyboard.press("Escape")
+    page.click('[data-act="menu-linode"]')
+    page.get_by_role("menuitem", name="削除").click()
+    expect(page.locator("#scrim")).to_contain_text("「Linode 以外」になります")
+    page.click("#cf-ok")
+    expect(page.locator("#toast")).to_contain_text("アカウントを削除しました")
+    expect(main := page.locator("#main")).not_to_contain_text("個人契約")
+    expect(main).to_contain_text("Linode 以外")
     assert not errors, errors
     ctx.close()

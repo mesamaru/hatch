@@ -9,6 +9,7 @@ import ipaddress
 from collections.abc import Callable
 
 from fastapi import APIRouter, Depends, Query, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from .. import db
@@ -157,7 +158,17 @@ async def update_account(
 
 
 @router.delete("/linode-accounts/{account_id}", status_code=204)
-async def delete_account(account_id: int, p: Principal = Depends(require_admin)) -> Response:
+async def delete_account(
+    account_id: int,
+    detach: bool = Query(default=False),
+    p: Principal = Depends(require_admin),
+    factory=Depends(get_linode_factory),
+) -> Response:
+    """detach=true なら、使っている edge を「Linode 以外」にし、ファイアウォールの管理もやめてから削除する。
+
+    ファイアウォールの Hatch のルールは消してみて、消せなければ（トークンの権限不足など）残して登録だけ外す。
+    応答の kept_rules に、ルールが残ったファイアウォールの名前を返す。
+    """
     async with db.transaction() as conn:
         acc = await _account(conn, account_id)
         cur = await conn.execute(
@@ -165,11 +176,39 @@ async def delete_account(account_id: int, p: Principal = Depends(require_admin))
             " + (SELECT count(*) FROM firewalls WHERE linode_account_id = %s) AS n",
             (account_id, account_id),
         )
-        if (await cur.fetchone())["n"]:
-            raise AppError("in_use", "このアカウントを使っている edge とファイアウォールを先に外してください。", 409)
+        used = (await cur.fetchone())["n"]
+        cur = await conn.execute(
+            "SELECT id, label, linode_firewall_id FROM firewalls WHERE linode_account_id = %s ORDER BY id",
+            (account_id,),
+        )
+        fws = await cur.fetchall()
+    if used and not detach:
+        raise AppError("in_use", "このアカウントを使っている edge とファイアウォールを先に外してください。", 409)
+    kept: list[str] = []
+    instance = get_core_settings().PD_INSTANCE
+    for fw in fws:
+
+        async def clear(li, fw=fw):
+            current = await li.get_rules(fw["linode_firewall_id"])
+            await li.put_rules(fw["linode_firewall_id"], merge(current, instance, {}))
+
+        try:
+            await _with_linode(acc, factory, clear)
+        except AppError:
+            kept.append(fw["label"])
+    async with db.transaction() as conn:
+        await conn.execute(
+            """UPDATE edges SET linode_account_id = NULL, linode_id = NULL, firewall_id = NULL
+               WHERE linode_account_id = %s
+                  OR firewall_id IN (SELECT id FROM firewalls WHERE linode_account_id = %s)""",
+            (account_id, account_id),
+        )
+        await conn.execute("DELETE FROM firewalls WHERE linode_account_id = %s", (account_id,))
         await conn.execute("DELETE FROM linode_accounts WHERE id = %s", (account_id,))
         await audit.add(conn, action="Linode のアカウントを削除", via="web", actor_id=p.user_id, target=acc["label"])
-    return Response(status_code=204)
+    if not detach:
+        return Response(status_code=204)
+    return JSONResponse({"kept_rules": kept}, status_code=200)
 
 
 @router.get("/linode-accounts/{account_id}/linodes")

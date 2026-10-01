@@ -326,7 +326,7 @@ export const INFRA_ACTIONS = {
       { label: "変更（Linode・ファイアウォール）", icon: "tune", run: () => edgeForm(e) },
       "-",
       {
-        label: "削除",
+        label: e.is_active ? "削除（使用中の edge は削除できません）" : "削除",
         icon: "trash",
         red: true,
         disabled: e.is_active,
@@ -363,7 +363,7 @@ export const INFRA_ACTIONS = {
       },
       "-",
       {
-        label: "管理をやめる",
+        label: f.edges.length ? "管理をやめる（使っている edge から先に外す）" : "管理をやめる",
         icon: "trash",
         red: true,
         disabled: f.edges.length > 0,
@@ -404,19 +404,26 @@ export const INFRA_ACTIONS = {
         label: "削除",
         icon: "trash",
         red: true,
-        disabled: a.edges > 0 || a.firewalls > 0,
-        run: () =>
+        run: () => {
+          const edges = DATA.edges.filter((e) => String(e.linode_account_id) === id).map((e) => e.id);
+          const fws = DATA.fws.filter((f) => String(f.linode_account_id) === id).map((f) => f.label);
+          const also = [
+            edges.length ? `<li>edge（${esc(edges.join("・"))}）は「Linode 以外」になります。edge 自体はそのまま使えます</li>` : "",
+            fws.length ? `<li>ファイアウォール（${esc(fws.join("・"))}）の管理をやめます。Hatch が作ったルールを消し、消せなければ Linode 側に残します</li>` : "",
+          ].join("");
           confirmSheet({
             title: "Linode のアカウントを削除",
-            body: `「${esc(a.label)}」の API トークンを削除します。Linode の契約やサーバーには影響しません。`,
+            body: `「${esc(a.label)}」の API トークンを削除します。Linode の契約やサーバーには影響しません。${also ? `<ul class="howto">${also}</ul>` : ""}`,
             ok: "削除",
             danger: true,
             onOk: async () => {
-              await api.del(`/admin/linode-accounts/${id}`);
-              toast("アカウントを削除しました");
+              const r = await api.del(`/admin/linode-accounts/${id}?detach=true`);
+              const kept = (r && r.kept_rules) || [];
+              toast(kept.length ? `削除しました。${kept.join("・")} の hatch- で始まるルールは、Cloud Manager で消してください` : "アカウントを削除しました", kept.length ? "warn" : undefined);
               ctx.refresh();
             },
-          }),
+          });
+        },
       },
     ]);
   },

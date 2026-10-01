@@ -167,7 +167,7 @@
 |---|---|---|
 | GET / POST | /admin/linode-accounts | 追加：`{"label","token"}`。トークンで Linode の API を確認してから保存。応答にトークンは含めない |
 | PATCH | /admin/linode-accounts/{id} | `{"label"?, "token"?}`。トークンの入れ替え（権限を変えて作り直したときなど）。新しいトークンは Linode の API で確認してから保存。応答にトークンは含めない |
-| DELETE | /admin/linode-accounts/{id} | 使っている edge・ファイアウォールがあると `409 in_use` |
+| DELETE | /admin/linode-accounts/{id} | 使っている edge・ファイアウォールがあると `409 in_use`。`?detach=true` なら、edge を「Linode 以外」にし、ファイアウォールの管理もやめてから削除する（Hatch のルールを消せなければ残す）→ `200 {"kept_rules":[ファイアウォール名]}` |
 | GET | /admin/linode-accounts/{id}/linodes | その契約の Linode 一覧（edge の登録で選ぶ）`[{"id","label","region","ipv4"}]` |
 | GET | /admin/linode-accounts/{id}/firewalls | その契約のファイアウォール一覧 |
 | GET / POST | /admin/firewalls | Hatch が管理するファイアウォール。追加：`{"linode_account_id","linode_firewall_id","label"}` |
