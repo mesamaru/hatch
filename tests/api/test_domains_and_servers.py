@@ -282,3 +282,18 @@ async def test_trashed_server_shows_purge_time(with_rule):
     items = (await env["tanaka"].get("/api/servers", params={"status": "trashed"})).json()["items"]
     assert [s["name"] for s in items] == ["storia"]
     assert items[0]["trashed_at"] and items[0]["purge_after"] > items[0]["trashed_at"]
+
+
+async def test_domain_without_dns_edit_permission_is_refused(env):
+    from hatch.errors import UpstreamError
+
+    async def no_permission(*_a, **_k):
+        raise UpstreamError("Cloudflare", "API トークンに、このドメインの DNS を編集する権限がありません", 403)
+
+    env["dns"]._create = no_permission  # ゾーンは読めるが、レコードは作れないトークン
+    r = await env["admin"].post("/api/admin/domains", json={"name": "nuids.jp", "cf_zone_id": ZONE})
+    assert r.status_code == 400 and r.json()["error"]["code"] == "dns_permission"
+    assert "権限" in r.json()["error"]["message"]
+    assert q(env["url"], "SELECT count(*) FROM domains") == [(0,)]
+    # 確認用のレコードは残らない
+    assert env["dns"].names(ZONE) == set()

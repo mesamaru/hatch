@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import secrets
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
 
@@ -62,6 +63,7 @@ class DnsAdapter(Protocol):
     comment_prefix: str
 
     async def verify_zone(self, zone_id: str) -> str: ...
+    async def check_edit(self, zone_id: str, zone_name: str) -> None: ...
     async def list_managed(self, zone_id: str) -> list[DnsRecord]: ...
     async def upsert(self, zone_id: str, spec: DnsRecordSpec) -> DnsRecord: ...
     async def delete(self, zone_id: str, record_id: str) -> None: ...
@@ -107,6 +109,12 @@ class CloudflareDns:
     async def verify_zone(self, zone_id: str) -> str:
         res = await self.http.request("GET", f"/zones/{zone_id}")
         return str(res.json()["result"]["name"])
+
+    async def check_edit(self, zone_id: str, zone_name: str) -> None:
+        """DNS を編集できるか、実際に試しのレコードを作って消して確かめる（権限不足を登録時に見つけるため）。"""
+        name = f"hatch-check-{secrets.token_hex(4)}.{zone_name}"
+        rec = await self.upsert(zone_id, DnsRecordSpec("A", name, "check", "192.0.2.1"))
+        await self.delete(zone_id, rec.id)
 
     async def list_managed(self, zone_id: str) -> list[DnsRecord]:
         out: list[DnsRecord] = []
@@ -190,10 +198,22 @@ def _conflicts(a: str, b: str) -> bool:
     return "CNAME" in (a, b)
 
 
+# トークンが無効、または権限（ゾーン・DNS の編集）が足りないときのエラーコード
+AUTH_ERROR_CODES = {9109, 10000}
+NO_PERMISSION = (
+    "API トークンに、このドメインの DNS を編集する権限がありません（Cloudflare のエラー {code}）。"
+    "Cloudflare の「API トークン」で、権限に「ゾーン → DNS → 編集」と「ゾーン → ゾーン → 読み取り」があり、"
+    "ゾーンリソースにこのドメインが含まれているか確認してください"
+)
+
+
 class _CfClient(ServiceClient):
     def explain(self, res: httpx.Response, body: str) -> str:
         try:
             errs = res.json().get("errors") or []
+            auth = [e.get("code") for e in errs if e.get("code") in AUTH_ERROR_CODES]
+            if auth:
+                return NO_PERMISSION.format(code=auth[0])
             if errs:
                 return " / ".join(f"{e.get('code')}: {e.get('message')}" for e in errs)[:300]
         except ValueError:

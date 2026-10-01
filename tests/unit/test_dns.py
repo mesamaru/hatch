@@ -178,3 +178,27 @@ async def test_fake_behaves_like_real():
     f.add_manual("z1", "TXT", "mc06trt.nuids.jp", "hello")
     with pytest.raises(DnsConflict):
         await f.upsert("z1", DnsRecordSpec("CNAME", "mc06trt.nuids.jp", "slot=25566", content="edge.nuids.jp"))
+
+
+async def test_permission_error_is_explained_in_japanese():
+    import httpx
+    import respx
+
+    from hatch.adapters.dns import CloudflareDns
+    from hatch.errors import UpstreamError
+
+    with respx.mock:
+        respx.get(url__regex=r".*/dns_records.*").mock(
+            return_value=httpx.Response(
+                403, json={"success": False, "errors": [{"code": 10000, "message": "Authentication error"}]}
+            )
+        )
+        dns = CloudflareDns("t", "test")
+        try:
+            await dns.check_edit("z1", "nuids.jp")
+        except UpstreamError as e:
+            assert "DNS を編集する権限がありません" in e.message and "ゾーンリソース" in e.message
+        else:
+            raise AssertionError("権限エラーにならない")
+        finally:
+            await dns.aclose()

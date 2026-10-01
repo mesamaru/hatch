@@ -64,6 +64,14 @@ async def add_domain(body: DomainIn, p: Principal = Depends(require_admin), dns:
         raise AppError(
             "zone_mismatch", f"このゾーンIDは {zone_name} のものです。{name} のゾーンIDを入力してください。", 400
         )
+    try:
+        await dns.check_edit(body.cf_zone_id, name)
+    except UpstreamError as e:
+        raise AppError("dns_permission", e.message, 400) from None
+    except TransientError:
+        raise AppError(
+            "upstream_timeout", "Cloudflare が応答しません。少し待ってからもう一度試してください。", 504
+        ) from None
     async with db.transaction() as conn:
         cur = await conn.execute("SELECT 1 FROM domains WHERE name = %s", (name,))
         if await cur.fetchone():

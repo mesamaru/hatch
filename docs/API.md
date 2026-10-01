@@ -223,6 +223,7 @@
 | in_use | 409 | 使用中のため削除・変更できない |
 | rule_invalid | 400 | アドレス枠の検証エラー（`detail.problems`） |
 | zone_mismatch | 400 | ゾーンIDとドメイン名が一致しない |
+| dns_permission | 400 | Cloudflare の API トークンに、そのドメインの DNS を編集する権限がない（ドメインの追加時に、試しのレコードを作って消して確かめる） |
 | upstream_error | 502 | 外部サービスがエラーを返した（`detail.service`） |
 | upstream_timeout | 504 | 外部サービスが応答しない |
 | file_too_large | 413 | アップロードが大きすぎる |
