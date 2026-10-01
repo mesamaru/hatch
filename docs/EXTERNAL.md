@@ -194,7 +194,7 @@ api.add_monitor(
 
 ## 7. Linode（Cloud Firewall）
 
-- 認証は Personal Access Token。**Linodes：Read Only、Firewalls：Read/Write** だけを付ける。契約ごとに1つ登録する（`linode_accounts`。暗号化して保存）。
+- 認証は Personal Access Token。**Linodes：Read/Write、Firewalls：Read/Write** だけを付ける（Linode をファイアウォールに付ける `POST /networking/firewalls/{id}/devices` は、その Linode への read_write も要る。Linodes が Read Only だと、一覧は読めるのに付ける操作だけ 401 になる）。契約ごとに1つ登録する（`linode_accounts`。暗号化して保存）。
 - 使う API：`GET /v4/linode/instances`（edge の Linode を選ぶ）、`GET /v4/networking/firewalls`、`GET・PUT /v4/networking/firewalls/{id}/rules`、`GET・POST /v4/networking/firewalls/{id}/devices`。
 - **ルールの PUT は全体の置き換え**。必ず GET した全体の Hatch の分（ラベルが `hatch-<PD_INSTANCE>-`）だけを差し替えて送る。手で作ったルールと `inbound_policy`・`outbound_policy` はそのまま返す。
 - 上限：1つのファイアウォールにルール25個（受信・送信の合計）、1ルールにポート15個まで。Hatch は連続するポートを範囲にまとめ、範囲は2つ分として数えて控えめに分ける。超えるときは送らずに `firewalls.last_error` に理由を残す。

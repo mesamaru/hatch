@@ -36,7 +36,7 @@ async function pInfra() {
       icon: "net",
       color: e.is_active ? "var(--green)" : "var(--gray)",
       title: `${esc(e.id)}${e.is_active ? '<span class="pill g">使用中</span>' : ""}${e.last_error ? '<span class="pill r">エラー</span>' : ""}`,
-      sub: `<span class="mono">${esc(e.public_ip)}</span>・${e.account ? `${esc(e.account)}・ファイアウォール ${e.firewall ? esc(e.firewall) : "なし"}` : "Linode 以外"}${e.last_seen_at ? `・最終応答 ${esc(shortTime(e.last_seen_at))}` : "・まだ応答がありません"}`,
+      sub: `<span class="mono">${esc(e.public_ip)}</span>${e.tailscale_ip ? "" : "・Tailscale の IP は接続後に入ります"}・${e.account ? `${esc(e.account)}・ファイアウォール ${e.firewall ? esc(e.firewall) : "なし"}` : "Linode 以外"}${e.last_seen_at ? `・最終応答 ${esc(shortTime(e.last_seen_at))}` : "・まだ応答がありません"}`,
       subWrap: true,
       more: { act: "menu-edge", arg: e.id, label: `${e.id} の操作` },
     })
@@ -86,8 +86,8 @@ function renderForm() {
     return `<div class="field"><label for="ff-${x.key}">${esc(x.label)}</label><input id="ff-${x.key}" data-form="${x.key}" type="${x.secret ? "password" : "text"}" value="${esc(f.values[x.key] ?? "")}" placeholder="${esc(x.placeholder || "")}" autocomplete="off" autocapitalize="off" spellcheck="false" ${x.mono ? 'class="mono"' : ""}></div>`;
   });
   openSheet(
-    `${sheetHead(esc(f.title), { left: "キャンセル", right: esc(f.ok), rightAct: "form-ok", rightId: "form-ok-top" })}<div class="sheet-b">
-      ${f.lead ? `<p class="sheet-lead">${f.lead}</p>` : ""}
+    `${sheetHead(esc(f.title), { left: "キャンセル" })}<div class="sheet-b">
+      ${f.lead ? `<div class="sheet-lead">${f.lead}</div>` : ""}
       ${group(rows, "", f.foot || "")}
       <div id="form-err" class="err-t" role="alert" style="font-size:14px;margin:8px 4px;white-space:pre-line"></div>
       <button type="button" class="btn fill block" data-act="form-ok" id="form-ok">${esc(f.ok)}</button></div>`,
@@ -97,7 +97,7 @@ function renderForm() {
 
 async function submitForm() {
   if (!FORM) return;
-  const btns = ["form-ok", "form-ok-top"].map((i) => document.getElementById(i)).filter(Boolean);
+  const btns = ["form-ok"].map((i) => document.getElementById(i)).filter(Boolean);
   btns.forEach((b) => (b.disabled = true));
   try {
     await FORM.submit(FORM.values);
@@ -111,22 +111,42 @@ async function submitForm() {
   }
 }
 
-const TOKEN_GUIDE =
-  'Linode の Cloud Manager 右上のアカウント → <b>API Tokens</b> → <b>Create a Personal Access Token</b>。<b>Linodes：Read Only</b>、<b>Firewalls：Read/Write</b> だけを選び、他は <b>No Access</b> にします。';
+const TOKEN_GUIDE = `API トークンの作り方
+  <ul class="howto">
+    <li>Linode の Cloud Manager で、右上のアカウント → <b>API Tokens</b> を開く</li>
+    <li><b>Create a Personal Access Token</b> を押す</li>
+    <li><b>Linodes</b> と <b>Firewalls</b> を <b>Read/Write</b> にし、他はすべて <b>No Access</b> にする（Linode をファイアウォールに付けるため、Linodes も Read/Write が必要です）</li>
+    <li>有効期限（Expiry）は <b>Never</b> にして作成し、表示されたトークンを下に貼り付ける</li>
+  </ul>`;
 
 function addAccount() {
   FORM = {
-    title: "Linode のアカウントを追加",
+    title: "Linode を追加",
     ok: "追加",
     lead: TOKEN_GUIDE,
     values: {},
     fields: [
-      { key: "label", label: "名前", placeholder: "例：個人契約" },
+      { key: "label", label: "名前", placeholder: "例：Linode" },
       { key: "token", label: "API トークン", secret: true },
     ],
     submit: async (v) => {
       await api.post("/admin/linode-accounts", { label: (v.label || "").trim(), token: (v.token || "").trim() });
       toast("Linode のアカウントを追加しました");
+    },
+  };
+  renderForm();
+}
+
+function replaceToken(a) {
+  FORM = {
+    title: "トークンを入れ替える",
+    ok: "入れ替え",
+    lead: `「${esc(a.label)}」の API トークンを、新しく作ったものに入れ替えます。古いトークンは Cloud Manager で削除して構いません。<br><br>${TOKEN_GUIDE}`,
+    values: {},
+    fields: [{ key: "token", label: "新しい API トークン", secret: true }],
+    submit: async (v) => {
+      await api.patch(`/admin/linode-accounts/${a.id}`, { token: (v.token || "").trim() });
+      toast("トークンを入れ替えました");
     },
   };
   renderForm();
@@ -185,7 +205,14 @@ async function edgeForm(edge) {
   FORM = {
     title: isNew ? "edge を登録" : `${edge.id} を変更`,
     ok: isNew ? "登録" : "保存",
-    lead: isNew ? "edge/install-edge.sh で入力した edge の名前と同じ名前にしてください。" : "",
+    lead: isNew
+      ? `edge は、プレイヤーが接続する入口のサーバーです（edge/install-edge.sh を実行したサーバー）。
+        <ul class="howto">
+          <li><b>名前</b>：install-edge.sh を実行したときに「edge の名前」に入力したもの（例 edge-1）。edge はこの名前で Hatch から設定を受け取るので、同じにします。忘れたときは、edge のサーバーで <code>grep EDGE_ID /etc/hatch-edge/agent.env</code></li>
+          <li><b>Linode・ファイアウォール</b>：Linode で動かしている場合に選びます。公開 IP は自動で入ります</li>
+          <li><b>Tailscale の IP</b>：空欄で構いません。edge が Hatch に接続すると自動で入ります</li>
+        </ul>`
+      : "",
     values: isNew
       ? { account: "" }
       : {
@@ -217,10 +244,11 @@ async function edgeForm(edge) {
         ],
       },
       { key: "public_ip", label: "公開 IP", placeholder: "Linode を選ぶと自動で入ります", mono: true },
-      { key: "tailscale_ip", label: "Tailscale の IP", placeholder: "例：100.64.1.1", mono: true },
+      { key: "tailscale_ip", label: "Tailscale の IP", placeholder: "空欄なら自動", mono: true },
     ],
     submit: async (v) => {
-      const body = { public_ip: (v.public_ip || "").trim(), tailscale_ip: (v.tailscale_ip || "").trim() };
+      const body = { public_ip: (v.public_ip || "").trim() };
+      if ((v.tailscale_ip || "").trim()) body.tailscale_ip = v.tailscale_ip.trim();
       if (v.account) {
         body.linode_account_id = Number(v.account);
         body.linode_id = v.linode ? Number(v.linode) : null;
@@ -342,6 +370,8 @@ export const INFRA_ACTIONS = {
     const a = DATA.accounts.find((x) => String(x.id) === id);
     if (!a) return;
     openMenu(el, [
+      { label: "トークンを入れ替える", icon: "key", run: () => replaceToken(a) },
+      "-",
       {
         label: "削除",
         icon: "trash",

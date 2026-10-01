@@ -58,7 +58,7 @@ const STEPS = {
 };
 
 const LOOK = {
-  done: { icon: "ok", color: "var(--green)", label: "済み" },
+  done: { icon: "check", color: "var(--green)", label: "済み" },
   todo: { icon: "plus", color: "var(--blue)", label: "" },
   locked: { icon: "clock", color: "var(--gray)", label: "まだ押せません" },
   working: { icon: "spin", color: "var(--orange)", label: "反映中" },

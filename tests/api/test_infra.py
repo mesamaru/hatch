@@ -187,3 +187,29 @@ async def test_registering_first_edge_fixes_edge_record(env):
     r = await ad.post(f"/api/admin/bindings/{bid}/sync")
     assert r.status_code == 202
     assert (await env["tanaka"].post(f"/api/admin/bindings/{bid}/sync")).status_code == 403
+
+
+async def test_read_only_linodes_token_explains_and_can_be_replaced(env, cloud):
+    """Linodes が Read Only のトークンでは edge をファイアウォールに付けられない。理由を示し、入れ替えで直る。"""
+    ro = "read-only-token-0123456789"
+    cloud.read_only_tokens.add(ro)
+    ad = env["admin"]
+    acc = (await ad.post("/api/admin/linode-accounts", json={"label": "Linode", "token": ro})).json()["id"]
+    r = await ad.post("/api/admin/firewalls", json={"linode_account_id": acc, "linode_firewall_id": 501})
+    fw = r.json()["id"]
+    body = {"id": "edge-2", "public_ip": "45.33.1.10", "linode_account_id": acc, "linode_id": 101, "firewall_id": fw}
+    r = await ad.post("/api/admin/edges", json=body)
+    assert r.status_code == 400 and r.json()["error"]["code"] == "linode_attach_forbidden", r.text
+    assert "Read/Write" in r.json()["error"]["message"]
+    assert q(env["url"], "SELECT count(*) FROM edges WHERE id = 'edge-2'") == [(0,)]
+
+    # トークンを入れ替える（間違ったトークンは断られ、元のまま）
+    assert (await ad.patch(f"/api/admin/linode-accounts/{acc}", json={"token": "x" * 30})).status_code == 400
+    r = await ad.patch(f"/api/admin/linode-accounts/{acc}", json={"token": TOKEN})
+    assert r.status_code == 200 and TOKEN not in r.text
+    assert TOKEN not in str(q(env["url"], "SELECT detail::text, target FROM audit_log"))
+    r = await ad.post("/api/admin/edges", json=body)
+    assert r.status_code == 201, r.text
+    assert cloud.fw[501]["devices"] == {101}
+    # Tailscale の IP は省略でき、edge からの報告（Tailscale 経由）で入る
+    assert q(env["url"], "SELECT tailscale_ip FROM edges WHERE id = 'edge-2'") == [(None,)]

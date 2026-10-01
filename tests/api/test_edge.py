@@ -199,3 +199,25 @@ def test_games_validation():
         parse({"x": {"kind": "mc", "nest": 1}})
     g = parse({"x": {"kind": "mc", "nest": 1, "egg": 2}})["x"]
     assert g.monitor == "gamedig" and g.is_minecraft
+
+
+async def test_report_fills_tailscale_ip_from_the_sender(pool, db_url):
+    seed(db_url)
+    with psycopg.connect(db_url) as c:
+        c.execute("UPDATE edges SET tailscale_ip = NULL WHERE id='edge-1'")
+
+    async def report(client_ip: str) -> None:
+        transport = httpx.ASGITransport(app=app, client=(client_ip, 40000))
+        async with httpx.AsyncClient(transport=transport, base_url="http://t") as cl:
+            r = await cl.post("/api/edge/report", json={"edge_id": "edge-1"}, headers=AUTH)
+            assert r.status_code == 204
+
+    def ts() -> str | None:
+        with psycopg.connect(db_url) as c:
+            v = c.execute("SELECT host(tailscale_ip) FROM edges WHERE id='edge-1'").fetchone()[0]
+        return v
+
+    await report("192.168.1.20")  # Tailscale 以外からの報告では入れない
+    assert ts() is None
+    await report("100.78.51.125")
+    assert ts() == "100.78.51.125"

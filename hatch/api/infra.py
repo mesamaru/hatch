@@ -122,6 +122,40 @@ async def add_account(
     return {"id": aid, "label": body.label}
 
 
+class AccountPatch(BaseModel):
+    label: str | None = Field(default=None, min_length=1, max_length=40)
+    token: str | None = Field(default=None, min_length=20, max_length=200)
+
+
+@router.patch("/linode-accounts/{account_id}")
+async def update_account(
+    account_id: int, body: AccountPatch, p: Principal = Depends(require_admin), factory=Depends(get_linode_factory)
+) -> dict:
+    """名前の変更とトークンの入れ替え（権限を変えたトークンに作り直したときなど）。"""
+    token = body.token.strip() if body.token else None
+    if token:
+        linode = factory(token)
+        try:
+            await linode.check()
+        except (UpstreamError, TransientError) as e:
+            raise _linode_error(e) from None
+        finally:
+            await linode.aclose()
+    async with db.transaction() as conn:
+        acc = await _account(conn, account_id)
+        label = body.label.strip() if body.label else acc["label"]
+        cur = await conn.execute("SELECT 1 FROM linode_accounts WHERE label = %s AND id <> %s", (label, account_id))
+        if await cur.fetchone():
+            raise AppError("already_exists", "同じ名前のアカウントがあります。別の名前にしてください。", 409)
+        await conn.execute(
+            "UPDATE linode_accounts SET label = %s, token_enc = COALESCE(%s, token_enc) WHERE id = %s",
+            (label, crypto.encrypt(token, "linode") if token else None, account_id),
+        )
+        action = "Linode のトークンを入れ替え" if token else "Linode のアカウントを変更"
+        await audit.add(conn, action=action, via="web", actor_id=p.user_id, target=label)
+    return {"id": account_id, "label": label}
+
+
 @router.delete("/linode-accounts/{account_id}", status_code=204)
 async def delete_account(account_id: int, p: Principal = Depends(require_admin)) -> Response:
     async with db.transaction() as conn:
@@ -257,7 +291,7 @@ async def sync_firewall(firewall_id: int, p: Principal = Depends(require_admin))
 class EdgeIn(BaseModel):
     id: str = Field(pattern=EDGE_ID_RE)
     public_ip: str
-    tailscale_ip: str
+    tailscale_ip: str | None = None  # 空なら、edge から最初の報告が来たときに入る
     linode_account_id: int | None = None
     linode_id: int | None = None
     firewall_id: int | None = None
@@ -306,7 +340,20 @@ async def _attach(conn, account_id: int, linode_id: int, fw: dict, factory) -> N
 
     async def run(li):
         if linode_id not in await li.device_linode_ids(fw["linode_firewall_id"]):
-            await li.attach_linode(fw["linode_firewall_id"], linode_id)
+            try:
+                await li.attach_linode(fw["linode_firewall_id"], linode_id)
+            except UpstreamError as e:
+                if e.status_code in (401, 403):
+                    raise AppError(
+                        "linode_attach_forbidden",
+                        "この Linode をファイアウォールに付ける権限がありません。"
+                        "Linode の API トークンは Linodes も Read/Write にする必要があります。"
+                        "トークンを作り直して「ノードと edge」のアカウントの「…」→"
+                        "「トークンを入れ替える」で登録し直すか、"
+                        "Cloud Manager でこの Linode をファイアウォールに付けてから、もう一度登録してください。",
+                        400,
+                    ) from None
+                raise
 
     await _with_linode(acc, factory, run)
 
@@ -326,7 +373,8 @@ async def list_edges(p: Principal = Depends(require_admin)) -> dict:
 
 @router.post("/edges", status_code=201)
 async def add_edge(body: EdgeIn, p: Principal = Depends(require_admin), factory=Depends(get_linode_factory)) -> dict:
-    public_ip, ts_ip = _ip(body.public_ip, "public_ip"), _ip(body.tailscale_ip, "tailscale_ip")
+    public_ip = _ip(body.public_ip, "public_ip")
+    ts_ip = _ip(body.tailscale_ip, "tailscale_ip") if (body.tailscale_ip or "").strip() else None
     async with db.transaction() as conn:
         cur = await conn.execute("SELECT 1 FROM edges WHERE id = %s", (body.id,))
         if await cur.fetchone():

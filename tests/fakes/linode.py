@@ -30,12 +30,14 @@ class FakeLinodeCloud:
             }
         }
         self.puts = 0
+        self.read_only_tokens: set[str] = set()  # Linodes が Read Only のトークン（一覧は読めるが付けられない）
 
 
 class FakeLinode:
     def __init__(self, cloud: FakeLinodeCloud, token: str) -> None:
         self.cloud = cloud
-        self.ok = token == cloud.token
+        self.read_only = token in cloud.read_only_tokens
+        self.ok = token == cloud.token or self.read_only
 
     def _auth(self) -> None:
         if not self.ok:  # 本物と同じく 401 を返す
@@ -70,6 +72,8 @@ class FakeLinode:
 
     async def attach_linode(self, firewall_id: int, linode_id: int):
         self._auth()
+        if self.read_only:  # 本物は、その Linode への read_write が無いと 401
+            raise UpstreamError("Linode", "Unauthorized", 401)
         self.cloud.fw[firewall_id]["devices"].add(linode_id)
 
     async def aclose(self) -> None:

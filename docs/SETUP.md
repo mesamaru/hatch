@@ -165,7 +165,7 @@ Discord のロールごとに、Hatch での権限を選びます。権限は3�
 1. 完了画面の **Discord でログイン** を押す
 2. 二段階認証は任意です。使う場合は、ログイン後に「設定 → 二段階認証」からオンにします（Google Authenticator などの認証アプリを使います）
 3. **管理 → はじめの設定** を開き、上から順に進めます（管理画面とサーバー一覧の先頭にも案内が出ます）。各手順のボタンで、その場で登録のシートが開きます
-   1. **Linode のアカウント**（任意）：Cloud Manager 右上のアカウント → API Tokens → Create a Personal Access Token。Linodes は Read Only、Firewalls は Read/Write、他は No Access にして作り、表示されたトークンを貼り付けます（契約が複数あれば、契約ごとに追加）
+   1. **Linode のアカウント**（任意）：Cloud Manager 右上のアカウント → API Tokens → Create a Personal Access Token。Linodes と Firewalls を Read/Write、他は No Access にして作り（Linodes も Read/Write が必要です）、表示されたトークンを貼り付けます（契約が複数あれば、契約ごとに追加）
    2. **ファイアウォール**（任意）：Cloud Manager の Firewalls → Create Firewall で作り、SSH など必要なルールだけを入れておきます。ここで登録すると、ゲームのポートは Hatch が自動で開け閉めします（サーバーを作ると開き、完全に削除すると締まる）
    3. **edge**：edge/install-edge.sh で入力した名前で登録し、Linode とファイアウォールを選びます（Linode を使わない edge は「Linode 以外」）。複数の edge で1つのファイアウォールを共有しても、edge ごとに別にしても構いません
    4. **ドメイン**：ゲームサーバーに使うドメインと Cloudflare のゾーン ID。edge.<ドメイン> の A レコードが自動で作られます
@@ -184,6 +184,7 @@ Discord のロールごとに、Hatch での権限を選びます。権限は3�
 | 接続確認で「接続できません」 | このコンテナからそのサービスへ通信できるか（Tailscale・ファイアウォール・URL のポート番号）を確認 |
 | 「DNS を作成できませんでした」「10000: Authentication error」「DNS を編集する権限がありません」 | Cloudflare の API トークンに、そのドメインの DNS を編集する権限がありません。Cloudflare の **プロフィール → API トークン** で該当トークンの **編集** を開き、権限に「ゾーン → DNS → 編集」と「ゾーン → ゾーン → 読み取り」があること、**ゾーンリソース** にそのドメインが入っていること（「すべてのゾーン」か、そのドメインを指定）を確認して保存します。トークンの値は変わらないので、Hatch 側の入れ直しは不要です。直したら、アドレス枠の画面でもう一度「DNS を作成」を押します。トークンを作り直した場合は、コンテナで `hatch-setup --reset` を実行して新しいトークンを入れます |
 | 「edge.<ドメイン> の DNS を反映できませんでした」「使用中の edge が登録されていません」 | edge（プレイヤーの入口）をまだ登録していません。**管理 → ノードと edge → edge を登録** で登録すると、edge.<ドメイン> の A レコードが自動で作り直されます（Linode を使わない edge は「Linode 以外」を選ぶ）。後から直したいときは、**管理 → はじめの設定** の「やり直す」か、**管理 → IP と紐付け** の各行の「…」→ **DNS を反映し直す** |
+| edge の登録で「Linode の API トークンが使えません」「この Linode をファイアウォールに付ける権限がありません」 | Linode のトークンの Linodes が Read Only です（ファイアウォールに付けるには Read/Write が必要）。Cloud Manager で Linodes と Firewalls を Read/Write にしたトークンを作り直し、**管理 → ノードと edge** のアカウントの「…」→ **トークンを入れ替える** で貼り付けてから、もう一度 edge を登録します。トークンを変えたくない場合は、Cloud Manager の Firewalls でその Linode をファイアウォールに付けてから登録しても構いません |
 | 保存後、「再起動しなかった」と表示される | コンテナの中で `systemctl restart hatch.target` を実行してからログイン |
 | ログインで「Hatch を使えるロールが、あなたの Discord アカウントに付いていません」 | Discord で自分に、初期設定で管理者（またはサポーター・利用者）にしたロールが付いているか確認。付いていなければ付けてから再ログイン。Discord サーバーのオーナーなら、ロールが無くても管理者としてログインできます |
 | ログインで「Invalid OAuth2 redirect_uri」 | Developer Portal の Redirects に、初期設定画面に表示された URL と完全に同じものを登録 |

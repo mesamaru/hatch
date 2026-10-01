@@ -166,12 +166,13 @@
 | メソッド | パス | 説明 |
 |---|---|---|
 | GET / POST | /admin/linode-accounts | 追加：`{"label","token"}`。トークンで Linode の API を確認してから保存。応答にトークンは含めない |
+| PATCH | /admin/linode-accounts/{id} | `{"label"?, "token"?}`。トークンの入れ替え（権限を変えて作り直したときなど）。新しいトークンは Linode の API で確認してから保存。応答にトークンは含めない |
 | DELETE | /admin/linode-accounts/{id} | 使っている edge・ファイアウォールがあると `409 in_use` |
 | GET | /admin/linode-accounts/{id}/linodes | その契約の Linode 一覧（edge の登録で選ぶ）`[{"id","label","region","ipv4"}]` |
 | GET | /admin/linode-accounts/{id}/firewalls | その契約のファイアウォール一覧 |
 | GET / POST | /admin/firewalls | Hatch が管理するファイアウォール。追加：`{"linode_account_id","linode_firewall_id","label"}` |
 | POST | /admin/firewalls/{id}/sync | 今すぐ反映 → ジョブ |
-| GET / POST | /admin/edges | edge の登録：`{"id","public_ip","tailscale_ip","linode_account_id"?,"linode_id"?,"firewall_id"?}` |
+| GET / POST | /admin/edges | edge の登録：`{"id","public_ip","tailscale_ip"?,"linode_account_id"?,"linode_id"?,"firewall_id"?}`。`tailscale_ip` を省くと、edge の最初の報告（`POST /api/edge/report`。送信元が 100.64.0.0/10 のとき）で入る。ファイアウォールに付ける権限が無いと `400 linode_attach_forbidden` |
 | PATCH / DELETE | /admin/edges/{id} | ファイアウォールの付け替え（共有・個別の切り替え）など |
 | GET / POST | /admin/panels | ゲームパネルの登録：`{"name","url","public_url"?,"app_key","client_key"}`。キーは応答に含めない |
 | PATCH / DELETE | /admin/panels/{id} | ノードやサーバーがあると削除不可 |
@@ -222,6 +223,8 @@
 | forbidden | 403 | 権限がない |
 | totp_required | 403 | 二段階認証を有効にしている人が、まだコードを入力していない |
 | tos_required | 403 | 利用規約への同意が必要（作成・変更系） |
+| linode_token_invalid | 400 | Linode の API トークンが使えない（無効・権限不足） |
+| linode_attach_forbidden | 400 | Linode をファイアウォールに付ける権限がない（トークンの Linodes が Read Only） |
 | not_found | 404 | |
 | user_not_found | 404 | 共有相手などのユーザーが見つからない |
 | not_supporter | 400 | サポーターの権限を持たない人を割り当てようとした |

@@ -47,13 +47,16 @@ async def touch(conn: AsyncConnection, edge_id: str) -> None:
     await conn.execute("UPDATE edges SET last_seen_at = now() WHERE id = %s", (edge_id,))
 
 
-async def report(conn: AsyncConnection, edge_id: str, applied_version: int | None, error: str | None) -> None:
+async def report(
+    conn: AsyncConnection, edge_id: str, applied_version: int | None, error: str | None, tailscale_ip: str | None = None
+) -> None:
     await conn.execute(
         """UPDATE edges SET last_seen_at = now(),
                   applied_version = COALESCE(%s, applied_version),
-                  last_error = %s
+                  last_error = %s,
+                  tailscale_ip = COALESCE(%s::inet, tailscale_ip)
            WHERE id = %s""",
-        (applied_version, error, edge_id),
+        (applied_version, error, tailscale_ip, edge_id),
     )
 
 

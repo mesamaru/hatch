@@ -168,6 +168,9 @@ input[type=range]{width:100%;accent-color:var(--blue)}
 .linkbtn{border:0;background:none;padding:0 0 0 6px;color:var(--blue);font-size:inherit}
 /* 二段階認証のシート */
 .sheet-lead{color:var(--label2);font-size:15px;line-height:1.55;margin:4px 4px 14px}
+.sheet-lead ul.howto{margin:6px 0 0;padding-left:1.3em}
+.sheet-lead ul.howto li{margin:3px 0}
+.sheet-lead code{word-break:break-all}
 .totp-steps{margin:4px 0 14px;padding-left:22px;font-size:15px;line-height:1.6}
 .totp-steps li{margin:6px 0}
 .totp-steps a{color:var(--blue)}

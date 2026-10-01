@@ -278,7 +278,7 @@
 
 ### T47 複数のゲームパネルと Wings ★★★
 - 依存：T06、T12、T21（パスワード同期がある場合）
-- ファイル：`db/migrations/0005_panels.sql`、`hatch/api/deps.py`（パネルごとのアダプター）、`hatch/jobs/deploy.py`、`hatch/api/infra.py`、`hatch/setup.py`・`api/setup.py`（1件目のパネル）、画面の管理
+- ファイル：`db/migrations/0006_panels.sql`、`hatch/api/deps.py`（パネルごとのアダプター）、`hatch/jobs/deploy.py`、`hatch/api/infra.py`、`hatch/setup.py`・`api/setup.py`（1件目のパネル）、画面の管理
 - 内容：`docs/IMPLEMENTATION.md` 7A.1・7A.5。
 - 受け入れ条件：2つのパネルを登録し、それぞれのノードにサーバーを作れる（フェイクのパネル2つで確認）。利用者のアカウントは、そのパネルで初めて作るときだけ作られる。既存の環境は移行で1件目のパネルになり、そのまま動く。キーは応答に出ない。
 
