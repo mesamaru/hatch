@@ -2,7 +2,7 @@
 // 状態は {tab, stack} で表す。stack は [{page, arg}] の積み重ね（スタック）。
 
 const SERVER_SUBPAGES = ["plugins", "network", "backups", "share", "address", "behavior"];
-const ADMIN_SIMPLE = ["health", "nodes", "expiring", "users", "roles", "announce", "violations", "audit", "keys", "system"];
+const ADMIN_SIMPLE = ["start", "health", "nodes", "expiring", "users", "roles", "announce", "violations", "audit", "keys", "system"];
 
 const ROUTES = [
   { re: /^\/servers\/trash\/?$/, to: () => ({ tab: "servers", stack: [{ page: "trash" }] }) },

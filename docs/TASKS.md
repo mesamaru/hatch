@@ -28,6 +28,7 @@
 | T45 統合版（Geyser）の UDP 中継 | 未着手 | |
 | T46 透過転送（統合版の専用サーバー・UDP のゲーム） | 未着手 | 要検証（Wings の Docker との組み合わせ） |
 | T47 複数のゲームパネルと Wings | 未着手 | |
+| T48 はじめの設定 | 完了 | 初期設定の後に管理画面で登録するものを、順番どおりの手順の一覧に。状態は登録済みのデータから毎回計算 |
 
 
 **1回の作業で1チケット**。上から順に進めます（「依存」が終わっていないチケットには着手しない）。各チケットは単独でテストが通り、`update` で配布できる状態で終わらせます。
@@ -280,6 +281,12 @@
 - ファイル：`db/migrations/0005_panels.sql`、`hatch/api/deps.py`（パネルごとのアダプター）、`hatch/jobs/deploy.py`、`hatch/api/infra.py`、`hatch/setup.py`・`api/setup.py`（1件目のパネル）、画面の管理
 - 内容：`docs/IMPLEMENTATION.md` 7A.1・7A.5。
 - 受け入れ条件：2つのパネルを登録し、それぞれのノードにサーバーを作れる（フェイクのパネル2つで確認）。利用者のアカウントは、そのパネルで初めて作るときだけ作られる。既存の環境は移行で1件目のパネルになり、そのまま動く。キーは応答に出ない。
+
+### T48 はじめの設定 ★★
+- 依存：T16、T43
+- ファイル：`hatch/api/getting_started.py`（新規）、`hatch/main.py`、`web/js/pages/getting-started.js`（新規）、`web/js/pages/admin-address.js`（管理トップの案内・保存後の遷移）、`web/js/pages/admin-infra.js`（他の画面からシートを開く）、`web/js/pages/servers.js`（管理者への案内）、`web/js/app.js`、`web/js/router.js`
+- 内容：`docs/SPEC.md` 8「はじめの設定」、`docs/API.md`「管理」の GettingStarted、`docs/UI.md` 3.2。
+- 受け入れ条件：何も登録していない状態では edge が「次にやる」、ドメイン以降が「まだ押せない」。edge・ドメイン・枠・DNS を順に登録すると、各手順が「済み」になり `complete` が true になる。edge より先にドメインを登録した状態では、ドメインが「失敗」で理由と `retry.bindings` を返す。Linode を使わずに edge を登録すると、Linode とファイアウォールは「飛ばした」。管理者以外は 403。
 
 ### T39 オーケストレーターの DB の遠隔バックアップ ★★
 - 依存：T08

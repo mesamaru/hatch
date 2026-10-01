@@ -131,6 +131,7 @@
 
 | メソッド | パス | 説明 |
 |---|---|---|
+| GET | /admin/getting-started | はじめの設定の進み具合（下記 GettingStarted）。SPEC.md 8「はじめの設定」 |
 | GET / POST | /admin/domains | 追加：`{"name","cf_zone_id"}` → ゾーンを確認（名前が一致しなければ `400 zone_mismatch`）し、`edge.<name>` の紐付けを作る |
 | PATCH / DELETE | /admin/domains/{id} | `{"is_default"?, "edge_host"?}`。枠や紐付けがあると削除不可（`409 in_use`） |
 | GET / POST / DELETE | /admin/ips, /admin/ips/{id} | `{"label","address","edge_id"?}`。紐付けや枠が使っていると削除不可 |
@@ -184,6 +185,19 @@
  "record_mode": "cname_edge", "ip_id": null, "create_srv": true, "prepublish": true,
  "assign_to": "shared", "user_id": null,
  "stats": {"total": 9, "free": 5, "assigned": 3, "held": 1, "disabled": 0}, "dns_published": true}
+
+// GettingStarted（GET /admin/getting-started）
+// state: done | todo（次にやる・やれる）| locked（前の手順が先）| working（ジョブの実行中）| error | skipped
+// key: linode | firewall | edge | domain | rule | dns。required=false は任意の手順（done・total に数えない）
+// detail は画面の補足（登録済みの名前など）。problem は error のときの理由。
+// retry は「やり直す」で呼ぶもの：{"bindings":[id…]} → POST /admin/bindings/{id}/sync、{"rules":[id…]} → POST /admin/slot-rules/{id}/publish
+{"done": 2, "total": 4, "complete": false,
+ "steps": [
+   {"key": "linode", "required": false, "state": "skipped", "detail": null, "problem": null, "retry": null},
+   {"key": "edge", "required": true, "state": "done", "detail": "edge-1（203.0.113.10）", "problem": null, "retry": null},
+   {"key": "domain", "required": true, "state": "error", "detail": "nuids.jp",
+    "problem": "edge.nuids.jp の A レコードを作れませんでした（…）", "retry": {"bindings": [1]}},
+   …]}
 ```
 
 ## edge エージェント・Webhook・公開

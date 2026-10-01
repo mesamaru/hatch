@@ -13,9 +13,23 @@ let FORM = null; // 入力中のシート { kind, values, options }
 const fieldErr = (e) => [e.message, ...Object.values((e.detail && e.detail.fields) || {})].join("\n");
 
 /* ---------------- 画面 ---------------- */
-async function pInfra() {
+/** 一覧を読み直す（はじめの設定など、他の画面からシートを開くときにも使う）。 */
+async function loadData() {
   const [edges, fws, accounts] = await Promise.all([api.get("/admin/edges"), api.get("/admin/firewalls"), api.get("/admin/linode-accounts")]);
   DATA = { edges: edges.items, fws: fws.items, accounts: accounts.items };
+}
+
+async function withData(fn) {
+  try {
+    await loadData();
+  } catch (e) {
+    return toast(e.message, "warn");
+  }
+  fn();
+}
+
+async function pInfra() {
+  await loadData();
   const shared = (fw) => (fw.edges.length > 1 ? `共有：${fw.edges.join("・")}` : fw.edges.length ? `${fw.edges[0]} 専用` : "どの edge も使っていません");
   const edgeRows = DATA.edges.map((e) =>
     cell({
@@ -235,10 +249,10 @@ export const INFRA_ACTIONS = {
     addAccount();
   },
   "firewall-add"() {
-    addFirewall();
+    withData(addFirewall);
   },
   "edge-add"() {
-    edgeForm(null);
+    withData(() => edgeForm(null));
   },
   "form-ok"() {
     submitForm();

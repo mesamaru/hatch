@@ -7,6 +7,7 @@ import { openMenu, openPicker, pickerButton } from "../components/picker.js";
 import { closeSheet, confirmSheet, onSheetClosed, openSheet, sheetHead } from "../components/sheet.js";
 import { toast } from "../components/toast.js";
 import { copyText, ctx, isAdmin, navbar, pageShell, remaining, shortTime } from "../ctx.js";
+import { loadStart, startBanner } from "./getting-started.js";
 import { jobBanners, runningStep, trackJob, trackServerJobs } from "./jobs.js";
 
 // 状態 → [表示, 点の色（.dot のクラス）, 札の色（.pill のクラス）]
@@ -51,7 +52,7 @@ function remember(items) {
 
 /* ---------------- 一覧 ---------------- */
 export async function pServers() {
-  const [list, trash] = await Promise.all([api.get("/servers"), api.get("/servers?status=trashed,purging")]);
+  const [list, trash, gs] = await Promise.all([api.get("/servers"), api.get("/servers?status=trashed,purging"), isAdmin() ? loadStart() : null]);
   const items = list.items;
   remember(items);
   remember(trash.items);
@@ -86,6 +87,7 @@ export async function pServers() {
     <div class="page"><h1 class="large">サーバー</h1>
     ${ctx.me.user.status === "deleting" ? banner("w", "退会の手続き中です", "新しいサーバーは作成できません。") : ""}
     ${jobBanners("servers")}
+    ${startBanner(gs)}
     <div class="tiles four">
       <button type="button" class="tile" data-act="tab" data-arg="monitor"><div class="top"><span class="ico" style="background:var(--green)">${ic("pulse")}</span><span class="n">${up}</span></div><span class="l">稼働中 / ${items.length}台</span></button>
       <button type="button" class="tile" data-act="scroll-need"><div class="top"><span class="ico" style="background:${need.length ? "var(--red)" : "var(--gray)"}">${ic("warn")}</span><span class="n">${need.length}</span></div><span class="l">要対応</span></button>

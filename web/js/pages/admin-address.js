@@ -7,6 +7,7 @@ import { openMenu, openPicker, pickerButton } from "../components/picker.js";
 import { closeSheet, confirmSheet, onSheetClosed, openSheet, sheetHead } from "../components/sheet.js";
 import { toast } from "../components/toast.js";
 import { copyText, ctx, navbar, pageShell } from "../ctx.js";
+import { loadStart, startBanner } from "./getting-started.js";
 import { jobBanners, trackJob } from "./jobs.js";
 
 const NAMES = { domain: new Map(), rule: new Map() }; // 見出しに出す名前（ID → 名前）
@@ -16,16 +17,18 @@ const fieldErr = (e) => [e.message, ...Object.values((e.detail && e.detail.field
 
 /* ---------------- 管理（トップ） ---------------- */
 async function pAdmin() {
-  const [domains, rules, ips, bindings] = await Promise.all([
+  const [domains, rules, ips, bindings, gs] = await Promise.all([
     api.get("/admin/domains"),
     api.get("/admin/slot-rules"),
     api.get("/admin/ips"),
     api.get("/admin/bindings"),
+    loadStart(),
   ]);
   const free = rules.items.reduce((a, r) => a + (r.stats ? r.stats.free : 0), 0);
   const later = (icon, color, title, page) => cell({ icon, color, title, val: '<span class="pill">準備中</span>', act: "go", arg: page });
   return `${navbar("管理")}<div class="page"><h1 class="large">管理</h1>
     ${jobBanners("admin")}
+    ${startBanner(gs)}
     ${group(
       [
         cell({ icon: "globe", color: "var(--teal)", title: "ドメイン", val: String(domains.items.length), act: "go", arg: "domains" }),
@@ -35,11 +38,11 @@ async function pAdmin() {
       "アドレス",
       domains.items.length
         ? "ポートとホスト名の対応（例 25561 ↔ mc01trt.nuids.jp）を先に作っておくと、利用者は空きから選ぶだけで作成できます。"
-        : "<b>最初に「ドメイン」を登録してください。</b>次に「アドレス枠」を作ると、サーバーを作成できるようになります。"
+        : "<b>上の「はじめの設定」から、順番どおりに進めてください。</b>edge を登録してからドメインを登録します。"
     )}
     ${group([cell({ icon: "people", color: "var(--green)", title: "ユーザー", act: "go", arg: "users" }), later("user", "var(--indigo)", "Discord ロール連携", "roles"), later("bell", "var(--red)", "お知らせ", "announce"), later("gavel", "var(--orange)", "違反対応", "violations")], "利用者")}
     ${group([later("pulse", "var(--green)", "システムの状態", "system"), later("sparkle", "var(--green)", "整合性チェック", "health"), cell({ icon: "server", color: "var(--blue)", title: "ノードと edge", sub: "Linode のファイアウォール", act: "go", arg: "nodes" }), later("clock", "var(--orange)", "期限が近いサーバー", "expiring")], "運用")}
-    ${group([later("list", "var(--gray)", "操作ログ", "audit"), later("key", "var(--gray)", "API キー", "keys")], "記録と設定")}
+    ${group([cell({ icon: "list", color: "var(--blue)", title: "はじめの設定", val: gs ? `${gs.done} / ${gs.total}` : "", act: "go", arg: "start" }), later("list", "var(--gray)", "操作ログ", "audit"), later("key", "var(--gray)", "API キー", "keys")], "記録と設定")}
   </div>`;
 }
 
@@ -490,7 +493,7 @@ async function saveRule() {
     toast("アドレス枠を保存しました");
     if (needsPublish) toast("「DNS を作成」を押すと、割り当て前にアドレスを使えるようにできます");
     const top = ctx.route.stack[ctx.route.stack.length - 1];
-    if (top && top.page === "rule") ctx.refresh();
+    if (top && (top.page === "rule" || top.page === "start")) ctx.refresh();
     else ctx.go("rule", String(id));
   } catch (e) {
     R.saving = false;

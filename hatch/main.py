@@ -18,6 +18,7 @@ from . import BASE_DIR, __version__, db
 from .api import auth as auth_api
 from .api import domains as domains_api
 from .api import edge as edge_api
+from .api import getting_started as getting_started_api
 from .api import infra as infra_api
 from .api import me as me_api
 from .api import servers as servers_api
@@ -70,6 +71,7 @@ app.include_router(domains_api.router)
 app.include_router(slots_api.router)
 app.include_router(servers_api.router)
 app.include_router(infra_api.router)
+app.include_router(getting_started_api.router)
 
 
 @app.get("/api/health")
