@@ -7,6 +7,8 @@ import { ic } from "./components/icons.js";
 import { esc, cell, group } from "./components/cell.js";
 import { toast } from "./components/toast.js";
 import { sheetHead, openSheet, closeSheet, isSheetOpen } from "./components/sheet.js";
+import { pServers, pServer, pServerSub, pTrash } from "./pages/servers.js";
+import { pAdminSlots, pAdminSlotDetail, pAdminSlotEdit } from "./pages/admin-address.js";
 
 const TABS = [
   { id: "servers", label: "サーバー", icon: "server" },
@@ -142,24 +144,51 @@ function onScroll() {
 }
 addEventListener("scroll", onScroll, { passive: true });
 
-function renderMain() {
+async function renderMain() {
   const top = ROUTE.stack[ROUTE.stack.length - 1];
   let html;
-  if (!top) {
-    html = ROUTE.tab === "settings" ? pSettings() : `${navbar(TAB_TITLES[ROUTE.tab])}<div class="page"><h1 class="large">${esc(TAB_TITLES[ROUTE.tab])}</h1></div>`;
-  } else {
-    html = `${navbar(pageTitle(top), { back: backLabel() })}<div class="page"><h1 class="large">${esc(pageTitle(top))}</h1></div>`;
+  try {
+    if (!top) {
+      if (ROUTE.tab === "settings") {
+        html = pSettings();
+      } else if (ROUTE.tab === "servers") {
+        html = await pServers();
+      } else if (ROUTE.tab === "monitor") {
+        html = `${navbar(TAB_TITLES[ROUTE.tab])}<div class="page"><h1 class="large">${esc(TAB_TITLES[ROUTE.tab])}</h1></div>`;
+      } else if (ROUTE.tab === "admin") {
+        html = await pAdminSlots();
+      } else {
+        html = `${navbar(TAB_TITLES[ROUTE.tab])}<div class="page"><h1 class="large">${esc(TAB_TITLES[ROUTE.tab])}</h1></div>`;
+      }
+    } else {
+      const page = top.page;
+      if (ROUTE.tab === "servers") {
+        if (page === "server") html = await pServer(top);
+        else if (page === "trash") html = await pTrash();
+        else if (["address", "behavior", "plugins", "network", "backups", "share"].includes(page)) html = await pServerSub(top);
+        else html = `${navbar(pageTitle(top), { back: backLabel() })}<div class="page"><h1 class="large">${esc(pageTitle(top))}</h1></div>`;
+      } else if (ROUTE.tab === "admin") {
+        if (page === "rules") html = await pAdminSlots();
+        else if (page === "rule") html = await pAdminSlotDetail(top);
+        else html = `${navbar(pageTitle(top), { back: backLabel() })}<div class="page"><h1 class="large">${esc(pageTitle(top))}</h1></div>`;
+      } else {
+        html = `${navbar(pageTitle(top), { back: backLabel() })}<div class="page"><h1 class="large">${esc(pageTitle(top))}</h1></div>`;
+      }
+    }
+  } catch (e) {
+    console.error("renderMain error:", e);
+    html = `${navbar("エラー")}<div class="page" style="padding:16px"><h1 class="large">エラーが発生しました</h1><div style="color:var(--red)">${esc(e.message)}</div></div>`;
   }
   document.getElementById("main").innerHTML = html;
   onScroll();
 }
-function render() {
+async function render() {
   if (ROUTE.tab === "admin" && !isAdmin()) {
     ROUTE = { tab: "servers", stack: [] };
     navigate(ROUTE.tab, ROUTE.stack, { replace: true });
   }
   renderChrome();
-  renderMain();
+  await renderMain();
 }
 
 /* ---------------- 設定（テーマ・背景） ---------------- */
@@ -272,13 +301,13 @@ function showTosSheet() {
 }
 
 /* ---------------- 起動 ---------------- */
-function startApp() {
+async function startApp() {
   document.getElementById("app").hidden = false;
   applyDisplay();
   ROUTE = parseLocation();
   if (ROUTE.tab === "admin" && !isAdmin()) ROUTE = { tab: "servers", stack: [] };
   navigate(ROUTE.tab, ROUTE.stack, { replace: true });
-  render();
+  await render();
 }
 
 async function boot() {
@@ -378,7 +407,7 @@ document.getElementById("scrim").addEventListener("click", (e) => {
 });
 onLocationChange((route) => {
   ROUTE = route;
-  render();
+  render().catch(e => console.error("Navigation error:", e));
 });
 
 boot();
