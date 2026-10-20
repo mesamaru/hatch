@@ -9,6 +9,7 @@ import { toast } from "./components/toast.js";
 import { sheetHead, openSheet, closeSheet, isSheetOpen } from "./components/sheet.js";
 import { pServers, pServer, pServerSub, pTrash } from "./pages/servers.js";
 import { pAdminSlots, pAdminSlotDetail, pAdminSlotEdit } from "./pages/admin-address.js";
+import { pGettingStarted, setupGettingStartedHandlers } from "./pages/getting-started.js";
 
 const TABS = [
   { id: "servers", label: "サーバー", icon: "server" },
@@ -168,7 +169,8 @@ async function renderMain() {
         else if (["address", "behavior", "plugins", "network", "backups", "share"].includes(page)) html = await pServerSub(top);
         else html = `${navbar(pageTitle(top), { back: backLabel() })}<div class="page"><h1 class="large">${esc(pageTitle(top))}</h1></div>`;
       } else if (ROUTE.tab === "admin") {
-        if (page === "rules") html = await pAdminSlots();
+        if (page === "getting-started") html = await pGettingStarted(top);
+        else if (page === "rules") html = await pAdminSlots();
         else if (page === "rule") html = await pAdminSlotDetail(top);
         else html = `${navbar(pageTitle(top), { back: backLabel() })}<div class="page"><h1 class="large">${esc(pageTitle(top))}</h1></div>`;
       } else {
@@ -181,6 +183,7 @@ async function renderMain() {
   }
   document.getElementById("main").innerHTML = html;
   onScroll();
+  setupGettingStartedHandlers();
 }
 async function render() {
   if (ROUTE.tab === "admin" && !isAdmin()) {
