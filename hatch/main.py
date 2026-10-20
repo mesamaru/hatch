@@ -20,6 +20,7 @@ from .api import domains as domains_api
 from .api import edge as edge_api
 from .api import me as me_api
 from .api import servers as servers_api
+from .api import setup as setup_api
 from .api import slots as slots_api
 from .config import ConfigError, get_settings
 from .errors import install_handlers
@@ -53,6 +54,7 @@ app.include_router(edge_api.router)
 app.include_router(auth_api.router)
 app.include_router(me_api.router)
 app.include_router(domains_api.router)
+app.include_router(setup_api.router)
 app.include_router(slots_api.router)
 app.include_router(servers_api.router)
 
