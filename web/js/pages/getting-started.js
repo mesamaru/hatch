@@ -103,9 +103,9 @@ export function setupGettingStartedHandlers() {
     const data = new FormData(form);
     const payload = {
       name: data.get("name"),
-      linode_account_id: 1,
-      linode_instance_id: 1,
-      firewall_id: 1,
+      linode_account_id: parseInt(data.get("linode_account"), 10) || 1,
+      linode_instance_id: parseInt(data.get("linode_instance"), 10) || 1,
+      firewall_id: parseInt(data.get("firewall"), 10) || 1,
       public_ip: data.get("public_ip"),
       tailscale_ip: data.get("tailscale_ip"),
     };
