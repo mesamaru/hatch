@@ -83,14 +83,74 @@ async function pEdgeForm() {
   }
 }
 
-function pFirewallForm() {
-  return `${navbar("2. ファイアウォールを登録", { back: "はじめの設定" })}
-    <div class="page"><h1 class="large">ファイアウォール</h1><div style="padding:16px">未実装</div></div>`;
+async function pFirewallForm() {
+  try {
+    const [firewalls, linodeAccounts] = await Promise.all([
+      api.get("/api/admin/firewalls"),
+      api.get("/api/admin/linode-accounts"),
+    ]);
+
+    const linodeOptions = linodeAccounts.map((l) => `<option>${esc(l.label)}</option>`).join("");
+
+    return `${navbar("2. ファイアウォールを登録", { back: "はじめの設定" })}
+      <div class="page">
+        <h1 class="large">ファイアウォールを登録</h1>
+        <div style="padding:16px">
+          <div style="background:var(--bg2);padding:12px;border-radius:12px;margin-bottom:16px">
+            <p style="margin:0;font-size:14px;color:var(--label2)">Linode Cloud Firewall は、edge サーバーの保護に使用します</p>
+          </div>
+          <form id="firewall-form" style="display:flex;flex-direction:column;gap:12px">
+            <div>
+              <label style="font-size:14px;color:var(--label2)">Linode アカウント</label>
+              <select name="linode_account" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--sep);border-radius:8px;color:var(--label)">
+                ${linodeOptions}
+              </select>
+            </div>
+            <div>
+              <label style="font-size:14px;color:var(--label2)">ファイアウォール</label>
+              <select name="firewall" style="width:100%;padding:8px;background:var(--bg2);border:1px solid var(--sep);border-radius:8px;color:var(--label)">
+                <option>選択してください</option>
+              </select>
+            </div>
+            <div id="firewall-error" style="color:var(--red);font-size:14px;min-height:20px"></div>
+            <button type="submit" style="padding:12px;background:var(--blue);color:white;border:none;border-radius:24px;font-weight:600;cursor:pointer">次へ</button>
+          </form>
+        </div>
+      </div>`;
+  } catch (e) {
+    return `${navbar("ファイアウォールを登録", { back: "はじめの設定" })}
+      <div class="page" style="padding:16px"><div style="color:var(--red)">${esc(e.message)}</div></div>`;
+  }
 }
 
-function pLinodeForm() {
-  return `${navbar("1. Linode アカウントを登録", { back: "はじめの設定" })}
-    <div class="page"><h1 class="large">Linode アカウント</h1><div style="padding:16px">未実装</div></div>`;
+async function pLinodeForm() {
+  try {
+    const accounts = await api.get("/api/admin/linode-accounts");
+
+    const accountItems = accounts.map((a) =>
+      `<div style="padding:12px;background:var(--bg2);border-radius:8px;margin-bottom:8px">
+        <div style="font-weight:600;color:var(--label)">${esc(a.label)}</div>
+        <div style="font-size:14px;color:var(--label2)">${esc(a.id)}</div>
+      </div>`
+    ).join("");
+
+    return `${navbar("1. Linode アカウントを登録", { back: "はじめの設定" })}
+      <div class="page">
+        <h1 class="large">Linode アカウント</h1>
+        <div style="padding:16px">
+          <div style="background:var(--bg2);padding:12px;border-radius:12px;margin-bottom:16px">
+            <p style="margin:0;font-size:14px;color:var(--label2)">Linode API トークンを使用して、Linode リソースを管理します</p>
+          </div>
+          ${accountItems}
+          <button style="width:100%;padding:12px;background:var(--blue);color:white;border:none;border-radius:24px;font-weight:600;cursor:pointer;margin-top:16px">
+            新しいアカウントを追加
+          </button>
+        </div>
+      </div>`;
+  } catch (e) {
+    return `${navbar("Linode アカウント", { back: "はじめの設定" })}
+      <div class="page" style="padding:16px"><div style="color:var(--red)">${esc(e.message)}</div></div>`;
+  }
 }
 
 // フォーム送信ハンドラー（app.js で呼び出される）
